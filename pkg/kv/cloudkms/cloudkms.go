@@ -21,6 +21,8 @@ import (
 	"golang.org/x/oauth2/google"
 	cloudkms "google.golang.org/api/cloudkms/v1"
 
+	"encoding/base64"
+
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv"
 )
 
@@ -56,41 +58,41 @@ func New(store kv.Service, project, location, keyring, cryptoKey string) (kv.Ser
 	}, nil
 }
 
-func (g *googleKms) encrypt(s string) (string, error) {
+func (g *googleKms) encrypt(s []byte) ([]byte, error) {
 	resp, err := g.svc.Projects.Locations.KeyRings.CryptoKeys.Encrypt(g.keyPath, &cloudkms.EncryptRequest{
-		Plaintext: s,
+		Plaintext: base64.StdEncoding.EncodeToString(s),
 	}).Do()
 
 	if err != nil {
-		return "", fmt.Errorf("error encrypting data: %s", err.Error())
+		return nil, fmt.Errorf("error encrypting data: %s", err.Error())
 	}
 
-	return resp.Ciphertext, nil
+	return base64.StdEncoding.DecodeString(resp.Ciphertext)
 }
 
-func (g *googleKms) decrypt(s string) (string, error) {
+func (g *googleKms) decrypt(s []byte) ([]byte, error) {
 	resp, err := g.svc.Projects.Locations.KeyRings.CryptoKeys.Decrypt(g.keyPath, &cloudkms.DecryptRequest{
-		Ciphertext: s,
+		Ciphertext: base64.StdEncoding.EncodeToString(s),
 	}).Do()
 
 	if err != nil {
-		return "", fmt.Errorf("error decrypting data: %s", err.Error())
+		return nil, fmt.Errorf("error decrypting data: %s", err.Error())
 	}
 
-	return resp.Plaintext, nil
+	return base64.StdEncoding.DecodeString(resp.Plaintext)
 }
 
-func (g *googleKms) Get(key string) (string, error) {
+func (g *googleKms) Get(key string) ([]byte, error) {
 	cipherText, err := g.store.Get(key)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return g.decrypt(cipherText)
 }
 
-func (g *googleKms) Set(key, val string) error {
+func (g *googleKms) Set(key string, val []byte) error {
 	cipherText, err := g.encrypt(val)
 
 	if err != nil {

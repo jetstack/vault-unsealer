@@ -17,6 +17,6 @@ package kv
 // Service defines a basic key-value store. Implementations of this interface
 // may or may not guarantee consistency or security properties.
 type Service interface {
-	Set(key, value string) error
-	Get(key string) (string, error)
+	Set(key string, value []byte) error
+	Get(key string) ([]byte, error)
 }

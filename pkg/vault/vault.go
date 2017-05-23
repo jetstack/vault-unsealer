@@ -100,16 +100,16 @@ func (u *vault) Init() error {
 
 	for i, k := range resp.Keys {
 		keyID := u.unsealKeyForID(i)
-		err := u.keyStore.Set(keyID, k)
+		err := u.keyStore.Set(keyID, []byte(k))
 
 		if err != nil {
-			return fmt.Errorf("error storing unseal key: %s", keyID)
+			return fmt.Errorf("error storing unseal key '%s': %s", keyID, err.Error())
 		}
 	}
 
 	rootTokenKey := u.rootTokenKey()
 
-	if err = u.keyStore.Set(rootTokenKey, resp.RootToken); err != nil {
+	if err = u.keyStore.Set(rootTokenKey, []byte(resp.RootToken)); err != nil {
 		return fmt.Errorf("error storing root token: %s", rootTokenKey)
 	}
 
