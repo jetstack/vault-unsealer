@@ -59,12 +59,12 @@ func Execute() {
 
 func init() {
 	// Google Cloud KMS flags
-	RootCmd.Flags().StringVar(&kvConfig.googleCloudKMSProject, "google-cloud-kms-project", "", "The Google Cloud KMS project to use")
-	RootCmd.Flags().StringVar(&kvConfig.googleCloudKMSLocation, "google-cloud-kms-location", "", "The Google Cloud KMS location to use (eg. 'global', 'europe-west1')")
-	RootCmd.Flags().StringVar(&kvConfig.googleCloudKMSKeyRing, "google-cloud-kms-key-ring", "", "The name of the Google Cloud KMS key ring to use")
-	RootCmd.Flags().StringVar(&kvConfig.googleCloudKMSCryptoKey, "google-cloud-kms-crypto-key", "", "The name of the Google Cloud KMS crypt key to use")
+	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudKMSProject, "google-cloud-kms-project", "", "The Google Cloud KMS project to use")
+	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudKMSLocation, "google-cloud-kms-location", "", "The Google Cloud KMS location to use (eg. 'global', 'europe-west1')")
+	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudKMSKeyRing, "google-cloud-kms-key-ring", "", "The name of the Google Cloud KMS key ring to use")
+	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudKMSCryptoKey, "google-cloud-kms-crypto-key", "", "The name of the Google Cloud KMS crypt key to use")
 
 	// Google Cloud Storage flags
-	RootCmd.Flags().StringVar(&kvConfig.googleCloudStorageBucket, "google-cloud-storage-bucket", "", "The name of the Google Cloud Storage bucket to store values in")
-	RootCmd.Flags().StringVar(&kvConfig.googleCloudStoragePrefix, "google-cloud-storage-prefix", "", "The prefix to use for values store in Google Cloud Storage")
+	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudStorageBucket, "google-cloud-storage-bucket", "", "The name of the Google Cloud Storage bucket to store values in")
+	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudStoragePrefix, "google-cloud-storage-prefix", "", "The prefix to use for values store in Google Cloud Storage")
 }
