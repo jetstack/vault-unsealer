@@ -1,0 +1,33 @@
+variables:
+  DOCKER_DRIVER: overlay
+  PKG_PATH: github.com/jetstack-experimental/vault-unsealer
+
+stages:
+- build
+- docker
+- deploy
+
+# configure $GOPATH correctly on all build stages
+before_script:
+  - mkdir -p "$GOPATH/src/$PKG_PATH" && rmdir "$GOPATH/src/$PKG_PATH"
+  - ln -s "$(pwd)" "$GOPATH/src/$PKG_PATH"
+  - cd "$GOPATH/src/$PKG_PATH"
+
+verify:golang:
+  image: golang:1.8
+  stage: build
+  tags:
+  - docker
+  script:
+  - make verify
+
+build:golang:
+  image: golang:1.8
+  stage: build
+  tags:
+  - docker
+  script:
+  - make build
+  artifacts:
+    paths:
+    - vault-unsealer_linux_amd64
