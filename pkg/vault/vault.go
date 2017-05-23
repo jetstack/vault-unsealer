@@ -89,7 +89,10 @@ func (u *vault) Unseal() error {
 }
 
 func (u *vault) Init() error {
-	resp, err := u.cl.Sys().Init(&api.InitRequest{})
+	resp, err := u.cl.Sys().Init(&api.InitRequest{
+		SecretShares:    5,
+		SecretThreshold: 3,
+	})
 
 	if err != nil {
 		return fmt.Errorf("error initialising vault: %s", err.Error())
