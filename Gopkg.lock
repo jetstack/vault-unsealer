@@ -1,0 +1,129 @@
+memo = "9c86311d106791c9bf76e034d15549e49540967b61c092326d37dd4a5bf68789"
+
+[[projects]]
+  branch = "master"
+  name = "cloud.google.com/go"
+  packages = ["compute/metadata","iam","internal","internal/optional","internal/version","storage"]
+  revision = "5b04beffe14fb213ed136bdb8bafe766b80e59bd"
+
+[[projects]]
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  revision = "51fe59aca108dc5680109e7b2051cbdcfa5a253c"
+
+[[projects]]
+  name = "github.com/fatih/structs"
+  packages = ["."]
+  revision = "a720dfa8df582c51dee1b36feabb906bde1588bd"
+  version = "v1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/protobuf"
+  packages = ["proto","protoc-gen-go/descriptor"]
+  revision = "7a211bcf3bce0e3f1d74f9894916e6f116ae83b4"
+
+[[projects]]
+  name = "github.com/googleapis/gax-go"
+  packages = ["."]
+  revision = "da06d194a00e19ce00d9011a13931c3f6f6887c7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-cleanhttp"
+  packages = ["."]
+  revision = "3573b8b52aa7b37b9358d966a898feb387f62437"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  revision = "ed905158d87462226a13fe39ddf685ea65f1c11f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-rootcerts"
+  packages = ["."]
+  revision = "6bb64b370b90e7ef1fa532be9e591a81c3493e00"
+
+[[projects]]
+  name = "github.com/hashicorp/hcl"
+  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  revision = "d8c773c4cba11b11539e3d45f93daeaa5dcf1fa1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/vault"
+  packages = ["api","helper/compressutil","helper/jsonutil"]
+  revision = "c416c8ab955610f6bb70175171104935058be3b7"
+
+[[projects]]
+  name = "github.com/inconshreveable/mousetrap"
+  packages = ["."]
+  revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/go-homedir"
+  packages = ["."]
+  revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
+
+[[projects]]
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  revision = "740c764bc6149d3f1806231418adb9f52c11bcbf"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/sethgrid/pester"
+  packages = ["."]
+  revision = "4f4c0a67b6496764028e1ab9fd8dfb630282ed2f"
+
+[[projects]]
+  name = "github.com/spf13/cobra"
+  packages = ["."]
+  revision = "f62e98d28ab7ad31d707ba837a966378465c7b57"
+
+[[projects]]
+  name = "github.com/spf13/pflag"
+  packages = ["."]
+  revision = "9ff6c6923cfffbcd502984b8e0c80539a94968b7"
+
+[[projects]]
+  name = "golang.org/x/net"
+  packages = ["context","context/ctxhttp","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
+  revision = "f2499483f923065a842d38eb4c7f1927e6fc6e6d"
+
+[[projects]]
+  name = "golang.org/x/oauth2"
+  packages = [".","google","internal","jws","jwt"]
+  revision = "a6bd8cefa1811bd24b86f8902872e4e8225f74c4"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/api"
+  packages = ["cloudkms/v1","gensupport","googleapi","googleapi/internal/uritemplates","googleapi/transport","internal","iterator","option","storage/v1","transport"]
+  revision = "d9d64fe74969b80fb4a435ae9280c9ff061a6097"
+
+[[projects]]
+  name = "google.golang.org/appengine"
+  packages = [".","internal","internal/app_identity","internal/base","internal/datastore","internal/log","internal/modules","internal/remote_api","internal/socket","internal/urlfetch","socket","urlfetch"]
+  revision = "4f7eeb5305a4ba1966344836ba4af9996b7b4e05"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+  packages = ["googleapis/api/annotations","googleapis/iam/v1"]
+  revision = "d80a6e20e776b0b17a324d0ba1ab50a39c8e8944"
+
+[[projects]]
+  name = "google.golang.org/grpc"
+  packages = [".","codes","credentials","credentials/oauth","grpclog","internal","metadata","naming","peer","transport"]
+  revision = "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+  version = "v1.0.4"
