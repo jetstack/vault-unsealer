@@ -64,9 +64,13 @@ func TestAWSIntegration(t *testing.T) {
 		t.Errorf("Unexpected error storing value in KMS kv: %s", err)
 	}
 
-	_, ok := kv.Values[payloadKey]
+	value, ok := kv.Values[payloadKey]
 	if !ok {
 		t.Errorf("Nothing stored in backend storage")
+	}
+
+	if act := string(*value); act == payloadValue {
+		t.Errorf("Value stored in backend storage is unencrypted: %s", act)
 	}
 
 	out, err := a.Get("test123")
