@@ -28,6 +28,9 @@ type kvCfg struct {
 	googleCloudKMSLocation   string
 	googleCloudKMSKeyRing    string
 	googleCloudKMSCryptoKey  string
+
+	awsKMSKeyID     string
+	awsSSMKeyPrefix string
 }
 
 var kvConfig kvCfg
@@ -67,4 +70,11 @@ func init() {
 	// Google Cloud Storage flags
 	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudStorageBucket, "google-cloud-storage-bucket", "", "The name of the Google Cloud Storage bucket to store values in")
 	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudStoragePrefix, "google-cloud-storage-prefix", "", "The prefix to use for values store in Google Cloud Storage")
+
+	// AWS KMS Storage flags
+	RootCmd.PersistentFlags().StringVar(&kvConfig.awsKMSKeyID, "aws-kms-key-id", "", "The ID or ARN of the AWS KMS key to encrypt values")
+
+	// AWS SSM Parameter Storage flags
+	RootCmd.PersistentFlags().StringVar(&kvConfig.awsSSMKeyPrefix, "aws-ssm-key-prefix", "", "The Key Prefix for SSM Parameter store")
+
 }

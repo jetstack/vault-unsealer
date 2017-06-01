@@ -101,3 +101,8 @@ func (g *googleKms) Set(key string, val []byte) error {
 
 	return g.store.Set(key, cipherText)
 }
+
+func (g *googleKms) Test(key string) error {
+	// TODO: Implement me properly
+	return nil
+}
