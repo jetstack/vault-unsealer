@@ -93,6 +93,12 @@ func (u *vault) Unseal() error {
 }
 
 func (u *vault) Init() error {
+	// test backend first
+	err := u.keyStore.Test("test-params")
+	if err != nil {
+		return fmt.Errorf("error testing keystore before init: %s", err.Error())
+	}
+
 	resp, err := u.cl.Sys().Init(&api.InitRequest{
 		SecretShares:    u.secretShares,
 		SecretThreshold: u.secretThreshold,
