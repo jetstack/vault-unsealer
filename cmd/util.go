@@ -17,27 +17,54 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/spf13/viper"
+
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv"
+	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv/aws_kms"
+	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv/aws_ssm"
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv/cloudkms"
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv/gcs"
 )
 
-func kvStoreForFlags(cfg kvCfg) (kv.Service, error) {
-	g, err := gcs.New(cfg.googleCloudStorageBucket, cfg.googleCloudStoragePrefix)
+func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 
-	if err != nil {
-		return nil, fmt.Errorf("error creating google cloud storage kv store: %s", err.Error())
+	if cfg.GetString(cfgMode) == cfgModeValueGoogleCloudKMSGCS {
+		g, err := gcs.New(
+			cfg.GetString(cfgGoogleCloudStorageBucket),
+			cfg.GetString(cfgGoogleCloudStoragePrefix),
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("error creating google cloud storage kv store: %s", err.Error())
+		}
+
+		kms, err := cloudkms.New(g,
+			cfg.GetString(cfgGoogleCloudKMSProject),
+			cfg.GetString(cfgGoogleCloudKMSLocation),
+			cfg.GetString(cfgGoogleCloudKMSKeyRing),
+			cfg.GetString(cfgGoogleCloudKMSCryptoKey),
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("error creating google cloud kms kv store: %s", err.Error())
+		}
+
+		return kms, nil
 	}
 
-	kms, err := cloudkms.New(g,
-		cfg.googleCloudKMSProject,
-		cfg.googleCloudKMSLocation,
-		cfg.googleCloudKMSKeyRing,
-		cfg.googleCloudKMSCryptoKey)
+	if cfg.GetString(cfgMode) == cfgModeValueAWSKMSSSM {
+		ssm, err := aws_ssm.New(cfg.GetString(cfgAWSSSMKeyPrefix))
+		if err != nil {
+			return nil, fmt.Errorf("error creating AWS SSM kv store: %s", err.Error())
+		}
 
-	if err != nil {
-		return nil, fmt.Errorf("error creating google cloud kms kv store: %s", err.Error())
+		kms, err := aws_kms.New(ssm, cfg.GetString(cfgAWSKMSKeyID))
+		if err != nil {
+			return nil, fmt.Errorf("error creating AWS KMS ID kv store: %s", err.Error())
+		}
+
+		return kms, nil
 	}
 
-	return kms, nil
+	return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))
 }

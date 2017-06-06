@@ -19,6 +19,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/vault/api"
+
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv"
 )
 

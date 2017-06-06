@@ -19,22 +19,26 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-type kvCfg struct {
-	googleCloudStorageBucket string
-	googleCloudStoragePrefix string
-	googleCloudKMSProject    string
-	googleCloudKMSLocation   string
-	googleCloudKMSKeyRing    string
-	googleCloudKMSCryptoKey  string
-
-	awsKMSKeyID     string
-	awsSSMKeyPrefix string
-}
-
-var kvConfig kvCfg
+var appConfig *viper.Viper
 var cfgFile string
+
+const cfgMode = "mode"
+const cfgModeValueAWSKMSSSM = "aws-kms-ssm"
+const cfgModeValueGoogleCloudKMSGCS = "google-cloud-kms-gcs"
+
+const cfgGoogleCloudKMSProject = "google-cloud-kms-project"
+const cfgGoogleCloudKMSLocation = "google-cloud-kms-location"
+const cfgGoogleCloudKMSKeyRing = "google-cloud-kms-key-ring"
+const cfgGoogleCloudKMSCryptoKey = "google-cloud-kms-crypto-key"
+
+const cfgGoogleCloudStorageBucket = "google-cloud-storage-bucket"
+const cfgGoogleCloudStoragePrefix = "google-cloud-storage-prefix"
+
+const cfgAWSKMSKeyID = "aws-kms-key-id"
+const cfgAWSSSMKeyPrefix = "aws-ssm-key-prefix"
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -60,21 +64,37 @@ func Execute() {
 	}
 }
 
+func configStringVar(key, defaultValue, description string) {
+	RootCmd.PersistentFlags().String(key, defaultValue, description)
+	appConfig.BindPFlag(key, RootCmd.PersistentFlags().Lookup(key))
+}
+
 func init() {
+	appConfig = viper.New()
+	appConfig.SetEnvPrefix("vault_unsealer")
+	appConfig.AutomaticEnv()
+
+	// SelectMode
+	configStringVar(
+		cfgMode,
+		cfgModeValueGoogleCloudKMSGCS,
+		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM),
+	)
+
 	// Google Cloud KMS flags
-	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudKMSProject, "google-cloud-kms-project", "", "The Google Cloud KMS project to use")
-	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudKMSLocation, "google-cloud-kms-location", "", "The Google Cloud KMS location to use (eg. 'global', 'europe-west1')")
-	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudKMSKeyRing, "google-cloud-kms-key-ring", "", "The name of the Google Cloud KMS key ring to use")
-	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudKMSCryptoKey, "google-cloud-kms-crypto-key", "", "The name of the Google Cloud KMS crypt key to use")
+	configStringVar(cfgGoogleCloudKMSProject, "", "The Google Cloud KMS project to use")
+	configStringVar(cfgGoogleCloudKMSLocation, "", "The Google Cloud KMS location to use (eg. 'global', 'europe-west1')")
+	configStringVar(cfgGoogleCloudKMSKeyRing, "", "The name of the Google Cloud KMS key ring to use")
+	configStringVar(cfgGoogleCloudKMSCryptoKey, "", "The name of the Google Cloud KMS crypt key to use")
 
 	// Google Cloud Storage flags
-	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudStorageBucket, "google-cloud-storage-bucket", "", "The name of the Google Cloud Storage bucket to store values in")
-	RootCmd.PersistentFlags().StringVar(&kvConfig.googleCloudStoragePrefix, "google-cloud-storage-prefix", "", "The prefix to use for values store in Google Cloud Storage")
+	configStringVar(cfgGoogleCloudStorageBucket, "", "The name of the Google Cloud Storage bucket to store values in")
+	configStringVar(cfgGoogleCloudStoragePrefix, "", "The prefix to use for values store in Google Cloud Storage")
 
 	// AWS KMS Storage flags
-	RootCmd.PersistentFlags().StringVar(&kvConfig.awsKMSKeyID, "aws-kms-key-id", "", "The ID or ARN of the AWS KMS key to encrypt values")
+	configStringVar("aws-kms-key-id", "", "The ID or ARN of the AWS KMS key to encrypt values")
 
 	// AWS SSM Parameter Storage flags
-	RootCmd.PersistentFlags().StringVar(&kvConfig.awsSSMKeyPrefix, "aws-ssm-key-prefix", "", "The Key Prefix for SSM Parameter store")
+	configStringVar("aws-ssm-key-prefix", "", "The Key Prefix for SSM Parameter store")
 
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
+
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/vault"
 )
 
@@ -31,7 +32,7 @@ storing the keys in the Cloud KMS keyring.
 
 It will not unseal the Vault instance after initialising.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		store, err := kvStoreForFlags(kvConfig)
+		store, err := kvStoreForConfig(appConfig)
 
 		if err != nil {
 			logrus.Fatalf("error creating kv store: %s", err.Error())
