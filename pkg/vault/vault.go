@@ -29,6 +29,9 @@ type vault struct {
 	keyStore kv.Service
 	cl       *api.Client
 	prefix   string
+
+	secretShares    int
+	secretThreshold int
 }
 
 var _ Vault = &vault{}
@@ -42,8 +45,8 @@ type Vault interface {
 }
 
 // New returns a new vault Vault, or an error.
-func New(prefix string, k kv.Service, cl *api.Client) (Vault, error) {
-	return &vault{k, cl, prefix}, nil
+func New(prefix string, k kv.Service, cl *api.Client, secretShares, secretThreshold int) (Vault, error) {
+	return &vault{k, cl, prefix, secretShares, secretThreshold}, nil
 }
 
 func (u *vault) Sealed() (bool, error) {
@@ -91,8 +94,8 @@ func (u *vault) Unseal() error {
 
 func (u *vault) Init() error {
 	resp, err := u.cl.Sys().Init(&api.InitRequest{
-		SecretShares:    5,
-		SecretThreshold: 3,
+		SecretShares:    u.secretShares,
+		SecretThreshold: u.secretThreshold,
 	})
 
 	if err != nil {

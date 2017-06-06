@@ -25,6 +25,9 @@ import (
 var appConfig *viper.Viper
 var cfgFile string
 
+const cfgSecretShares = "secret-shares"
+const cfgSecretThreshold = "secret-threshold"
+
 const cfgMode = "mode"
 const cfgModeValueAWSKMSSSM = "aws-kms-ssm"
 const cfgModeValueGoogleCloudKMSGCS = "google-cloud-kms-gcs"
@@ -64,6 +67,11 @@ func Execute() {
 	}
 }
 
+func configIntVar(key string, defaultValue int, description string) {
+	RootCmd.PersistentFlags().Int(key, defaultValue, description)
+	appConfig.BindPFlag(key, RootCmd.PersistentFlags().Lookup(key))
+}
+
 func configStringVar(key, defaultValue, description string) {
 	RootCmd.PersistentFlags().String(key, defaultValue, description)
 	appConfig.BindPFlag(key, RootCmd.PersistentFlags().Lookup(key))
@@ -80,6 +88,10 @@ func init() {
 		cfgModeValueGoogleCloudKMSGCS,
 		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM),
 	)
+
+	// Secret config
+	configIntVar(cfgSecretShares, 1, "Total count of secret shares that exist")
+	configIntVar(cfgSecretThreshold, 1, "Minimum required secret shares to unseal")
 
 	// Google Cloud KMS flags
 	configStringVar(cfgGoogleCloudKMSProject, "", "The Google Cloud KMS project to use")

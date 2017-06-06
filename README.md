@@ -31,6 +31,8 @@ Flags:
       --google-cloud-storage-prefix string   The prefix to use for values store in Google Cloud Storage
   -h, --help                                 help for vault-unsealer
       --mode string                          Select the mode to use 'google-cloud-kms-gcs' => Google Cloud Storage with encryption using Google KMS; 'aws-kms-ssm' => AWS SSM parameter store using AWS KMS encryption (default "google-cloud-kms-gcs")
+      --secret-shares int                    Total count of secret shares that exist (default 1)
+      --secret-threshold int                 Minimum required secret shares to unseal (default 1)
 
 Use "vault-unsealer [command] --help" for more information about a command.
 ```
