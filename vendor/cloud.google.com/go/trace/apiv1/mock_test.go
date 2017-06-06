@@ -17,18 +17,16 @@
 package trace
 
 import (
-	emptypb "github.com/golang/protobuf/ptypes/empty"
+	google_protobuf "github.com/golang/protobuf/ptypes/empty"
 	cloudtracepb "google.golang.org/genproto/googleapis/devtools/cloudtrace/v1"
 )
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -38,7 +36,6 @@ import (
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 )
 
 var _ = io.EOF
@@ -60,11 +57,7 @@ type mockTraceServer struct {
 	resps []proto.Message
 }
 
-func (s *mockTraceServer) ListTraces(ctx context.Context, req *cloudtracepb.ListTracesRequest) (*cloudtracepb.ListTracesResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockTraceServer) ListTraces(_ context.Context, req *cloudtracepb.ListTracesRequest) (*cloudtracepb.ListTracesResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -72,11 +65,7 @@ func (s *mockTraceServer) ListTraces(ctx context.Context, req *cloudtracepb.List
 	return s.resps[0].(*cloudtracepb.ListTracesResponse), nil
 }
 
-func (s *mockTraceServer) GetTrace(ctx context.Context, req *cloudtracepb.GetTraceRequest) (*cloudtracepb.Trace, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockTraceServer) GetTrace(_ context.Context, req *cloudtracepb.GetTraceRequest) (*cloudtracepb.Trace, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -84,16 +73,12 @@ func (s *mockTraceServer) GetTrace(ctx context.Context, req *cloudtracepb.GetTra
 	return s.resps[0].(*cloudtracepb.Trace), nil
 }
 
-func (s *mockTraceServer) PatchTraces(ctx context.Context, req *cloudtracepb.PatchTracesRequest) (*emptypb.Empty, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockTraceServer) PatchTraces(_ context.Context, req *cloudtracepb.PatchTracesRequest) (*google_protobuf.Empty, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
 	}
-	return s.resps[0].(*emptypb.Empty), nil
+	return s.resps[0].(*google_protobuf.Empty), nil
 }
 
 // clientOpt is the option tests should use to connect to the test server.
@@ -126,7 +111,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestTraceServicePatchTraces(t *testing.T) {
-	var expectedResponse *emptypb.Empty = &emptypb.Empty{}
+	var expectedResponse *google_protobuf.Empty = &google_protobuf.Empty{}
 
 	mockTrace.err = nil
 	mockTrace.reqs = nil
@@ -158,7 +143,7 @@ func TestTraceServicePatchTraces(t *testing.T) {
 }
 
 func TestTraceServicePatchTracesError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockTrace.err = grpc.Errorf(errCode, "test error")
 
 	var projectId string = "projectId-1969970175"
@@ -220,7 +205,7 @@ func TestTraceServiceGetTrace(t *testing.T) {
 }
 
 func TestTraceServiceGetTraceError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockTrace.err = grpc.Errorf(errCode, "test error")
 
 	var projectId string = "projectId-1969970175"
@@ -292,7 +277,7 @@ func TestTraceServiceListTraces(t *testing.T) {
 }
 
 func TestTraceServiceListTracesError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockTrace.err = grpc.Errorf(errCode, "test error")
 
 	var projectId string = "projectId-1969970175"

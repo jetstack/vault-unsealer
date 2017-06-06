@@ -48,7 +48,13 @@ type MetricsCallOptions struct {
 func defaultMetricsClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		option.WithEndpoint("logging.googleapis.com:443"),
-		option.WithScopes(DefaultAuthScopes()...),
+		option.WithScopes(
+			"https://www.googleapis.com/auth/cloud-platform",
+			"https://www.googleapis.com/auth/cloud-platform.read-only",
+			"https://www.googleapis.com/auth/logging.admin",
+			"https://www.googleapis.com/auth/logging.read",
+			"https://www.googleapis.com/auth/logging.write",
+		),
 	}
 }
 
@@ -99,7 +105,7 @@ type MetricsClient struct {
 	CallOptions *MetricsCallOptions
 
 	// The metadata to be sent with each request.
-	xGoogHeader []string
+	xGoogHeader string
 }
 
 // NewMetricsClient creates a new metrics service v2 client.
@@ -136,8 +142,8 @@ func (c *MetricsClient) Close() error {
 // use by Google-written clients.
 func (c *MetricsClient) SetGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", version.Go()}, keyval...)
-	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeader = []string{gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", "")
+	c.xGoogHeader = gax.XGoogHeader(kv...)
 }
 
 // MetricsProjectPath returns the path for the project resource.
@@ -164,9 +170,8 @@ func MetricsMetricPath(project, metric string) string {
 }
 
 // ListLogMetrics lists logs-based metrics.
-func (c *MetricsClient) ListLogMetrics(ctx context.Context, req *loggingpb.ListLogMetricsRequest, opts ...gax.CallOption) *LogMetricIterator {
+func (c *MetricsClient) ListLogMetrics(ctx context.Context, req *loggingpb.ListLogMetricsRequest) *LogMetricIterator {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.ListLogMetrics[0:len(c.CallOptions.ListLogMetrics):len(c.CallOptions.ListLogMetrics)], opts...)
 	it := &LogMetricIterator{}
 	it.InternalFetch = func(pageSize int, pageToken string) ([]*loggingpb.LogMetric, string, error) {
 		var resp *loggingpb.ListLogMetricsResponse
@@ -176,11 +181,11 @@ func (c *MetricsClient) ListLogMetrics(ctx context.Context, req *loggingpb.ListL
 		} else {
 			req.PageSize = int32(pageSize)
 		}
-		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		err := gax.Invoke(ctx, func(ctx context.Context) error {
 			var err error
-			resp, err = c.metricsClient.ListLogMetrics(ctx, req, settings.GRPC...)
+			resp, err = c.metricsClient.ListLogMetrics(ctx, req)
 			return err
-		}, opts...)
+		}, c.CallOptions.ListLogMetrics...)
 		if err != nil {
 			return nil, "", err
 		}
@@ -199,15 +204,14 @@ func (c *MetricsClient) ListLogMetrics(ctx context.Context, req *loggingpb.ListL
 }
 
 // GetLogMetric gets a logs-based metric.
-func (c *MetricsClient) GetLogMetric(ctx context.Context, req *loggingpb.GetLogMetricRequest, opts ...gax.CallOption) (*loggingpb.LogMetric, error) {
+func (c *MetricsClient) GetLogMetric(ctx context.Context, req *loggingpb.GetLogMetricRequest) (*loggingpb.LogMetric, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.GetLogMetric[0:len(c.CallOptions.GetLogMetric):len(c.CallOptions.GetLogMetric)], opts...)
 	var resp *loggingpb.LogMetric
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.metricsClient.GetLogMetric(ctx, req, settings.GRPC...)
+		resp, err = c.metricsClient.GetLogMetric(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.GetLogMetric...)
 	if err != nil {
 		return nil, err
 	}
@@ -215,15 +219,14 @@ func (c *MetricsClient) GetLogMetric(ctx context.Context, req *loggingpb.GetLogM
 }
 
 // CreateLogMetric creates a logs-based metric.
-func (c *MetricsClient) CreateLogMetric(ctx context.Context, req *loggingpb.CreateLogMetricRequest, opts ...gax.CallOption) (*loggingpb.LogMetric, error) {
+func (c *MetricsClient) CreateLogMetric(ctx context.Context, req *loggingpb.CreateLogMetricRequest) (*loggingpb.LogMetric, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.CreateLogMetric[0:len(c.CallOptions.CreateLogMetric):len(c.CallOptions.CreateLogMetric)], opts...)
 	var resp *loggingpb.LogMetric
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.metricsClient.CreateLogMetric(ctx, req, settings.GRPC...)
+		resp, err = c.metricsClient.CreateLogMetric(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.CreateLogMetric...)
 	if err != nil {
 		return nil, err
 	}
@@ -231,15 +234,14 @@ func (c *MetricsClient) CreateLogMetric(ctx context.Context, req *loggingpb.Crea
 }
 
 // UpdateLogMetric creates or updates a logs-based metric.
-func (c *MetricsClient) UpdateLogMetric(ctx context.Context, req *loggingpb.UpdateLogMetricRequest, opts ...gax.CallOption) (*loggingpb.LogMetric, error) {
+func (c *MetricsClient) UpdateLogMetric(ctx context.Context, req *loggingpb.UpdateLogMetricRequest) (*loggingpb.LogMetric, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.UpdateLogMetric[0:len(c.CallOptions.UpdateLogMetric):len(c.CallOptions.UpdateLogMetric)], opts...)
 	var resp *loggingpb.LogMetric
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.metricsClient.UpdateLogMetric(ctx, req, settings.GRPC...)
+		resp, err = c.metricsClient.UpdateLogMetric(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.UpdateLogMetric...)
 	if err != nil {
 		return nil, err
 	}
@@ -247,14 +249,13 @@ func (c *MetricsClient) UpdateLogMetric(ctx context.Context, req *loggingpb.Upda
 }
 
 // DeleteLogMetric deletes a logs-based metric.
-func (c *MetricsClient) DeleteLogMetric(ctx context.Context, req *loggingpb.DeleteLogMetricRequest, opts ...gax.CallOption) error {
+func (c *MetricsClient) DeleteLogMetric(ctx context.Context, req *loggingpb.DeleteLogMetricRequest) error {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.DeleteLogMetric[0:len(c.CallOptions.DeleteLogMetric):len(c.CallOptions.DeleteLogMetric)], opts...)
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		_, err = c.metricsClient.DeleteLogMetric(ctx, req, settings.GRPC...)
+		_, err = c.metricsClient.DeleteLogMetric(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.DeleteLogMetric...)
 	return err
 }
 

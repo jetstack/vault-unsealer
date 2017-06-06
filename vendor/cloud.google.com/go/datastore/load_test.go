@@ -84,71 +84,71 @@ func TestLoadEntityNestedLegacy(t *testing.T) {
 		want interface{}
 	}{
 		{
-			desc: "nested",
-			src: &pb.Entity{
+			"nested",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"X":   {ValueType: &pb.Value_StringValue{StringValue: "two"}},
-					"A.I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+					"X":   {ValueType: &pb.Value_StringValue{"two"}},
+					"A.I": {ValueType: &pb.Value_IntegerValue{2}},
 				},
 			},
-			want: &NestedSimple1{
+			&NestedSimple1{
 				A: Simple{I: 2},
 				X: "two",
 			},
 		},
 		{
-			desc: "nested with tag",
-			src: &pb.Entity{
+			"nested with tag",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"AA.II": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+					"AA.II": {ValueType: &pb.Value_IntegerValue{2}},
 				},
 			},
-			want: &NestedSimpleWithTag{
+			&NestedSimpleWithTag{
 				A: SimpleWithTag{I: 2},
 			},
 		},
 		{
-			desc: "nested with anonymous struct field",
-			src: &pb.Entity{
+			"nested with anonymous struct field",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"X": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
-					"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+					"X": {ValueType: &pb.Value_StringValue{"two"}},
+					"I": {ValueType: &pb.Value_IntegerValue{2}},
 				},
 			},
-			want: &NestedSimpleAnonymous{
+			&NestedSimpleAnonymous{
 				Simple: Simple{I: 2},
 				X:      "two",
 			},
 		},
 		{
-			desc: "nested with dotted field tag",
-			src: &pb.Entity{
+			"nested with dotted field tag",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"A.B.B": {ValueType: &pb.Value_StringValue{StringValue: "bb"}},
+					"A.B.B": {ValueType: &pb.Value_StringValue{"bb"}},
 				},
 			},
-			want: &ABDotB{
+			&ABDotB{
 				A: BDotB{
 					B: "bb",
 				},
 			},
 		},
 		{
-			desc: "nested with multiple anonymous fields",
-			src: &pb.Entity{
+			"nested with multiple anonymous fields",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"I":  {ValueType: &pb.Value_IntegerValue{IntegerValue: 3}},
-					"S":  {ValueType: &pb.Value_StringValue{StringValue: "S"}},
-					"SS": {ValueType: &pb.Value_StringValue{StringValue: "s"}},
-					"X":  {ValueType: &pb.Value_StringValue{StringValue: "s"}},
+					"I":  {ValueType: &pb.Value_IntegerValue{3}},
+					"S":  {ValueType: &pb.Value_StringValue{"S"}},
+					"SS": {ValueType: &pb.Value_StringValue{"s"}},
+					"X":  {ValueType: &pb.Value_StringValue{"s"}},
 				},
 			},
-			want: &MultiAnonymous{
+			&MultiAnonymous{
 				Simple:          Simple{I: 3},
 				SimpleTwoFields: SimpleTwoFields{S: "S", SS: "s"},
 				X:               "s",
@@ -193,71 +193,71 @@ func TestLoadEntityNested(t *testing.T) {
 		want interface{}
 	}{
 		{
-			desc: "nested basic",
-			src: &pb.Entity{
+			"nested basic",
+			&pb.Entity{
 				Properties: map[string]*pb.Value{
 					"A": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Properties: map[string]*pb.Value{
-								"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 3}},
+								"I": {ValueType: &pb.Value_IntegerValue{3}},
 							},
 						},
 					}},
-					"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 10}},
+					"I": {ValueType: &pb.Value_IntegerValue{10}},
 				},
 			},
-			want: &NestedSimple{
+			&NestedSimple{
 				A: Simple{I: 3},
 				I: 10,
 			},
 		},
 		{
-			desc: "nested with struct tags",
-			src: &pb.Entity{
+			"nested with struct tags",
+			&pb.Entity{
 				Properties: map[string]*pb.Value{
 					"AA": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Properties: map[string]*pb.Value{
-								"II": {ValueType: &pb.Value_IntegerValue{IntegerValue: 1}},
+								"II": {ValueType: &pb.Value_IntegerValue{1}},
 							},
 						},
 					}},
 				},
 			},
-			want: &NestedSimpleWithTag{
+			&NestedSimpleWithTag{
 				A: SimpleWithTag{I: 1},
 			},
 		},
 		{
-			desc: "nested 2x",
-			src: &pb.Entity{
+			"nested 2x",
+			&pb.Entity{
 				Properties: map[string]*pb.Value{
 					"AA": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Properties: map[string]*pb.Value{
 								"A": {ValueType: &pb.Value_EntityValue{
-									EntityValue: &pb.Entity{
+									&pb.Entity{
 										Properties: map[string]*pb.Value{
-											"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 3}},
+											"I": {ValueType: &pb.Value_IntegerValue{3}},
 										},
 									},
 								}},
-								"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 1}},
+								"I": {ValueType: &pb.Value_IntegerValue{1}},
 							},
 						},
 					}},
 					"A": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Properties: map[string]*pb.Value{
-								"S":  {ValueType: &pb.Value_StringValue{StringValue: "S"}},
-								"SS": {ValueType: &pb.Value_StringValue{StringValue: "s"}},
+								"S":  {ValueType: &pb.Value_StringValue{"S"}},
+								"SS": {ValueType: &pb.Value_StringValue{"s"}},
 							},
 						},
 					}},
-					"S": {ValueType: &pb.Value_StringValue{StringValue: "SS"}},
+					"S": {ValueType: &pb.Value_StringValue{"SS"}},
 				},
 			},
-			want: &NestedSimple2X{
+			&NestedSimple2X{
 				AA: NestedSimple{
 					A: Simple{I: 3},
 					I: 1,
@@ -267,36 +267,36 @@ func TestLoadEntityNested(t *testing.T) {
 			},
 		},
 		{
-			desc: "nested anonymous",
-			src: &pb.Entity{
+			"nested anonymous",
+			&pb.Entity{
 				Properties: map[string]*pb.Value{
-					"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 3}},
-					"X": {ValueType: &pb.Value_StringValue{StringValue: "SomeX"}},
+					"I": {ValueType: &pb.Value_IntegerValue{3}},
+					"X": {ValueType: &pb.Value_StringValue{"SomeX"}},
 				},
 			},
-			want: &NestedSimpleAnonymous{
+			&NestedSimpleAnonymous{
 				Simple: Simple{I: 3},
 				X:      "SomeX",
 			},
 		},
 		{
-			desc: "nested simple with slice",
-			src: &pb.Entity{
+			"nested simple with slice",
+			&pb.Entity{
 				Properties: map[string]*pb.Value{
 					"A": {ValueType: &pb.Value_ArrayValue{
-						ArrayValue: &pb.ArrayValue{
-							Values: []*pb.Value{
+						&pb.ArrayValue{
+							[]*pb.Value{
 								{ValueType: &pb.Value_EntityValue{
-									EntityValue: &pb.Entity{
+									&pb.Entity{
 										Properties: map[string]*pb.Value{
-											"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 3}},
+											"I": {ValueType: &pb.Value_IntegerValue{3}},
 										},
 									},
 								}},
 								{ValueType: &pb.Value_EntityValue{
-									EntityValue: &pb.Entity{
+									&pb.Entity{
 										Properties: map[string]*pb.Value{
-											"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 4}},
+											"I": {ValueType: &pb.Value_IntegerValue{4}},
 										},
 									},
 								}},
@@ -306,63 +306,63 @@ func TestLoadEntityNested(t *testing.T) {
 				},
 			},
 
-			want: &NestedSliceOfSimple{
+			&NestedSliceOfSimple{
 				A: []Simple{Simple{I: 3}, Simple{I: 4}},
 			},
 		},
 		{
-			desc: "nested with multiple anonymous fields",
-			src: &pb.Entity{
+			"nested with multiple anonymous fields",
+			&pb.Entity{
 				Properties: map[string]*pb.Value{
-					"I":  {ValueType: &pb.Value_IntegerValue{IntegerValue: 3}},
-					"S":  {ValueType: &pb.Value_StringValue{StringValue: "S"}},
-					"SS": {ValueType: &pb.Value_StringValue{StringValue: "s"}},
-					"X":  {ValueType: &pb.Value_StringValue{StringValue: "ss"}},
+					"I":  {ValueType: &pb.Value_IntegerValue{3}},
+					"S":  {ValueType: &pb.Value_StringValue{"S"}},
+					"SS": {ValueType: &pb.Value_StringValue{"s"}},
+					"X":  {ValueType: &pb.Value_StringValue{"ss"}},
 				},
 			},
-			want: &MultiAnonymous{
+			&MultiAnonymous{
 				Simple:          Simple{I: 3},
 				SimpleTwoFields: SimpleTwoFields{S: "S", SS: "s"},
 				X:               "ss",
 			},
 		},
 		{
-			desc: "nested with dotted field tag",
-			src: &pb.Entity{
+			"nested with dotted field tag",
+			&pb.Entity{
 				Properties: map[string]*pb.Value{
 					"A": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Properties: map[string]*pb.Value{
-								"B.B": {ValueType: &pb.Value_StringValue{StringValue: "bb"}},
+								"B.B": {ValueType: &pb.Value_StringValue{"bb"}},
 							},
 						},
 					}},
 				},
 			},
-			want: &ABDotB{
+			&ABDotB{
 				A: BDotB{
 					B: "bb",
 				},
 			},
 		},
 		{
-			desc: "nested entity with key",
-			src: &pb.Entity{
+			"nested entity with key",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"Y": {ValueType: &pb.Value_StringValue{StringValue: "yyy"}},
+					"Y": {ValueType: &pb.Value_StringValue{"yyy"}},
 					"N": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Key: keyToProto(testKey1a),
 							Properties: map[string]*pb.Value{
-								"X": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
-								"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+								"X": {ValueType: &pb.Value_StringValue{"two"}},
+								"I": {ValueType: &pb.Value_IntegerValue{2}},
 							},
 						},
 					}},
 				},
 			},
-			want: &NestedWithKey{
+			&NestedWithKey{
 				Y: "yyy",
 				N: WithKey{
 					X: "two",
@@ -372,23 +372,23 @@ func TestLoadEntityNested(t *testing.T) {
 			},
 		},
 		{
-			desc: "nested entity with invalid key",
-			src: &pb.Entity{
+			"nested entity with invalid key",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"Y": {ValueType: &pb.Value_StringValue{StringValue: "yyy"}},
+					"Y": {ValueType: &pb.Value_StringValue{"yyy"}},
 					"N": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Key: keyToProto(invalidKey),
 							Properties: map[string]*pb.Value{
-								"X": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
-								"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+								"X": {ValueType: &pb.Value_StringValue{"two"}},
+								"I": {ValueType: &pb.Value_IntegerValue{2}},
 							},
 						},
 					}},
 				},
 			},
-			want: &NestedWithKey{
+			&NestedWithKey{
 				Y: "yyy",
 				N: WithKey{
 					X: "two",
@@ -433,49 +433,49 @@ func TestAlreadyPopulatedDst(t *testing.T) {
 		want interface{}
 	}{
 		{
-			desc: "simple already populated, nil properties",
-			src: &pb.Entity{
+			"simple already populated, nil properties",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
 					"I": {ValueType: &pb.Value_NullValue{}},
 				},
 			},
-			dst: &Simple{
+			&Simple{
 				I: 12,
 			},
-			want: &Simple{},
+			&Simple{},
 		},
 		{
-			desc: "nested structs already populated",
-			src: &pb.Entity{
+			"nested structs already populated",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"SS": {ValueType: &pb.Value_StringValue{StringValue: "world"}},
+					"SS": {ValueType: &pb.Value_StringValue{"world"}},
 				},
 			},
-			dst:  &SimpleTwoFields{S: "hello" /* SS: "" */},
-			want: &SimpleTwoFields{S: "hello", SS: "world"},
+			&SimpleTwoFields{S: "hello" /* SS: "" */},
+			&SimpleTwoFields{S: "hello", SS: "world"},
 		},
 		{
-			desc: "nested structs already populated, pValues nil",
-			src: &pb.Entity{
+			"nested structs already populated, pValues nil",
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
 					"S":    {ValueType: &pb.Value_NullValue{}},
-					"SS":   {ValueType: &pb.Value_StringValue{StringValue: "ss hello"}},
+					"SS":   {ValueType: &pb.Value_StringValue{"ss hello"}},
 					"Nest": {ValueType: &pb.Value_NullValue{}},
 					"TwiceNest": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Properties: map[string]*pb.Value{
 								"A": {ValueType: &pb.Value_NullValue{}},
-								"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+								"I": {ValueType: &pb.Value_IntegerValue{2}},
 							},
 						},
 					}},
-					"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 5}},
+					"I": {ValueType: &pb.Value_IntegerValue{5}},
 				},
 			},
-			dst: &NestedStructPtrs{
+			&NestedStructPtrs{
 				&SimpleTwoFields{S: "hello" /* SS: "" */},
 				&SimpleTwoFields{ /* S: "" */ SS: "twice hello"},
 				&NestedSimple2{
@@ -484,7 +484,7 @@ func TestAlreadyPopulatedDst(t *testing.T) {
 				},
 				0,
 			},
-			want: &NestedStructPtrs{
+			&NestedStructPtrs{
 				&SimpleTwoFields{ /* S: "" */ SS: "ss hello"},
 				nil,
 				&NestedSimple2{
@@ -505,251 +505,6 @@ func TestAlreadyPopulatedDst(t *testing.T) {
 
 		if !reflect.DeepEqual(tc.want, tc.dst) {
 			t.Errorf("%s: compare:\ngot:  %#v\nwant: %#v", tc.desc, tc.dst, tc.want)
-		}
-	}
-}
-
-type PLS0 struct {
-	A string
-}
-
-func (p *PLS0) Load(props []Property) error {
-	for _, pp := range props {
-		if pp.Name == "A" {
-			p.A = pp.Value.(string)
-		}
-	}
-	return nil
-}
-
-func (p *PLS0) Save() (props []Property, err error) {
-	return []Property{{Name: "A", Value: p.A}}, nil
-}
-
-type KeyLoader1 struct {
-	A string
-	K *Key
-}
-
-func (kl *KeyLoader1) Load(props []Property) error {
-	for _, pp := range props {
-		if pp.Name == "A" {
-			kl.A = pp.Value.(string)
-		}
-	}
-	return nil
-}
-
-func (kl *KeyLoader1) Save() (props []Property, err error) {
-	return []Property{{Name: "A", Value: kl.A}}, nil
-}
-
-func (kl *KeyLoader1) LoadKey(k *Key) error {
-	kl.K = k
-	return nil
-}
-
-type KeyLoader2 struct {
-	B   int
-	Key *Key
-}
-
-func (kl *KeyLoader2) Load(props []Property) error {
-	for _, pp := range props {
-		if pp.Name == "B" {
-			kl.B = int(pp.Value.(int64))
-		}
-	}
-	return nil
-}
-
-func (kl *KeyLoader2) Save() (props []Property, err error) {
-	return []Property{{Name: "B", Value: int64(kl.B)}}, nil
-}
-
-func (kl *KeyLoader2) LoadKey(k *Key) error {
-	kl.Key = k
-	return nil
-}
-
-type KeyLoader3 struct {
-	C bool
-	K *Key
-}
-
-func (kl *KeyLoader3) Load(props []Property) error {
-	for _, pp := range props {
-		if pp.Name == "C" {
-			kl.C = pp.Value.(bool)
-		}
-	}
-	return nil
-}
-
-func (kl *KeyLoader3) Save() (props []Property, err error) {
-	return []Property{{Name: "C", Value: kl.C}}, nil
-}
-
-func (kl *KeyLoader3) LoadKey(k *Key) error {
-	kl.K = k
-	return nil
-}
-
-type KeyLoader4 struct {
-	PLS0
-	K *Key
-}
-
-func (kl *KeyLoader4) LoadKey(k *Key) error {
-	kl.K = k
-	return nil
-}
-
-type NotKeyLoader struct {
-	A string
-	K *Key
-}
-
-func (p *NotKeyLoader) Load(props []Property) error {
-	for _, pp := range props {
-		if pp.Name == "A" {
-			p.A = pp.Value.(string)
-		}
-	}
-	return nil
-}
-
-func (p *NotKeyLoader) Save() (props []Property, err error) {
-	return []Property{{Name: "A", Value: p.A}}, nil
-}
-
-type NestedKeyLoaders struct {
-	Two   *KeyLoader2
-	Three []*KeyLoader3
-	Four  *KeyLoader4
-	PLS   *NotKeyLoader
-}
-
-func TestKeyLoader(t *testing.T) {
-	testCases := []struct {
-		desc string
-		src  *pb.Entity
-		dst  interface{}
-		want interface{}
-	}{
-		{
-			desc: "simple key loader",
-			src: &pb.Entity{
-				Key: keyToProto(testKey0),
-				Properties: map[string]*pb.Value{
-					"A": {ValueType: &pb.Value_StringValue{StringValue: "hello"}},
-				},
-			},
-			dst: &KeyLoader1{},
-			want: &KeyLoader1{
-				A: "hello",
-				K: testKey0,
-			},
-		},
-		{
-			desc: "embedded PLS key loader",
-			src: &pb.Entity{
-				Key: keyToProto(testKey0),
-				Properties: map[string]*pb.Value{
-					"A": {ValueType: &pb.Value_StringValue{StringValue: "hello"}},
-				},
-			},
-			dst: &KeyLoader4{},
-			want: &KeyLoader4{
-				PLS0: PLS0{A: "hello"},
-				K:    testKey0,
-			},
-		},
-		{
-			desc: "nested key loaders",
-			src: &pb.Entity{
-				Key: keyToProto(testKey0),
-				Properties: map[string]*pb.Value{
-					"Two": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
-							Properties: map[string]*pb.Value{
-								"B": {ValueType: &pb.Value_IntegerValue{IntegerValue: 12}},
-							},
-							Key: keyToProto(testKey1a),
-						},
-					}},
-					"Three": {ValueType: &pb.Value_ArrayValue{
-						ArrayValue: &pb.ArrayValue{
-							Values: []*pb.Value{
-								{ValueType: &pb.Value_EntityValue{
-									EntityValue: &pb.Entity{
-										Properties: map[string]*pb.Value{
-											"C": {ValueType: &pb.Value_BooleanValue{BooleanValue: true}},
-										},
-										Key: keyToProto(testKey1b),
-									},
-								}},
-								{ValueType: &pb.Value_EntityValue{
-									EntityValue: &pb.Entity{
-										Properties: map[string]*pb.Value{
-											"C": {ValueType: &pb.Value_BooleanValue{BooleanValue: false}},
-										},
-										Key: keyToProto(testKey0),
-									},
-								}},
-							},
-						},
-					}},
-					"Four": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
-							Properties: map[string]*pb.Value{
-								"A": {ValueType: &pb.Value_StringValue{StringValue: "testing"}},
-							},
-							Key: keyToProto(testKey2a),
-						},
-					}},
-					"PLS": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
-							Properties: map[string]*pb.Value{
-								"A": {ValueType: &pb.Value_StringValue{StringValue: "something"}},
-							},
-
-							Key: keyToProto(testKey1a),
-						},
-					}},
-				},
-			},
-			dst: &NestedKeyLoaders{},
-			want: &NestedKeyLoaders{
-				Two: &KeyLoader2{B: 12, Key: testKey1a},
-				Three: []*KeyLoader3{
-					{
-						C: true,
-						K: testKey1b,
-					},
-					{
-						C: false,
-						K: testKey0,
-					},
-				},
-				Four: &KeyLoader4{
-					PLS0: PLS0{A: "testing"},
-					K:    testKey2a,
-				},
-				PLS: &NotKeyLoader{A: "something"},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		err := loadEntityProto(tc.dst, tc.src)
-		if err != nil {
-			t.Errorf("loadEntityProto: %s: %v", tc.desc, err)
-			continue
-		}
-
-		if !reflect.DeepEqual(tc.want, tc.dst) {
-			t.Errorf("%s: compare:\ngot:  %+v\nwant: %+v", tc.desc, tc.dst, tc.want)
 		}
 	}
 }

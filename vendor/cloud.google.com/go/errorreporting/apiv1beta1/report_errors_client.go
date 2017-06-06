@@ -41,7 +41,9 @@ type ReportErrorsCallOptions struct {
 func defaultReportErrorsClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		option.WithEndpoint("clouderrorreporting.googleapis.com:443"),
-		option.WithScopes(DefaultAuthScopes()...),
+		option.WithScopes(
+			"https://www.googleapis.com/auth/cloud-platform",
+		),
 	}
 }
 
@@ -76,7 +78,7 @@ type ReportErrorsClient struct {
 	CallOptions *ReportErrorsCallOptions
 
 	// The metadata to be sent with each request.
-	xGoogHeader []string
+	xGoogHeader string
 }
 
 // NewReportErrorsClient creates a new report errors service client.
@@ -113,8 +115,8 @@ func (c *ReportErrorsClient) Close() error {
 // use by Google-written clients.
 func (c *ReportErrorsClient) SetGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", version.Go()}, keyval...)
-	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)
-	c.xGoogHeader = []string{gax.XGoogHeader(kv...)}
+	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", "")
+	c.xGoogHeader = gax.XGoogHeader(kv...)
 }
 
 // ReportErrorsProjectPath returns the path for the project resource.
@@ -136,15 +138,14 @@ func ReportErrorsProjectPath(project string) string {
 // for authentication. To use an API key, append it to the URL as the value of
 // a `key` parameter. For example:
 // <pre>POST https://clouderrorreporting.googleapis.com/v1beta1/projects/example-project/events:report?key=123ABC456</pre>
-func (c *ReportErrorsClient) ReportErrorEvent(ctx context.Context, req *clouderrorreportingpb.ReportErrorEventRequest, opts ...gax.CallOption) (*clouderrorreportingpb.ReportErrorEventResponse, error) {
+func (c *ReportErrorsClient) ReportErrorEvent(ctx context.Context, req *clouderrorreportingpb.ReportErrorEventRequest) (*clouderrorreportingpb.ReportErrorEventResponse, error) {
 	ctx = insertXGoog(ctx, c.xGoogHeader)
-	opts = append(c.CallOptions.ReportErrorEvent[0:len(c.CallOptions.ReportErrorEvent):len(c.CallOptions.ReportErrorEvent)], opts...)
 	var resp *clouderrorreportingpb.ReportErrorEventResponse
-	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+	err := gax.Invoke(ctx, func(ctx context.Context) error {
 		var err error
-		resp, err = c.reportErrorsClient.ReportErrorEvent(ctx, req, settings.GRPC...)
+		resp, err = c.reportErrorsClient.ReportErrorEvent(ctx, req)
 		return err
-	}, opts...)
+	}, c.CallOptions.ReportErrorEvent...)
 	if err != nil {
 		return nil, err
 	}

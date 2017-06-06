@@ -26,36 +26,33 @@ import (
 )
 
 func TestReturnsDoneOnStop(t *testing.T) {
-	if useStreamingPull {
-		t.Skip("iterator tests are for polling pull only")
-	}
 	type testCase struct {
-		abort func(*messageIterator, context.CancelFunc)
+		abort func(*MessageIterator, context.CancelFunc)
 		want  error
 	}
 
 	for _, tc := range []testCase{
 		{
-			abort: func(it *messageIterator, cancel context.CancelFunc) {
+			abort: func(it *MessageIterator, cancel context.CancelFunc) {
 				it.Stop()
 			},
 			want: iterator.Done,
 		},
 		{
-			abort: func(it *messageIterator, cancel context.CancelFunc) {
+			abort: func(it *MessageIterator, cancel context.CancelFunc) {
 				cancel()
 			},
 			want: context.Canceled,
 		},
 		{
-			abort: func(it *messageIterator, cancel context.CancelFunc) {
+			abort: func(it *MessageIterator, cancel context.CancelFunc) {
 				it.Stop()
 				cancel()
 			},
 			want: iterator.Done,
 		},
 		{
-			abort: func(it *messageIterator, cancel context.CancelFunc) {
+			abort: func(it *MessageIterator, cancel context.CancelFunc) {
 				cancel()
 				it.Stop()
 			},
@@ -121,39 +118,36 @@ func (s *justInTimeFetch) newStreamingPuller(ctx context.Context, subName string
 
 func TestAfterAbortReturnsNoMoreThanOneMessage(t *testing.T) {
 	// Each test case is excercised by making two concurrent blocking calls on a
-	// messageIterator, and then aborting the iterator.
+	// MessageIterator, and then aborting the iterator.
 	// The result should be one call to Next returning a message, and the other returning an error.
-	if useStreamingPull {
-		t.Skip("iterator tests are for polling pull only")
-	}
 	type testCase struct {
-		abort func(*messageIterator, context.CancelFunc)
+		abort func(*MessageIterator, context.CancelFunc)
 		// want is the error that should be returned from one Next invocation.
 		want error
 	}
 	for n := 1; n < 3; n++ {
 		for _, tc := range []testCase{
 			{
-				abort: func(it *messageIterator, cancel context.CancelFunc) {
+				abort: func(it *MessageIterator, cancel context.CancelFunc) {
 					it.Stop()
 				},
 				want: iterator.Done,
 			},
 			{
-				abort: func(it *messageIterator, cancel context.CancelFunc) {
+				abort: func(it *MessageIterator, cancel context.CancelFunc) {
 					cancel()
 				},
 				want: context.Canceled,
 			},
 			{
-				abort: func(it *messageIterator, cancel context.CancelFunc) {
+				abort: func(it *MessageIterator, cancel context.CancelFunc) {
 					it.Stop()
 					cancel()
 				},
 				want: iterator.Done,
 			},
 			{
-				abort: func(it *messageIterator, cancel context.CancelFunc) {
+				abort: func(it *MessageIterator, cancel context.CancelFunc) {
 					cancel()
 					it.Stop()
 				},
@@ -184,12 +178,12 @@ func TestAfterAbortReturnsNoMoreThanOneMessage(t *testing.T) {
 					m, err := it.Next()
 					results <- &result{m, err}
 					if err == nil {
-						m.Nack()
+						m.Done(false)
 					}
 				}()
 			}
 			// Wait for goroutines to block on it.Next().
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(time.Millisecond)
 			tc.abort(it, cancel)
 
 			result1 := <-results
@@ -243,8 +237,6 @@ func (f *fetcherServiceWithModifyAckDeadline) newStreamingPuller(ctx context.Con
 }
 
 func TestMultipleStopCallsBlockUntilMessageDone(t *testing.T) {
-	t.Skip(`This test has subtle timing dependencies, making it flaky.
-It is not worth fixing because iterators will be removed shortly.`)
 	events := make(chan string, 3)
 	s := &fetcherServiceWithModifyAckDeadline{
 		fetcherService{
@@ -274,12 +266,8 @@ It is not worth fixing because iterators will be removed shortly.`)
 		events <- "stopped"
 	}()
 
-	select {
-	case <-events:
-		t.Fatal("Stop is not blocked")
-	case <-time.After(100 * time.Millisecond):
-	}
-	m.Nack()
+	time.Sleep(10 * time.Millisecond)
+	m.Done(false)
 
 	got := []string{<-events, <-events, <-events}
 	want := []string{"modAck([a], 0s)", "stopped", "stopped"}
@@ -298,9 +286,6 @@ It is not worth fixing because iterators will be removed shortly.`)
 }
 
 func TestFastNack(t *testing.T) {
-	if useStreamingPull {
-		t.Skip("iterator tests are for polling pull only")
-	}
 	events := make(chan string, 3)
 	s := &fetcherServiceWithModifyAckDeadline{
 		fetcherService{
@@ -328,7 +313,7 @@ func TestFastNack(t *testing.T) {
 		t.Errorf("error calling Next: %v", err)
 	}
 	// Ignore the first, nack the second.
-	m2.Nack()
+	m2.Done(false)
 
 	got := []string{<-events, <-events}
 	// The nack should happen before the deadline extension.

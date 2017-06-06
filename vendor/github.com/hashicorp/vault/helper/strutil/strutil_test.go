@@ -139,7 +139,7 @@ func TestStrutil_ParseKeyValues(t *testing.T) {
 	input = "key1 = value1, key2	=   "
 	err = ParseKeyValues(input, actual, ",")
 	if err == nil {
-		t.Fatalf("expected an error")
+		t.Fatal("expected an error")
 	}
 	for k, _ := range actual {
 		delete(actual, k)
@@ -148,16 +148,10 @@ func TestStrutil_ParseKeyValues(t *testing.T) {
 	input = "key1 = value1, 	=  value2 "
 	err = ParseKeyValues(input, actual, ",")
 	if err == nil {
-		t.Fatalf("expected an error")
+		t.Fatal("expected an error")
 	}
 	for k, _ := range actual {
 		delete(actual, k)
-	}
-
-	input = "key1"
-	err = ParseKeyValues(input, actual, ",")
-	if err == nil {
-		t.Fatalf("expected an error")
 	}
 }
 

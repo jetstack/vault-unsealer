@@ -71,8 +71,8 @@ func TestSaveEntityNested(t *testing.T) {
 		want *pb.Entity
 	}{
 		{
-			desc: "nested entity with key",
-			src: &NestedWithKey{
+			"nested entity with key",
+			&NestedWithKey{
 				Y: "yyy",
 				N: WithKey{
 					X: "two",
@@ -80,17 +80,17 @@ func TestSaveEntityNested(t *testing.T) {
 					K: testKey1a,
 				},
 			},
-			key: testKey0,
-			want: &pb.Entity{
+			testKey0,
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"Y": {ValueType: &pb.Value_StringValue{StringValue: "yyy"}},
+					"Y": {ValueType: &pb.Value_StringValue{"yyy"}},
 					"N": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Key: keyToProto(testKey1a),
 							Properties: map[string]*pb.Value{
-								"X": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
-								"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+								"X": {ValueType: &pb.Value_StringValue{"two"}},
+								"I": {ValueType: &pb.Value_IntegerValue{2}},
 							},
 						},
 					}},
@@ -98,8 +98,8 @@ func TestSaveEntityNested(t *testing.T) {
 			},
 		},
 		{
-			desc: "nested entity with incomplete key",
-			src: &NestedWithKey{
+			"nested entity with incomplete key",
+			&NestedWithKey{
 				Y: "yyy",
 				N: WithKey{
 					X: "two",
@@ -107,17 +107,17 @@ func TestSaveEntityNested(t *testing.T) {
 					K: incompleteKey,
 				},
 			},
-			key: testKey0,
-			want: &pb.Entity{
+			testKey0,
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"Y": {ValueType: &pb.Value_StringValue{StringValue: "yyy"}},
+					"Y": {ValueType: &pb.Value_StringValue{"yyy"}},
 					"N": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Key: keyToProto(incompleteKey),
 							Properties: map[string]*pb.Value{
-								"X": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
-								"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+								"X": {ValueType: &pb.Value_StringValue{"two"}},
+								"I": {ValueType: &pb.Value_IntegerValue{2}},
 							},
 						},
 					}},
@@ -125,24 +125,24 @@ func TestSaveEntityNested(t *testing.T) {
 			},
 		},
 		{
-			desc: "nested entity without key",
-			src: &NestedWithoutKey{
+			"nested entity without key",
+			&NestedWithoutKey{
 				Y: "yyy",
 				N: WithoutKey{
 					X: "two",
 					I: 2,
 				},
 			},
-			key: testKey0,
-			want: &pb.Entity{
+			testKey0,
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"Y": {ValueType: &pb.Value_StringValue{StringValue: "yyy"}},
+					"Y": {ValueType: &pb.Value_StringValue{"yyy"}},
 					"N": {ValueType: &pb.Value_EntityValue{
-						EntityValue: &pb.Entity{
+						&pb.Entity{
 							Properties: map[string]*pb.Value{
-								"X": {ValueType: &pb.Value_StringValue{StringValue: "two"}},
-								"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 2}},
+								"X": {ValueType: &pb.Value_StringValue{"two"}},
+								"I": {ValueType: &pb.Value_IntegerValue{2}},
 							},
 						},
 					}},
@@ -150,31 +150,31 @@ func TestSaveEntityNested(t *testing.T) {
 			},
 		},
 		{
-			desc: "key at top level",
-			src: &WithKey{
+			"key at top level",
+			&WithKey{
 				X: "three",
 				I: 3,
 				K: testKey0,
 			},
-			key: testKey0,
-			want: &pb.Entity{
+			testKey0,
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"X": {ValueType: &pb.Value_StringValue{StringValue: "three"}},
-					"I": {ValueType: &pb.Value_IntegerValue{IntegerValue: 3}},
+					"X": {ValueType: &pb.Value_StringValue{"three"}},
+					"I": {ValueType: &pb.Value_IntegerValue{3}},
 				},
 			},
 		},
 		{
-			desc: "nested unexported anonymous struct field",
-			src: &UnexpAnonym{
+			"nested unexported anonymous struct field",
+			&UnexpAnonym{
 				a{S: "hello"},
 			},
-			key: testKey0,
-			want: &pb.Entity{
+			testKey0,
+			&pb.Entity{
 				Key: keyToProto(testKey0),
 				Properties: map[string]*pb.Value{
-					"S": {ValueType: &pb.Value_StringValue{StringValue: "hello"}},
+					"S": {ValueType: &pb.Value_StringValue{"hello"}},
 				},
 			},
 		},

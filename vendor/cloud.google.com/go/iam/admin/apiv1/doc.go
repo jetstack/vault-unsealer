@@ -27,16 +27,9 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func insertXGoog(ctx context.Context, val []string) context.Context {
-	md, _ := metadata.FromOutgoingContext(ctx)
+func insertXGoog(ctx context.Context, val string) context.Context {
+	md, _ := metadata.FromContext(ctx)
 	md = md.Copy()
-	md["x-goog-api-client"] = val
-	return metadata.NewOutgoingContext(ctx, md)
-}
-
-func DefaultAuthScopes() []string {
-	return []string{
-		"https://www.googleapis.com/auth/cloud-platform",
-		"https://www.googleapis.com/auth/iam",
-	}
+	md["x-goog-api-client"] = []string{val}
+	return metadata.NewContext(ctx, md)
 }

@@ -109,7 +109,7 @@ func wrapServerConfig(sys RunnerUtil, certBytes []byte, key *ecdsa.PrivateKey) (
 	wrapInfo, err := sys.ResponseWrapData(map[string]interface{}{
 		"ServerCert": certBytes,
 		"ServerKey":  rawKey,
-	}, time.Second*60, true)
+	}, time.Second*10, true)
 	if err != nil {
 		return "", err
 	}

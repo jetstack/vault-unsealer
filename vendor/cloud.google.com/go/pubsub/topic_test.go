@@ -17,7 +17,6 @@ package pubsub
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	"golang.org/x/net/context"
 
@@ -115,51 +114,6 @@ func TestListTopics(t *testing.T) {
 func TestListCompletelyEmptyTopics(t *testing.T) {
 	var want []string
 	checkTopicListing(t, want)
-}
-
-func TestStopPublishOrder(t *testing.T) {
-	// Check that Stop doesn't panic if called before Publish.
-	// Also that Publish after Stop returns the right error.
-	ctx := context.Background()
-	c := &Client{projectID: "projid"}
-	topic := c.Topic("t")
-	topic.Stop()
-	r := topic.Publish(ctx, &Message{})
-	_, err := r.Get(ctx)
-	if err != errTopicStopped {
-		t.Errorf("got %v, want errTopicStopped", err)
-	}
-}
-
-type publishService struct {
-	service
-}
-
-func (s *publishService) publishMessages(ctx context.Context, topicName string, msgs []*Message) ([]string, error) {
-	return []string{"abc"}, nil
-}
-
-func TestFlowControlledTryPublish(t *testing.T) {
-	// Check that a publish that cannot be published due to flow control settings
-	// returns the right error.
-	ctx := context.Background()
-	serv := &publishService{}
-	c := &Client{projectID: "projid", s: serv}
-	topic := c.Topic("t")
-	topic.PublishSettings.MaxOutstandingMessages = 1
-	topic.PublishSettings.DelayThreshold = 1 * time.Minute
-
-	r1 := topic.TryPublish(ctx, &Message{
-		Data: []byte("HI"),
-	})
-	r2 := topic.TryPublish(ctx, &Message{
-		Data: []byte("HI"),
-	})
-	if r2 != nil {
-		t.Error("got PublishResult, want nil")
-	}
-	topic.Stop()
-	r1.Get(ctx)
 }
 
 func topicNames(topics []*Topic) []string {

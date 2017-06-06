@@ -493,7 +493,7 @@ func TestGenericColumnValue(t *testing.T) {
 		}
 
 		// Test we can go backwards as well.
-		v, err := newGenericColumnValue(test.want)
+		v, err := NewGenericColumnValue(test.want)
 		if err != nil {
 			t.Errorf("NewGenericColumnValue failed: %v", err)
 			continue

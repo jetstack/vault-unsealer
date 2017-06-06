@@ -142,8 +142,10 @@ func TestListTopicSubscriptions(t *testing.T) {
 
 func subNames(subs []*Subscription) []string {
 	var names []string
+
 	for _, sub := range subs {
 		names = append(names, sub.name)
+
 	}
 	return names
 }

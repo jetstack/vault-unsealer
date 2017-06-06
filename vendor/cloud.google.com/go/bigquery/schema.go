@@ -98,9 +98,6 @@ func convertTableFieldSchema(tfs *bq.TableFieldSchema) *FieldSchema {
 }
 
 func convertTableSchema(ts *bq.TableSchema) Schema {
-	if ts == nil {
-		return nil
-	}
 	var s Schema
 	for _, f := range ts.Fields {
 		s = append(s, convertTableFieldSchema(f))
@@ -286,7 +283,7 @@ func (l *typeList) has(t reflect.Type) bool {
 // hasRecursiveType reports whether t or any type inside t refers to itself, directly or indirectly,
 // via exported fields. (Schema inference ignores unexported fields.)
 func hasRecursiveType(t reflect.Type, seen *typeList) (bool, error) {
-	for t.Kind() == reflect.Ptr || t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {

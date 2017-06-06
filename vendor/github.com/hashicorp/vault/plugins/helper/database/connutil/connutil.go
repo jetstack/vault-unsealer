@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ErrNotInitialized = errors.New("connection has not been initalized")
+	errNotInitialized = errors.New("connection has not been initalized")
 )
 
 // ConnectionProducer can be used as an embeded interface in the Database

@@ -60,10 +60,6 @@ type Controller struct {
 	options     Options
 	uniquifier  string
 	description string
-	// labels are included when registering the debuggee. They should contain
-	// the module name, version and minorversion, and are used by the debug UI
-	// to label the correct version active for debugging.
-	labels map[string]string
 	// mu protects debuggeeID
 	mu sync.Mutex
 	// debuggeeID is returned from the server on registration, and is passed back
@@ -137,18 +133,16 @@ func NewController(ctx context.Context, o Options) (*Controller, error) {
 		scJSON = nil
 		o.SourceContexts = nil
 	}
-	const minorversion = "107157" // any arbitrary numeric string
 
 	// Compute a uniquifier string by hashing the project number, app module name,
 	// app module version, debuglet version, and source context.
 	// The choice of hash function is arbitrary.
-	h := sha256.Sum256([]byte(fmt.Sprintf("%d %s %d %s %d %s %d %s %d %s %d %s",
+	h := sha256.Sum256([]byte(fmt.Sprintf("%d %s %d %s %d %s %d %s %d %s",
 		len(o.ProjectNumber), o.ProjectNumber,
 		len(o.AppModule), o.AppModule,
 		len(o.AppVersion), o.AppVersion,
 		len(agentVersionString), agentVersionString,
-		len(scJSON), scJSON,
-		len(minorversion), minorversion)))
+		len(scJSON), scJSON)))
 	uniquifier := fmt.Sprintf("%X", h[0:16]) // 32 hex characters
 
 	description := o.ProjectID
@@ -172,11 +166,6 @@ func NewController(ctx context.Context, o Options) (*Controller, error) {
 		options:     o,
 		uniquifier:  uniquifier,
 		description: description,
-		labels: map[string]string{
-			"module":       o.AppModule,
-			"version":      o.AppVersion,
-			"minorversion": minorversion,
-		},
 	}
 
 	return c, nil
@@ -267,7 +256,6 @@ func (c *Controller) register(ctx context.Context) error {
 			Project:        c.options.ProjectNumber,
 			SourceContexts: c.options.SourceContexts,
 			Uniquifier:     c.uniquifier,
-			Labels:         c.labels,
 		},
 	}
 	resp, err := c.s.Register(ctx, &req)

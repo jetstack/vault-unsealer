@@ -51,12 +51,6 @@ $ curl \
 }
 ```
 
-_Note_: the `lease_duration` field (which on the CLI shows as
-`refresh_interval`) is advisory. No lease is created. This is a way for writers
-to indicate how often a given value shold be re-read by the client. See the
-[Vault Generic backend documentation](/docs/secrets/generic/index.html) for
-more details.
-
 ## List Secrets
 
 This endpoint returns a list of key names at the specified location. Folders are
@@ -120,9 +114,8 @@ policy granting the `update` capability.
 
 - `:key` `(string: "")` – Specifies a key, paired with an associated value, to
   be held at the given location. Multiple key/value pairs can be specified, and
-  all will be returned on a read operation. A key called `ttl` will trigger
-  some special behavior; see the [Vault Generic backend
-  documentation](/docs/secrets/generic/index.html) for details.
+  all will be returned on a read operation. A key called `ttl` will trigger some
+  special behavior; see above for details.
 
 ### Sample Payload
 

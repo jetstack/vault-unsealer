@@ -18,27 +18,26 @@ import (
 	"log"
 	"reflect"
 	"testing"
-	"time"
 
-	"cloud.google.com/go/internal/testutil"
+	ltesting "cloud.google.com/go/logging/internal/testing"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
+	itesting "google.golang.org/api/iterator/testing"
 )
 
-var metricIDs = testutil.NewUIDSpace("GO-CLIENT-TEST-METRIC")
+const testMetricIDPrefix = "GO-CLIENT-TEST-METRIC"
 
 // Initializes the tests before they run.
 func initMetrics(ctx context.Context) {
 	// Clean up from aborted tests.
+	var IDs []string
 	it := client.Metrics(ctx)
 loop:
 	for {
 		m, err := it.Next()
 		switch err {
 		case nil:
-			if metricIDs.Older(m.ID, 24*time.Hour) {
-				client.DeleteMetric(ctx, m.ID)
-			}
+			IDs = append(IDs, m.ID)
 		case iterator.Done:
 			break loop
 		default:
@@ -46,12 +45,15 @@ loop:
 			return
 		}
 	}
+	for _, mID := range ltesting.ExpiredUniqueIDs(IDs, testMetricIDPrefix) {
+		client.DeleteMetric(ctx, mID)
+	}
 }
 
 func TestCreateDeleteMetric(t *testing.T) {
 	ctx := context.Background()
 	metric := &Metric{
-		ID:          metricIDs.New(),
+		ID:          ltesting.UniqueID(testMetricIDPrefix),
 		Description: "DESC",
 		Filter:      "FILTER",
 	}
@@ -80,7 +82,7 @@ func TestCreateDeleteMetric(t *testing.T) {
 func TestUpdateMetric(t *testing.T) {
 	ctx := context.Background()
 	metric := &Metric{
-		ID:          metricIDs.New(),
+		ID:          ltesting.UniqueID(testMetricIDPrefix),
 		Description: "DESC",
 		Filter:      "FILTER",
 	}
@@ -116,15 +118,12 @@ func TestListMetrics(t *testing.T) {
 	ctx := context.Background()
 
 	var metrics []*Metric
-	want := map[string]*Metric{}
 	for i := 0; i < 10; i++ {
-		m := &Metric{
-			ID:          metricIDs.New(),
+		metrics = append(metrics, &Metric{
+			ID:          ltesting.UniqueID(testMetricIDPrefix),
 			Description: "DESC",
 			Filter:      "FILTER",
-		}
-		metrics = append(metrics, m)
-		want[m.ID] = m
+		})
 	}
 	for _, m := range metrics {
 		if err := client.CreateMetric(ctx, m); err != nil {
@@ -133,23 +132,10 @@ func TestListMetrics(t *testing.T) {
 		defer client.DeleteMetric(ctx, m.ID)
 	}
 
-	got := map[string]*Metric{}
-	it := client.Metrics(ctx)
-	for {
-		m, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			t.Fatal(err)
-		}
-		// If tests run simultaneously, we may have more metrics than we
-		// created. So only check for our own.
-		if _, ok := want[m.ID]; ok {
-			got[m.ID] = m
-		}
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %+v, want %+v", got, want)
+	msg, ok := itesting.TestIterator(metrics,
+		func() interface{} { return client.Metrics(ctx) },
+		func(it interface{}) (interface{}, error) { return it.(*MetricIterator).Next() })
+	if !ok {
+		t.Fatal(msg)
 	}
 }

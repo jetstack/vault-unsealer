@@ -2,7 +2,6 @@ package builtinplugins
 
 import (
 	"github.com/hashicorp/vault/plugins/database/cassandra"
-	"github.com/hashicorp/vault/plugins/database/mongodb"
 	"github.com/hashicorp/vault/plugins/database/mssql"
 	"github.com/hashicorp/vault/plugins/database/mysql"
 	"github.com/hashicorp/vault/plugins/database/postgresql"
@@ -21,7 +20,6 @@ var plugins map[string]BuiltinFactory = map[string]BuiltinFactory{
 	"postgresql-database-plugin": postgresql.New,
 	"mssql-database-plugin":      mssql.New,
 	"cassandra-database-plugin":  cassandra.New,
-	"mongodb-database-plugin":    mongodb.New,
 }
 
 func Get(name string) (BuiltinFactory, bool) {

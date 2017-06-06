@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/hashicorp/vault/helper/builtinplugins"
-	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/helper/pluginutil"
 	"github.com/hashicorp/vault/logical"
@@ -83,13 +82,6 @@ func (c *PluginCatalog) Get(name string) (*pluginutil.PluginRunner, error) {
 func (c *PluginCatalog) Set(name, command string, sha256 []byte) error {
 	if c.directory == "" {
 		return ErrDirectoryNotConfigured
-	}
-
-	switch {
-	case strings.Contains(name, ".."):
-		fallthrough
-	case strings.Contains(command, ".."):
-		return consts.ErrPathContainsParentReferences
 	}
 
 	c.lock.Lock()

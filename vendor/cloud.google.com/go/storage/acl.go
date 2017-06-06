@@ -96,9 +96,7 @@ func (a *ACLHandle) bucketDefaultList(ctx context.Context) ([]ACLRule, error) {
 	var acls *raw.ObjectAccessControls
 	var err error
 	err = runWithRetry(ctx, func() error {
-		req := a.c.raw.DefaultObjectAccessControls.List(a.bucket).Context(ctx)
-		setClientHeader(req.Header())
-		acls, err = req.Do()
+		acls, err = a.c.raw.DefaultObjectAccessControls.List(a.bucket).Context(ctx).Do()
 		return err
 	})
 	if err != nil {
@@ -114,9 +112,7 @@ func (a *ACLHandle) bucketDefaultSet(ctx context.Context, entity ACLEntity, role
 		Role:   string(role),
 	}
 	err := runWithRetry(ctx, func() error {
-		req := a.c.raw.DefaultObjectAccessControls.Update(a.bucket, string(entity), acl).Context(ctx)
-		setClientHeader(req.Header())
-		_, err := req.Do()
+		_, err := a.c.raw.DefaultObjectAccessControls.Update(a.bucket, string(entity), acl).Context(ctx).Do()
 		return err
 	})
 	if err != nil {
@@ -127,9 +123,7 @@ func (a *ACLHandle) bucketDefaultSet(ctx context.Context, entity ACLEntity, role
 
 func (a *ACLHandle) bucketDefaultDelete(ctx context.Context, entity ACLEntity) error {
 	err := runWithRetry(ctx, func() error {
-		req := a.c.raw.DefaultObjectAccessControls.Delete(a.bucket, string(entity)).Context(ctx)
-		setClientHeader(req.Header())
-		return req.Do()
+		return a.c.raw.DefaultObjectAccessControls.Delete(a.bucket, string(entity)).Context(ctx).Do()
 	})
 	if err != nil {
 		return fmt.Errorf("storage: error deleting default ACL entry for bucket %q, entity %q: %v", a.bucket, entity, err)
@@ -141,9 +135,7 @@ func (a *ACLHandle) bucketList(ctx context.Context) ([]ACLRule, error) {
 	var acls *raw.BucketAccessControls
 	var err error
 	err = runWithRetry(ctx, func() error {
-		req := a.c.raw.BucketAccessControls.List(a.bucket).Context(ctx)
-		setClientHeader(req.Header())
-		acls, err = req.Do()
+		acls, err = a.c.raw.BucketAccessControls.List(a.bucket).Context(ctx).Do()
 		return err
 	})
 	if err != nil {
@@ -164,9 +156,7 @@ func (a *ACLHandle) bucketSet(ctx context.Context, entity ACLEntity, role ACLRol
 		Role:   string(role),
 	}
 	err := runWithRetry(ctx, func() error {
-		req := a.c.raw.BucketAccessControls.Update(a.bucket, string(entity), acl).Context(ctx)
-		setClientHeader(req.Header())
-		_, err := req.Do()
+		_, err := a.c.raw.BucketAccessControls.Update(a.bucket, string(entity), acl).Context(ctx).Do()
 		return err
 	})
 	if err != nil {
@@ -177,9 +167,7 @@ func (a *ACLHandle) bucketSet(ctx context.Context, entity ACLEntity, role ACLRol
 
 func (a *ACLHandle) bucketDelete(ctx context.Context, entity ACLEntity) error {
 	err := runWithRetry(ctx, func() error {
-		req := a.c.raw.BucketAccessControls.Delete(a.bucket, string(entity)).Context(ctx)
-		setClientHeader(req.Header())
-		return req.Do()
+		return a.c.raw.BucketAccessControls.Delete(a.bucket, string(entity)).Context(ctx).Do()
 	})
 	if err != nil {
 		return fmt.Errorf("storage: error deleting bucket ACL entry for bucket %q, entity %q: %v", a.bucket, entity, err)
@@ -191,9 +179,7 @@ func (a *ACLHandle) objectList(ctx context.Context) ([]ACLRule, error) {
 	var acls *raw.ObjectAccessControls
 	var err error
 	err = runWithRetry(ctx, func() error {
-		req := a.c.raw.ObjectAccessControls.List(a.bucket, a.object).Context(ctx)
-		setClientHeader(req.Header())
-		acls, err = req.Do()
+		acls, err = a.c.raw.ObjectAccessControls.List(a.bucket, a.object).Context(ctx).Do()
 		return err
 	})
 	if err != nil {
@@ -209,9 +195,7 @@ func (a *ACLHandle) objectSet(ctx context.Context, entity ACLEntity, role ACLRol
 		Role:   string(role),
 	}
 	err := runWithRetry(ctx, func() error {
-		req := a.c.raw.ObjectAccessControls.Update(a.bucket, a.object, string(entity), acl).Context(ctx)
-		setClientHeader(req.Header())
-		_, err := req.Do()
+		_, err := a.c.raw.ObjectAccessControls.Update(a.bucket, a.object, string(entity), acl).Context(ctx).Do()
 		return err
 	})
 	if err != nil {
@@ -222,9 +206,7 @@ func (a *ACLHandle) objectSet(ctx context.Context, entity ACLEntity, role ACLRol
 
 func (a *ACLHandle) objectDelete(ctx context.Context, entity ACLEntity) error {
 	err := runWithRetry(ctx, func() error {
-		req := a.c.raw.ObjectAccessControls.Delete(a.bucket, a.object, string(entity)).Context(ctx)
-		setClientHeader(req.Header())
-		return req.Do()
+		return a.c.raw.ObjectAccessControls.Delete(a.bucket, a.object, string(entity)).Context(ctx).Do()
 	})
 	if err != nil {
 		return fmt.Errorf("storage: error deleting object ACL entry for bucket %q, file %q, entity %q: %v", a.bucket, a.object, entity, err)

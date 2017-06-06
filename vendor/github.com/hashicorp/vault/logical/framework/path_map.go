@@ -21,7 +21,7 @@ type PathMap struct {
 	Schema        map[string]*FieldSchema
 	CaseSensitive bool
 	Salt          *salt.Salt
-	SaltFunc      func() (*salt.Salt, error)
+	SaltMutex     *sync.RWMutex
 
 	once sync.Once
 }
@@ -51,12 +51,10 @@ func (p *PathMap) pathStruct(k string) *PathStruct {
 	}
 
 	// If we have a salt, apply it before lookup
-	salt := p.Salt
-	if p.SaltFunc != nil {
-		salt, _ = p.SaltFunc()
-	}
-	if salt != nil {
-		k = salt.SaltID(k)
+	if p.Salt != nil {
+		p.SaltMutex.RLock()
+		k = p.Salt.SaltID(k)
+		p.SaltMutex.RUnlock()
 	}
 
 	return &PathStruct{

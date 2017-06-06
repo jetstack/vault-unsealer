@@ -769,9 +769,6 @@ func TestHasRecursiveType(t *testing.T) {
 			A int
 			R *rec
 		}
-		recSlicePointer struct {
-			A []*recSlicePointer
-		}
 	)
 	for _, test := range []struct {
 		in   interface{}
@@ -783,7 +780,6 @@ func TestHasRecursiveType(t *testing.T) {
 		{rec{}, true},
 		{recUnexported{}, false},
 		{hasRec{}, true},
-		{&recSlicePointer{}, true},
 	} {
 		got, err := hasRecursiveType(reflect.TypeOf(test.in), nil)
 		if err != nil {

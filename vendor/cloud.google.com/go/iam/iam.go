@@ -27,47 +27,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-// client abstracts the IAMPolicy API to allow multiple implementations.
-type client interface {
-	Get(ctx context.Context, resource string) (*pb.Policy, error)
-	Set(ctx context.Context, resource string, p *pb.Policy) error
-	Test(ctx context.Context, resource string, perms []string) ([]string, error)
-}
-
-// grpcClient implements client for the standard gRPC-based IAMPolicy service.
-type grpcClient struct {
-	c pb.IAMPolicyClient
-}
-
-func (g *grpcClient) Get(ctx context.Context, resource string) (*pb.Policy, error) {
-	proto, err := g.c.GetIamPolicy(ctx, &pb.GetIamPolicyRequest{Resource: resource})
-	if err != nil {
-		return nil, err
-	}
-	return proto, nil
-}
-func (g *grpcClient) Set(ctx context.Context, resource string, p *pb.Policy) error {
-	_, err := g.c.SetIamPolicy(ctx, &pb.SetIamPolicyRequest{
-		Resource: resource,
-		Policy:   p,
-	})
-	return err
-}
-
-func (g *grpcClient) Test(ctx context.Context, resource string, perms []string) ([]string, error) {
-	res, err := g.c.TestIamPermissions(ctx, &pb.TestIamPermissionsRequest{
-		Resource:    resource,
-		Permissions: perms,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return res.Permissions, nil
-}
-
 // A Handle provides IAM operations for a resource.
 type Handle struct {
-	c        client
+	c        pb.IAMPolicyClient
 	resource string
 }
 
@@ -76,23 +38,15 @@ type Handle struct {
 // InternalNewHandle returns a Handle for resource.
 // The conn parameter refers to a server that must support the IAMPolicy service.
 func InternalNewHandle(conn *grpc.ClientConn, resource string) *Handle {
-	return InternalNewHandleClient(&grpcClient{c: pb.NewIAMPolicyClient(conn)}, resource)
-}
-
-// InternalNewHandleClient is for use by the Google Cloud Libraries only.
-//
-// InternalNewHandleClient returns a Handle for resource using the given
-// client implementation.
-func InternalNewHandleClient(c client, resource string) *Handle {
 	return &Handle{
-		c:        c,
+		c:        pb.NewIAMPolicyClient(conn),
 		resource: resource,
 	}
 }
 
 // Policy retrieves the IAM policy for the resource.
 func (h *Handle) Policy(ctx context.Context) (*Policy, error) {
-	proto, err := h.c.Get(ctx, h.resource)
+	proto, err := h.c.GetIamPolicy(ctx, &pb.GetIamPolicyRequest{Resource: h.resource})
 	if err != nil {
 		return nil, err
 	}
@@ -104,12 +58,23 @@ func (h *Handle) Policy(ctx context.Context) (*Policy, error) {
 // If policy was created from a prior call to Get, then the modification will
 // only succeed if the policy has not changed since the Get.
 func (h *Handle) SetPolicy(ctx context.Context, policy *Policy) error {
-	return h.c.Set(ctx, h.resource, policy.InternalProto)
+	_, err := h.c.SetIamPolicy(ctx, &pb.SetIamPolicyRequest{
+		Resource: h.resource,
+		Policy:   policy.InternalProto,
+	})
+	return err
 }
 
 // TestPermissions returns the subset of permissions that the caller has on the resource.
 func (h *Handle) TestPermissions(ctx context.Context, permissions []string) ([]string, error) {
-	return h.c.Test(ctx, h.resource, permissions)
+	res, err := h.c.TestIamPermissions(ctx, &pb.TestIamPermissionsRequest{
+		Resource:    h.resource,
+		Permissions: permissions,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.Permissions, nil
 }
 
 // A RoleName is a name representing a collection of permissions.
@@ -181,30 +146,16 @@ func (p *Policy) Add(member string, r RoleName) {
 
 // Remove removes member from role r if it is present.
 func (p *Policy) Remove(member string, r RoleName) {
-	bi := p.bindingIndex(r)
-	if bi < 0 {
+	b := p.binding(r)
+	i := memberIndex(member, b)
+	if i < 0 {
 		return
 	}
-	bindings := p.InternalProto.Bindings
-	b := bindings[bi]
-	mi := memberIndex(member, b)
-	if mi < 0 {
-		return
-	}
-	// Order doesn't matter for bindings or members, so to remove, move the last item
-	// into the removed spot and shrink the slice.
-	if len(b.Members) == 1 {
-		// Remove binding.
-		last := len(bindings) - 1
-		bindings[bi] = bindings[last]
-		bindings[last] = nil
-		p.InternalProto.Bindings = bindings[:last]
-		return
-	}
-	// Remove member.
+	// Order doesn't matter, so move the last member into the
+	// removed spot and shrink the slice.
 	// TODO(jba): worry about multiple copies of m?
 	last := len(b.Members) - 1
-	b.Members[mi] = b.Members[last]
+	b.Members[i] = b.Members[last]
 	b.Members[last] = ""
 	b.Members = b.Members[:last]
 }
@@ -223,23 +174,15 @@ func (p *Policy) Roles() []RoleName {
 
 // binding returns the Binding for the suppied role, or nil if there isn't one.
 func (p *Policy) binding(r RoleName) *pb.Binding {
-	i := p.bindingIndex(r)
-	if i < 0 {
+	if p.InternalProto == nil {
 		return nil
 	}
-	return p.InternalProto.Bindings[i]
-}
-
-func (p *Policy) bindingIndex(r RoleName) int {
-	if p.InternalProto == nil {
-		return -1
-	}
-	for i, b := range p.InternalProto.Bindings {
+	for _, b := range p.InternalProto.Bindings {
 		if b.Role == string(r) {
-			return i
+			return b
 		}
 	}
-	return -1
+	return nil
 }
 
 // memberIndex returns the index of m in b's Members, or -1 if not found.
