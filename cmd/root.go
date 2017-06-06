@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -80,6 +81,8 @@ func configStringVar(key, defaultValue, description string) {
 func init() {
 	appConfig = viper.New()
 	appConfig.SetEnvPrefix("vault_unsealer")
+	replacer := strings.NewReplacer("-", "_")
+	appConfig.SetEnvKeyReplacer(replacer)
 	appConfig.AutomaticEnv()
 
 	// SelectMode
