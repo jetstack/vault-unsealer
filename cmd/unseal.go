@@ -23,6 +23,8 @@ import (
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/vault"
 )
 
+const cfgUnsealPeriod = "unseal-period"
+
 type unsealCfg struct {
 	unsealPeriod time.Duration
 }
@@ -40,6 +42,8 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		appConfig.BindPFlag(cfgUnsealPeriod, cmd.PersistentFlags().Lookup(cfgUnsealPeriod))
+
 		store, err := kvStoreForConfig(appConfig)
 
 		if err != nil {
@@ -88,7 +92,7 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	unsealCmd.Flags().DurationVar(&unsealConfig.unsealPeriod, "unseal-period", time.Second*30, "How often to attempt to unseal the vault instance")
+	unsealCmd.PersistentFlags().Duration(cfgUnsealPeriod, time.Second*30, "How often to attempt to unseal the vault instance")
 
 	RootCmd.AddCommand(unsealCmd)
 }

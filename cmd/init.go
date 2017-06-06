@@ -22,6 +22,8 @@ import (
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/vault"
 )
 
+const cfgInitRootToken = "init-root-token"
+
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
@@ -32,6 +34,8 @@ storing the keys in the Cloud KMS keyring.
 
 It will not unseal the Vault instance after initialising.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		appConfig.BindPFlag(cfgInitRootToken, cmd.PersistentFlags().Lookup(cfgInitRootToken))
+
 		store, err := kvStoreForConfig(appConfig)
 
 		if err != nil {
@@ -45,6 +49,7 @@ It will not unseal the Vault instance after initialising.`,
 		}
 
 		v, err := vault.New("vault", store, cl, appConfig.GetInt(cfgSecretShares), appConfig.GetInt(cfgSecretThreshold))
+		v.SetInitRootToken(appConfig.GetString(cfgInitRootToken))
 
 		if err != nil {
 			logrus.Fatalf("error creating vault helper: %s", err.Error())
@@ -57,5 +62,7 @@ It will not unseal the Vault instance after initialising.`,
 }
 
 func init() {
+	initCmd.PersistentFlags().String(cfgInitRootToken, "", "root token for the new vault cluster")
+
 	RootCmd.AddCommand(initCmd)
 }

@@ -16,6 +16,7 @@ package vault
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/vault/api"
@@ -30,8 +31,13 @@ type vault struct {
 	cl       *api.Client
 	prefix   string
 
-	secretShares    int
+	// how many key parts exist
+	secretShares int
+	// how many of these parts are needed to unseal vault  (secretThreshold <= secretShares)
 	secretThreshold int
+
+	// if this root token is set, the dynamic generated will be invalidated and this created instead
+	initRootToken string
 }
 
 var _ Vault = &vault{}
@@ -42,11 +48,22 @@ type Vault interface {
 	Sealed() (bool, error)
 	Unseal() error
 	Init() error
+	SetInitRootToken(string)
 }
 
 // New returns a new vault Vault, or an error.
 func New(prefix string, k kv.Service, cl *api.Client, secretShares, secretThreshold int) (Vault, error) {
-	return &vault{k, cl, prefix, secretShares, secretThreshold}, nil
+	return &vault{
+		keyStore:        k,
+		cl:              cl,
+		prefix:          prefix,
+		secretShares:    secretShares,
+		secretThreshold: secretThreshold,
+	}, nil
+}
+
+func (v *vault) SetInitRootToken(token string) {
+	v.initRootToken = token
 }
 
 func (u *vault) Sealed() (bool, error) {
@@ -117,19 +134,54 @@ func (u *vault) Init() error {
 		}
 	}
 
-	rootTokenKey := u.rootTokenKey()
+	// this sets up a predefined root token
+	if u.initRootToken != "" {
+		logrus.Info("setting up init root token, waiting for vault to be unsealed")
 
-	if err = u.keyStore.Set(rootTokenKey, []byte(resp.RootToken)); err != nil {
-		return fmt.Errorf("error storing root token: %s", rootTokenKey)
+		count := 0
+		wait := time.Second * 2
+		for {
+			sealed, err := u.Sealed()
+			if !sealed {
+				break
+			}
+			if err == nil {
+				logrus.Info("vault still sealed, wait for unsealing")
+			} else {
+				logrus.Infof("vault not reachable: %s", err.Error())
+			}
+
+			count++
+			time.Sleep(wait)
+		}
+
+		// use temporary token
+		u.cl.SetToken(resp.RootToken)
+
+		// setup root token with provided key
+		_, err := u.cl.Auth().Token().CreateOrphan(&api.TokenCreateRequest{
+			ID:          u.initRootToken,
+			Policies:    []string{"root"},
+			DisplayName: "root-token",
+			NoParent:    true,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to setup requested root token, (temporary root token: '%s'): %s", resp.RootToken, err)
+		}
+
+		// revoke the temporary token
+		err = u.cl.Auth().Token().RevokeSelf(resp.RootToken)
+		if err != nil {
+			return fmt.Errorf("unable to revoke temporary root token: %s", err.Error())
+		}
+	} else {
+		logrus.WithField("root-token", resp.RootToken).Warnf("this token grants full privileges to vault, so keep this secret")
 	}
 
 	return nil
+
 }
 
 func (u *vault) unsealKeyForID(i int) string {
 	return fmt.Sprintf("%s-unseal-%d", u.prefix, i)
-}
-
-func (u *vault) rootTokenKey() string {
-	return fmt.Sprintf("%s-root", u.prefix)
 }
