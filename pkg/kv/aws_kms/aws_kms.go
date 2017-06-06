@@ -25,6 +25,10 @@ func New(store kv.Service, kmsID string) (kv.Service, error) {
 		return nil, err
 	}
 
+	if kmsID == "" {
+		return nil, fmt.Errorf("invalid kmsID specified: '%s'", kmsID)
+	}
+
 	return &awsKMS{
 		store:      store,
 		kmsService: kms.New(sess),
@@ -36,11 +40,9 @@ func (a *awsKMS) decrypt(cipherText []byte) ([]byte, error) {
 	out, err := a.kmsService.Decrypt(&kms.DecryptInput{
 		CiphertextBlob: cipherText,
 		EncryptionContext: map[string]*string{
-			"Key": aws.String("EncryptionContextValue"), // Required
+			"Tool": aws.String("vault-unsealer"),
 		},
-		GrantTokens: []*string{
-			aws.String("GrantTokenType"), // Required
-		},
+		GrantTokens: []*string{},
 	})
 	return out.Plaintext, err
 }
@@ -60,11 +62,9 @@ func (a *awsKMS) encrypt(plainText []byte) ([]byte, error) {
 		KeyId:     aws.String(a.kmsID),
 		Plaintext: plainText,
 		EncryptionContext: map[string]*string{
-			"Key": aws.String("EncryptionContextValue"),
+			"Tool": aws.String("vault-unsealer"),
 		},
-		GrantTokens: []*string{
-			aws.String("GrantTokenType"),
-		},
+		GrantTokens: []*string{},
 	})
 	return out.CiphertextBlob, err
 }
