@@ -41,7 +41,9 @@ func (a *awsSSM) Get(key string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	fmt.Printf("output: %#+v", out)
+	if len(out.Parameters) < 1 {
+		return []byte{}, fmt.Errorf("key '%s' not found", key)
+	}
 
 	return base64.StdEncoding.DecodeString(*out.Parameters[0].Value)
 }
