@@ -38,7 +38,7 @@ It will not unseal the Vault instance after initialising.`,
 			logrus.Fatalf("error creating kv store: %s", err.Error())
 		}
 
-		cl, err := api.NewClient(api.DefaultConfig())
+		cl, err := api.NewClient(nil)
 
 		if err != nil {
 			logrus.Fatalf("error connecting to vault: %s", err.Error())
