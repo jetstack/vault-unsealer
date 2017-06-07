@@ -142,6 +142,8 @@ func (u *vault) Init() error {
 		}
 	}
 
+	rootToken := resp.RootToken
+
 	// this sets up a predefined root token
 	if u.config.InitRootToken != "" {
 		logrus.Info("setting up init root token, waiting for vault to be unsealed")
@@ -182,8 +184,18 @@ func (u *vault) Init() error {
 		if err != nil {
 			return fmt.Errorf("unable to revoke temporary root token: %s", err.Error())
 		}
+
+		rootToken = u.config.InitRootToken
+	}
+
+	if u.config.StoreRootToken {
+		rootTokenKey := u.rootTokenKey()
+		if err = u.keyStore.Set(rootTokenKey, []byte(resp.RootToken)); err != nil {
+			return fmt.Errorf("error storing root token '%s' in key'%s'", rootToken, rootTokenKey)
+		}
+		logrus.WithField("key", rootTokenKey).Info("root token stored in key store")
 	} else {
-		logrus.WithField("root-token", resp.RootToken).Warnf("this token grants full privileges to vault, so keep this secret")
+		logrus.WithField("root-token", resp.RootToken).Warnf("won't store root token in key store, this token grants full privileges to vault, so keep this secret")
 	}
 
 	return nil
@@ -192,4 +204,8 @@ func (u *vault) Init() error {
 
 func (u *vault) unsealKeyForID(i int) string {
 	return fmt.Sprintf("%s-unseal-%d", u.config.KeyPrefix, i)
+}
+
+func (u *vault) rootTokenKey() string {
+	return fmt.Sprintf("%s-root", u.config.KeyPrefix)
 }

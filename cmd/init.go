@@ -23,6 +23,7 @@ import (
 )
 
 const cfgInitRootToken = "init-root-token"
+const cfgStoreRootToken = "store-root-token"
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
@@ -35,6 +36,7 @@ storing the keys in the Cloud KMS keyring.
 It will not unseal the Vault instance after initialising.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		appConfig.BindPFlag(cfgInitRootToken, cmd.PersistentFlags().Lookup(cfgInitRootToken))
+		appConfig.BindPFlag(cfgStoreRootToken, cmd.PersistentFlags().Lookup(cfgInitRootToken))
 
 		store, err := kvStoreForConfig(appConfig)
 
@@ -68,6 +70,7 @@ It will not unseal the Vault instance after initialising.`,
 
 func init() {
 	initCmd.PersistentFlags().String(cfgInitRootToken, "", "root token for the new vault cluster")
+	initCmd.PersistentFlags().Bool(cfgStoreRootToken, true, "should the root token be stored in the key store")
 
 	RootCmd.AddCommand(initCmd)
 }
