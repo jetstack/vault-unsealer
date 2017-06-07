@@ -27,7 +27,7 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-type messageIterator struct {
+type MessageIterator struct {
 	impl interface {
 		next() (*Message, error)
 		stop()
@@ -55,13 +55,13 @@ type pollingMessageIterator struct {
 
 var useStreamingPull = false
 
-// newMessageIterator starts a new messageIterator.  Stop must be called on the messageIterator
+// newMessageIterator starts a new MessageIterator.  Stop must be called on the MessageIterator
 // when it is no longer needed.
 // subName is the full name of the subscription to pull messages from.
 // ctx is the context to use for acking messages and extending message deadlines.
-func newMessageIterator(ctx context.Context, s service, subName string, po *pullOptions) *messageIterator {
+func newMessageIterator(ctx context.Context, s service, subName string, po *pullOptions) *MessageIterator {
 	if !useStreamingPull {
-		return &messageIterator{
+		return &MessageIterator{
 			impl: newPollingMessageIterator(ctx, s, subName, po),
 		}
 	}
@@ -69,13 +69,13 @@ func newMessageIterator(ctx context.Context, s service, subName string, po *pull
 	err := sp.open()
 	if grpc.Code(err) == codes.Unimplemented {
 		log.Println("pubsub: streaming pull unimplemented; falling back to legacy pull")
-		return &messageIterator{
+		return &MessageIterator{
 			impl: newPollingMessageIterator(ctx, s, subName, po),
 		}
 	}
 	// TODO(jba): handle other non-nil error?
 	log.Println("using streaming pull")
-	return &messageIterator{
+	return &MessageIterator{
 		impl: newStreamingMessageIterator(ctx, sp, po),
 	}
 }
@@ -90,6 +90,7 @@ func newPollingMessageIterator(ctx context.Context, s service, subName string, p
 	// kaTicker is a reasonable default (there's no point extending
 	// messages when they could be acked instead).
 	ackTicker := time.NewTicker(keepAlivePeriod / 2) // Stopped in it.Stop
+
 	ka := &keepAlive{
 		s:             s,
 		Ctx:           ctx,
@@ -137,14 +138,14 @@ func newPollingMessageIterator(ctx context.Context, s service, subName string, p
 // Next returns the next Message to be processed.  The caller must call
 // Message.Done when finished with it.
 // Once Stop has been called, calls to Next will return iterator.Done.
-func (it *messageIterator) Next() (*Message, error) {
+func (it *MessageIterator) Next() (*Message, error) {
 	return it.impl.next()
 }
 
 func (it *pollingMessageIterator) next() (*Message, error) {
 	m, err := it.puller.Next()
 	if err == nil {
-		m.doneFunc = it.done
+		m.done = it.done
 		return m, nil
 	}
 
@@ -157,13 +158,13 @@ func (it *pollingMessageIterator) next() (*Message, error) {
 	}
 }
 
-// Client code must call Stop on a messageIterator when finished with it.
+// Client code must call Stop on a MessageIterator when finished with it.
 // Stop will block until Done has been called on all Messages that have been
-// returned by Next, or until the context with which the messageIterator was created
+// returned by Next, or until the context with which the MessageIterator was created
 // is cancelled or exceeds its deadline.
 // Stop need only be called once, but may be called multiple times from
 // multiple goroutines.
-func (it *messageIterator) Stop() {
+func (it *MessageIterator) Stop() {
 	it.impl.stop()
 }
 
@@ -198,7 +199,7 @@ func (it *pollingMessageIterator) stop() {
 
 	// There are no more live messages, so kill off the acker.
 	it.acker.Stop()
-	it.nacker.Flush()
+	it.nacker.Stop()
 	it.kaTicker.Stop()
 	it.ackTicker.Stop()
 }
@@ -233,6 +234,8 @@ type streamingMessageIterator struct {
 	err                error // error from stream failure
 }
 
+const messageBufferSize = 1000
+
 func newStreamingMessageIterator(ctx context.Context, sp *streamingPuller, po *pullOptions) *streamingMessageIterator {
 	// TODO: make kaTicker frequency more configurable. (ackDeadline - 5s) is a
 	// reasonable default for now, because the minimum ack period is 10s. This
@@ -246,17 +249,16 @@ func newStreamingMessageIterator(ctx context.Context, sp *streamingPuller, po *p
 	ackTicker := time.NewTicker(keepAlivePeriod / 2)
 	nackTicker := time.NewTicker(keepAlivePeriod / 10)
 	it := &streamingMessageIterator{
-		ctx:        ctx,
-		sp:         sp,
-		po:         po,
-		kaTicker:   kaTicker,
-		ackTicker:  ackTicker,
-		nackTicker: nackTicker,
-		failed:     make(chan struct{}),
-		stopped:    make(chan struct{}),
-		drained:    make(chan struct{}),
-		// use maxPrefetch as the channel's buffer size.
-		msgc:               make(chan *Message, po.maxPrefetch),
+		ctx:                ctx,
+		sp:                 sp,
+		po:                 po,
+		kaTicker:           kaTicker,
+		ackTicker:          ackTicker,
+		nackTicker:         nackTicker,
+		failed:             make(chan struct{}),
+		stopped:            make(chan struct{}),
+		drained:            make(chan struct{}),
+		msgc:               make(chan *Message, messageBufferSize),
 		keepAliveDeadlines: map[string]time.Time{},
 		pendingReq:         &pb.StreamingPullRequest{},
 	}
@@ -289,7 +291,7 @@ func (it *streamingMessageIterator) next() (*Message, error) {
 			if msg == nil {
 				break
 			}
-			msg.doneFunc = it.done
+			msg.done = it.done
 			return msg, nil
 
 		case <-it.ctx.Done():
@@ -402,6 +404,7 @@ func (it *streamingMessageIterator) fail(err error) {
 func (it *streamingMessageIterator) receiver() {
 	defer it.wg.Done()
 	defer close(it.msgc)
+
 	for {
 		// Stop retrieving messages if the context is done, the stream
 		// failed, or the iterator's Stop method was called.

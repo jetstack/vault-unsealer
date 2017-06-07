@@ -171,23 +171,31 @@ This endpoint creates or updates a role definition.
   number of seconds. Defaults to system/backend default TTL time.
 
 - `creation_statements` `(string: <required>)` – Specifies the database
-  statements executed to create and configure a user. See the plugin's API page
-  for more information on support and formatting for this parameter. 
+  statements executed to create and configure a user. Must be a
+  semicolon-separated string, a base64-encoded semicolon-separated string, a
+  serialized JSON string array, or a base64-encoded serialized JSON string
+  array. The '{{name}}', '{{password}}' and '{{expiration}}' values will be
+  substituted.
 
 - `revocation_statements` `(string: "")` – Specifies the database statements to
-  be executed to revoke a user. See the plugin's API page for more information
-  on support and formatting for this parameter. 
+  be executed to revoke a user. Must be a semicolon-separated string, a
+  base64-encoded semicolon-separated string, a serialized JSON string array, or
+  a base64-encoded serialized JSON string array. The '{{name}}' value will be
+  substituted.
 
 - `rollback_statements` `(string: "")` – Specifies the database statements to be
   executed rollback a create operation in the event of an error. Not every
-  plugin type will support this functionality. See the plugin's API page for
-  more information on support and formatting for this parameter. 
+  plugin type will support this functionality. Must be a semicolon-separated
+  string, a base64-encoded semicolon-separated string, a serialized JSON string
+  array, or a base64-encoded serialized JSON string array. The '{{name}}' value
+  will be substituted.
 
 - `renew_statements` `(string: "")` – Specifies the database statements to be
   executed to renew a user. Not every plugin type will support this
-  functionality. See the plugin's API page for more information on support and
-  formatting for this parameter. 
-
+  functionality. Must be a semicolon-separated string, a base64-encoded
+  semicolon-separated string, a serialized JSON string array, or a
+  base64-encoded serialized JSON string array. The '{{name}}' and
+  '{{expiration}}` values will be substituted.
 
 
 ### Sample Payload

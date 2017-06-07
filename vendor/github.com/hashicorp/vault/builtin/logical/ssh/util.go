@@ -163,7 +163,6 @@ func createSSHComm(logger log.Logger, username, ip string, port int, hostkey str
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
 	connfunc := func() (net.Conn, error) {

@@ -21,8 +21,6 @@ import (
 	"strings"
 	"testing"
 
-	gax "github.com/googleapis/gax-go"
-
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 	erpb "google.golang.org/genproto/googleapis/devtools/clouderrorreporting/v1beta1"
@@ -35,16 +33,12 @@ type fakeReportErrorsClient struct {
 	fail bool
 }
 
-func (c *fakeReportErrorsClient) ReportErrorEvent(ctx context.Context, req *erpb.ReportErrorEventRequest, _ ...gax.CallOption) (*erpb.ReportErrorEventResponse, error) {
+func (c *fakeReportErrorsClient) ReportErrorEvent(ctx context.Context, req *erpb.ReportErrorEventRequest) (*erpb.ReportErrorEventResponse, error) {
 	if c.fail {
 		return nil, errors.New("request failed")
 	}
 	c.req = req
 	return &erpb.ReportErrorEventResponse{}, nil
-}
-
-func (c *fakeReportErrorsClient) Close() error {
-	return nil
 }
 
 func newTestClient(c *fakeReportErrorsClient) *Client {

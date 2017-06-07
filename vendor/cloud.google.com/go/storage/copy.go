@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package storage contains a Google Cloud Storage client.
+//
+// This package is experimental and may make backwards-incompatible changes.
 package storage
 
 import (
@@ -84,6 +87,7 @@ func (c *Copier) Run(ctx context.Context) (*ObjectAttrs, error) {
 			return newObject(res.Resource), nil
 		}
 	}
+	return nil, nil
 }
 
 func (c *Copier) callRewrite(ctx context.Context, src *ObjectHandle, rawObj *raw.Object) (*raw.RewriteResponse, error) {
@@ -107,7 +111,6 @@ func (c *Copier) callRewrite(ctx context.Context, src *ObjectHandle, rawObj *raw
 	}
 	var res *raw.RewriteResponse
 	var err error
-	setClientHeader(call.Header())
 	err = runWithRetry(ctx, func() error { res, err = call.Do(); return err })
 	if err != nil {
 		return nil, err
@@ -179,7 +182,6 @@ func (c *Composer) Run(ctx context.Context) (*ObjectAttrs, error) {
 	}
 	var obj *raw.Object
 	var err error
-	setClientHeader(call.Header())
 	err = runWithRetry(ctx, func() error { obj, err = call.Do(); return err })
 	if err != nil {
 		return nil, err

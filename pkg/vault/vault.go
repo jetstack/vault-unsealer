@@ -15,19 +15,39 @@
 package vault
 
 import (
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/vault/api"
+
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv"
 )
+
+// That configures the vault API
+
+type Config struct {
+	// key prefix
+	KeyPrefix string
+
+	// how many key parts exist
+	SecretShares int
+	// how many of these parts are needed to unseal vault  (secretThreshold <= secretShares)
+	SecretThreshold int
+
+	// if this root token is set, the dynamic generated will be invalidated and this created instead
+	InitRootToken string
+	// should the root token be stored in the keyStore
+	StoreRootToken bool
+}
 
 // vault is an implementation of the Vault interface that will perform actions
 // against a Vault server, using a provided KMS to retreive
 type vault struct {
 	keyStore kv.Service
 	cl       *api.Client
-	prefix   string
+	config   *Config
 }
 
 var _ Vault = &vault{}
@@ -41,8 +61,17 @@ type Vault interface {
 }
 
 // New returns a new vault Vault, or an error.
-func New(prefix string, k kv.Service, cl *api.Client) (Vault, error) {
-	return &vault{k, cl, prefix}, nil
+func New(k kv.Service, cl *api.Client, config Config) (Vault, error) {
+
+	if config.SecretShares < config.SecretThreshold {
+		return nil, errors.New("the secret threshold can't be bigger than the shares")
+	}
+
+	return &vault{
+		keyStore: k,
+		cl:       cl,
+		config:   &config,
+	}, nil
 }
 
 func (u *vault) Sealed() (bool, error) {
@@ -89,9 +118,15 @@ func (u *vault) Unseal() error {
 }
 
 func (u *vault) Init() error {
+	// test backend first
+	err := u.keyStore.Test("test-params")
+	if err != nil {
+		return fmt.Errorf("error testing keystore before init: %s", err.Error())
+	}
+
 	resp, err := u.cl.Sys().Init(&api.InitRequest{
-		SecretShares:    5,
-		SecretThreshold: 3,
+		SecretShares:    u.config.SecretShares,
+		SecretThreshold: u.config.SecretThreshold,
 	})
 
 	if err != nil {
@@ -107,19 +142,70 @@ func (u *vault) Init() error {
 		}
 	}
 
-	rootTokenKey := u.rootTokenKey()
+	rootToken := resp.RootToken
 
-	if err = u.keyStore.Set(rootTokenKey, []byte(resp.RootToken)); err != nil {
-		return fmt.Errorf("error storing root token: %s", rootTokenKey)
+	// this sets up a predefined root token
+	if u.config.InitRootToken != "" {
+		logrus.Info("setting up init root token, waiting for vault to be unsealed")
+
+		count := 0
+		wait := time.Second * 2
+		for {
+			sealed, err := u.Sealed()
+			if !sealed {
+				break
+			}
+			if err == nil {
+				logrus.Info("vault still sealed, wait for unsealing")
+			} else {
+				logrus.Infof("vault not reachable: %s", err.Error())
+			}
+
+			count++
+			time.Sleep(wait)
+		}
+
+		// use temporary token
+		u.cl.SetToken(resp.RootToken)
+
+		// setup root token with provided key
+		_, err := u.cl.Auth().Token().CreateOrphan(&api.TokenCreateRequest{
+			ID:          u.config.InitRootToken,
+			Policies:    []string{"root"},
+			DisplayName: "root-token",
+			NoParent:    true,
+		})
+		if err != nil {
+			return fmt.Errorf("unable to setup requested root token, (temporary root token: '%s'): %s", resp.RootToken, err)
+		}
+
+		// revoke the temporary token
+		err = u.cl.Auth().Token().RevokeSelf(resp.RootToken)
+		if err != nil {
+			return fmt.Errorf("unable to revoke temporary root token: %s", err.Error())
+		}
+
+		rootToken = u.config.InitRootToken
+	}
+
+	if u.config.StoreRootToken {
+		rootTokenKey := u.rootTokenKey()
+		if err = u.keyStore.Set(rootTokenKey, []byte(resp.RootToken)); err != nil {
+			return fmt.Errorf("error storing root token '%s' in key'%s'", rootToken, rootTokenKey)
+		}
+		logrus.WithField("key", rootTokenKey).Info("root token stored in key store")
+	} else {
+		logrus.WithField("root-token", resp.RootToken).Warnf("won't store root token in key store, this token grants full privileges to vault, so keep this secret")
 	}
 
 	return nil
+
 }
 
 func (u *vault) unsealKeyForID(i int) string {
-	return fmt.Sprintf("%s-unseal-%d", u.prefix, i)
+	return fmt.Sprintf("%s-unseal-%d", u.config.KeyPrefix, i)
 }
 
 func (u *vault) rootTokenKey() string {
-	return fmt.Sprintf("%s-root", u.prefix)
+	return fmt.Sprintf("%s-root", u.config.KeyPrefix)
 }

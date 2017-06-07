@@ -24,7 +24,6 @@ import (
 
 	"cloud.google.com/go/iam"
 	"cloud.google.com/go/internal/testutil"
-	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -68,7 +67,6 @@ func TestAll(t *testing.T) {
 	if topic, err = client.CreateTopic(ctx, topicName); err != nil {
 		t.Errorf("CreateTopic error: %v", err)
 	}
-	defer topic.Stop()
 
 	var sub *Subscription
 	if sub, err = client.CreateSubscription(ctx, subName, topic, 0, nil); err != nil {
@@ -102,43 +100,60 @@ func TestAll(t *testing.T) {
 		})
 	}
 
-	// Publish the messages.
-	type pubResult struct {
-		m *Message
-		r *PublishResult
+	ids, err := topic.Publish(ctx, msgs...)
+	if err != nil {
+		t.Fatalf("Publish (1) error: %v", err)
 	}
-	var rs []pubResult
-	for _, m := range msgs {
-		r := topic.Publish(ctx, m)
-		rs = append(rs, pubResult{m, r})
+
+	if len(ids) != len(msgs) {
+		t.Errorf("unexpected number of message IDs received; %d, want %d", len(ids), len(msgs))
 	}
+
 	want := make(map[string]*messageData)
-	for _, res := range rs {
-		id, err := res.r.Get(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		md := extractMessageData(res.m)
-		md.ID = id
+	for i, m := range msgs {
+		md := extractMessageData(m)
+		md.ID = ids[i]
 		want[md.ID] = md
 	}
 
 	// Use a timeout to ensure that Pull does not block indefinitely if there are unexpectedly few messages available.
 	timeoutCtx, _ := context.WithTimeout(ctx, time.Minute)
-	gotMsgs, err := pullN(timeoutCtx, sub, len(want), func(ctx context.Context, m *Message) {
-		m.Ack()
-	})
+	it, err := sub.Pull(timeoutCtx)
 	if err != nil {
-		t.Fatalf("Pull: %v", err)
+		t.Fatalf("error constructing iterator: %v", err)
 	}
+	defer it.Stop()
 	got := make(map[string]*messageData)
-	for _, m := range gotMsgs {
+	for i := 0; i < len(want); i++ {
+		m, err := it.Next()
+		if err != nil {
+			t.Fatalf("error getting next message: %v", err)
+		}
 		md := extractMessageData(m)
 		got[md.ID] = md
+		m.Done(true)
 	}
+
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("messages: got: %v ; want: %v", got, want)
 	}
+
+	// base64 test
+	data := "=@~"
+	_, err = topic.Publish(ctx, &Message{Data: []byte(data)})
+	if err != nil {
+		t.Fatalf("Publish error: %v", err)
+	}
+
+	m, err := it.Next()
+	if err != nil {
+		t.Fatalf("Pull error: %v", err)
+	}
+
+	if string(m.Data) != data {
+		t.Errorf("unexpected message received; %s, want %s", string(m.Data), data)
+	}
+	m.Done(true)
 
 	if msg, ok := testIAM(ctx, topic.IAM(), "pubsub.topics.get"); !ok {
 		t.Errorf("topic IAM: %s", msg)
@@ -147,40 +162,13 @@ func TestAll(t *testing.T) {
 		t.Errorf("sub IAM: %s", msg)
 	}
 
-	snap, err := sub.createSnapshot(ctx, "")
+	err = sub.Delete(ctx)
 	if err != nil {
-		t.Fatalf("CreateSnapshot error: %v", err)
-	}
-
-	snapIt := client.snapshots(ctx)
-	for {
-		s, err := snapIt.Next()
-		if err == nil && s.name == snap.name {
-			break
-		}
-		if err == iterator.Done {
-			t.Errorf("cannot find snapshot: %q", snap.name)
-			break
-		}
-		if err != nil {
-			t.Error(err)
-			break
-		}
-	}
-
-	if err := sub.seekToSnapshot(ctx, snap.snapshot); err != nil {
-		t.Errorf("SeekToSnapshot error: %v", err)
-	}
-
-	if err := snap.delete(ctx); err != nil {
-		t.Errorf("DeleteSnap error: %v", err)
-	}
-
-	if err := sub.Delete(ctx); err != nil {
 		t.Errorf("DeleteSub error: %v", err)
 	}
 
-	if err := topic.Delete(ctx); err != nil {
+	err = topic.Delete(ctx)
+	if err != nil {
 		t.Errorf("DeleteTopic error: %v", err)
 	}
 }

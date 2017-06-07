@@ -17,7 +17,6 @@ package pubsub // import "cloud.google.com/go/pubsub"
 import (
 	"fmt"
 	"os"
-	"runtime"
 
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -37,6 +36,7 @@ const (
 )
 
 const prodAddr = "https://pubsub.googleapis.com/"
+const userAgent = "gcloud-golang-pubsub/20160927"
 
 // Client is a Google Pub/Sub client scoped to a single project.
 //
@@ -59,10 +59,7 @@ func NewClient(ctx context.Context, projectID string, opts ...option.ClientOptio
 		}
 		o = []option.ClientOption{option.WithGRPCConn(conn)}
 	} else {
-		o = []option.ClientOption{
-			// Create multiple connections to increase throughput.
-			option.WithGRPCConnectionPool(runtime.GOMAXPROCS(0)),
-		}
+		o = []option.ClientOption{option.WithUserAgent(userAgent)}
 	}
 	o = append(o, opts...)
 	s, err := newPubSubService(ctx, o)

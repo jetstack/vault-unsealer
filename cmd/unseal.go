@@ -23,6 +23,8 @@ import (
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/vault"
 )
 
+const cfgUnsealPeriod = "unseal-period"
+
 type unsealCfg struct {
 	unsealPeriod time.Duration
 }
@@ -40,19 +42,27 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		store, err := kvStoreForFlags(kvConfig)
+		appConfig.BindPFlag(cfgUnsealPeriod, cmd.PersistentFlags().Lookup(cfgUnsealPeriod))
+
+		store, err := kvStoreForConfig(appConfig)
 
 		if err != nil {
 			logrus.Fatalf("error creating kv store: %s", err.Error())
 		}
 
-		cl, err := api.NewClient(api.DefaultConfig())
+		cl, err := api.NewClient(nil)
 
 		if err != nil {
 			logrus.Fatalf("error connecting to vault: %s", err.Error())
 		}
 
-		v, err := vault.New("vault", store, cl)
+		if err != nil {
+			logrus.Fatalf("error building vault config: %s", err.Error())
+		}
+
+		vaultConfig, err := vaultConfigForConfig(appConfig)
+
+		v, err := vault.New(store, cl, vaultConfig)
 
 		if err != nil {
 			logrus.Fatalf("error creating vault helper: %s", err.Error())
@@ -88,7 +98,7 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	unsealCmd.Flags().DurationVar(&unsealConfig.unsealPeriod, "unseal-period", time.Second*30, "How often to attempt to unseal the vault instance")
+	unsealCmd.PersistentFlags().Duration(cfgUnsealPeriod, time.Second*30, "How often to attempt to unseal the vault instance")
 
 	RootCmd.AddCommand(unsealCmd)
 }

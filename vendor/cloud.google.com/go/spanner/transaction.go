@@ -52,18 +52,30 @@ func errSessionClosed(sh *sessionHandle) error {
 		"session is already recycled / destroyed: session_id = %q, rpc_client = %v", sh.getID(), sh.getClient())
 }
 
-// Read returns a RowIterator for reading multiple rows from the database.
+// Read reads multiple rows from the database.
+//
+// The provided function is called once in serial for each row read.  If the
+// function returns a non-nil error, Read immediately returns that value.
+//
+// If no rows are read, Read will return nil without calling the provided
+// function.
 func (t *txReadOnly) Read(ctx context.Context, table string, keys KeySet, columns []string) *RowIterator {
 	// ReadUsingIndex will use primary index if an empty index name is provided.
 	return t.ReadUsingIndex(ctx, table, "", keys, columns)
 }
 
-// ReadUsingIndex returns a RowIterator for reading multiple rows from the database
-// using an index.
+// ReadUsingIndex reads multiple rows from the database using an index.
 //
 // Currently, this function can only read columns that are part of the index
 // key, part of the primary key, or stored in the index due to a STORING clause
 // in the index definition.
+//
+// The provided function is called once in serial for each row read. If the
+// function returns a non-nil error, ReadUsingIndex immediately returns that
+// value.
+//
+// If no rows are read, ReadUsingIndex will return nil without calling the
+// provided function.
 func (t *txReadOnly) ReadUsingIndex(ctx context.Context, table, index string, keys KeySet, columns []string) *RowIterator {
 	var (
 		sh  *sessionHandle
@@ -84,7 +96,7 @@ func (t *txReadOnly) ReadUsingIndex(ctx context.Context, table, index string, ke
 		return &RowIterator{err: errSessionClosed(sh)}
 	}
 	return stream(
-		contextWithOutgoingMetadata(ctx, sh.getMetadata()),
+		contextWithMetadata(ctx, sh.getMetadata()),
 		func(ctx context.Context, resumeToken []byte) (streamingReceiver, error) {
 			return client.StreamingRead(ctx,
 				&sppb.ReadRequest{
@@ -109,7 +121,7 @@ func errRowNotFound(table string, key Key) error {
 // ReadRow reads a single row from the database.
 //
 // If no row is present with the given key, then ReadRow returns an error where
-// spanner.ErrCode(err) is codes.NotFound.
+// IsRowNotFound(err) is true.
 func (t *txReadOnly) ReadRow(ctx context.Context, table string, key Key, columns []string) (*Row, error) {
 	iter := t.Read(ctx, table, Keys(key), columns)
 	defer iter.Stop()
@@ -124,8 +136,13 @@ func (t *txReadOnly) ReadRow(ctx context.Context, table string, key Key, columns
 	}
 }
 
-// Query executes a query against the database. It returns a RowIterator
-// for retrieving the resulting rows.
+// Query executes a query against the database.
+//
+// The provided function is called once in serial for each row read.  If the
+// function returns a non-nil error, Query immediately returns that value.
+//
+// If no rows are read, Query will return nil without calling the provided
+// function.
 func (t *txReadOnly) Query(ctx context.Context, statement Statement) *RowIterator {
 	var (
 		sh  *sessionHandle
@@ -150,7 +167,7 @@ func (t *txReadOnly) Query(ctx context.Context, statement Statement) *RowIterato
 		return &RowIterator{err: err}
 	}
 	return stream(
-		contextWithOutgoingMetadata(ctx, sh.getMetadata()),
+		contextWithMetadata(ctx, sh.getMetadata()),
 		func(ctx context.Context, resumeToken []byte) (streamingReceiver, error) {
 			req.ResumeToken = resumeToken
 			return client.ExecuteStreamingSql(ctx, req)
@@ -279,7 +296,7 @@ func (t *ReadOnlyTransaction) begin(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	err = runRetryable(contextWithOutgoingMetadata(ctx, sh.getMetadata()), func(ctx context.Context) error {
+	err = runRetryable(contextWithMetadata(ctx, sh.getMetadata()), func(ctx context.Context) error {
 		res, e := sh.getClient().BeginTransaction(ctx, &sppb.BeginTransactionRequest{
 			Session: sh.getID(),
 			Options: &sppb.TransactionOptions{
@@ -440,9 +457,7 @@ func (t *ReadOnlyTransaction) Close() {
 	// If session handle is already destroyed, this becomes a noop.
 	// If there are still active queries and if the recycled session is reused before they complete, Cloud Spanner will cancel them
 	// on behalf of the new transaction on the session.
-	if sh != nil {
-		sh.recycle()
-	}
+	sh.recycle()
 }
 
 // Timestamp returns the timestamp chosen to perform reads and
@@ -631,7 +646,7 @@ func (t *ReadWriteTransaction) begin(ctx context.Context) error {
 		t.state = txActive
 		return nil
 	}
-	tx, err := beginTransaction(contextWithOutgoingMetadata(ctx, t.sh.getMetadata()), t.sh.getID(), t.sh.getClient())
+	tx, err := beginTransaction(contextWithMetadata(ctx, t.sh.getMetadata()), t.sh.getID(), t.sh.getClient())
 	if err == nil {
 		t.tx = tx
 		t.state = txActive
@@ -658,7 +673,7 @@ func (t *ReadWriteTransaction) commit(ctx context.Context) (time.Time, error) {
 	if sid == "" || client == nil {
 		return ts, errSessionClosed(t.sh)
 	}
-	err = runRetryable(contextWithOutgoingMetadata(ctx, t.sh.getMetadata()), func(ctx context.Context) error {
+	err = runRetryable(contextWithMetadata(ctx, t.sh.getMetadata()), func(ctx context.Context) error {
 		var trailer metadata.MD
 		res, e := client.Commit(ctx, &sppb.CommitRequest{
 			Session: sid,
@@ -692,7 +707,7 @@ func (t *ReadWriteTransaction) rollback(ctx context.Context) {
 	if sid == "" || client == nil {
 		return
 	}
-	err := runRetryable(contextWithOutgoingMetadata(ctx, t.sh.getMetadata()), func(ctx context.Context) error {
+	err := runRetryable(contextWithMetadata(ctx, t.sh.getMetadata()), func(ctx context.Context) error {
 		_, e := client.Rollback(ctx, &sppb.RollbackRequest{
 			Session:       sid,
 			TransactionId: t.tx,
@@ -761,7 +776,7 @@ func (t *writeOnlyTransaction) applyAtLeastOnce(ctx context.Context, ms ...*Muta
 				return e
 			}
 		}
-		res, e := sh.getClient().Commit(contextWithOutgoingMetadata(ctx, sh.getMetadata()), &sppb.CommitRequest{
+		res, e := sh.getClient().Commit(contextWithMetadata(ctx, sh.getMetadata()), &sppb.CommitRequest{
 			Session: sh.getID(),
 			Transaction: &sppb.CommitRequest_SingleUseTransaction{
 				SingleUseTransaction: &sppb.TransactionOptions{

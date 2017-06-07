@@ -8,9 +8,9 @@
   "builders": [
     {
       "type": "docker",
-      "image": "hashicorp/middleman-hashicorp:0.3.24",
+      "image": "hashicorp/middleman-hashicorp:0.3.22",
       "discard": "true",
-      "run_command": ["-d", "-i", "-t", "{{ .Image }}", "/bin/bash"]
+      "run_command": ["-d", "-i", "-t", "{{ .Image }}", "/bin/sh"]
     }
   ],
   "provisioners": [
@@ -30,7 +30,7 @@
       "inline": [
         "bundle check || bundle install",
         "bundle exec middleman build",
-        "/bin/bash ./scripts/deploy.sh"
+        "/bin/sh ./scripts/deploy.sh"
       ]
     }
   ]

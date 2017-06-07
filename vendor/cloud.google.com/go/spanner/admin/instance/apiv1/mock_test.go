@@ -17,7 +17,7 @@
 package instance
 
 import (
-	emptypb "github.com/golang/protobuf/ptypes/empty"
+	google_protobuf "github.com/golang/protobuf/ptypes/empty"
 	iampb "google.golang.org/genproto/googleapis/iam/v1"
 	longrunningpb "google.golang.org/genproto/googleapis/longrunning"
 	instancepb "google.golang.org/genproto/googleapis/spanner/admin/instance/v1"
@@ -26,12 +26,10 @@ import (
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -41,7 +39,6 @@ import (
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 )
 
 var _ = io.EOF
@@ -63,11 +60,7 @@ type mockInstanceAdminServer struct {
 	resps []proto.Message
 }
 
-func (s *mockInstanceAdminServer) ListInstanceConfigs(ctx context.Context, req *instancepb.ListInstanceConfigsRequest) (*instancepb.ListInstanceConfigsResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) ListInstanceConfigs(_ context.Context, req *instancepb.ListInstanceConfigsRequest) (*instancepb.ListInstanceConfigsResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -75,11 +68,7 @@ func (s *mockInstanceAdminServer) ListInstanceConfigs(ctx context.Context, req *
 	return s.resps[0].(*instancepb.ListInstanceConfigsResponse), nil
 }
 
-func (s *mockInstanceAdminServer) GetInstanceConfig(ctx context.Context, req *instancepb.GetInstanceConfigRequest) (*instancepb.InstanceConfig, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) GetInstanceConfig(_ context.Context, req *instancepb.GetInstanceConfigRequest) (*instancepb.InstanceConfig, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -87,11 +76,7 @@ func (s *mockInstanceAdminServer) GetInstanceConfig(ctx context.Context, req *in
 	return s.resps[0].(*instancepb.InstanceConfig), nil
 }
 
-func (s *mockInstanceAdminServer) ListInstances(ctx context.Context, req *instancepb.ListInstancesRequest) (*instancepb.ListInstancesResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) ListInstances(_ context.Context, req *instancepb.ListInstancesRequest) (*instancepb.ListInstancesResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -99,11 +84,7 @@ func (s *mockInstanceAdminServer) ListInstances(ctx context.Context, req *instan
 	return s.resps[0].(*instancepb.ListInstancesResponse), nil
 }
 
-func (s *mockInstanceAdminServer) GetInstance(ctx context.Context, req *instancepb.GetInstanceRequest) (*instancepb.Instance, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) GetInstance(_ context.Context, req *instancepb.GetInstanceRequest) (*instancepb.Instance, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -111,11 +92,7 @@ func (s *mockInstanceAdminServer) GetInstance(ctx context.Context, req *instance
 	return s.resps[0].(*instancepb.Instance), nil
 }
 
-func (s *mockInstanceAdminServer) CreateInstance(ctx context.Context, req *instancepb.CreateInstanceRequest) (*longrunningpb.Operation, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) CreateInstance(_ context.Context, req *instancepb.CreateInstanceRequest) (*longrunningpb.Operation, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -123,11 +100,7 @@ func (s *mockInstanceAdminServer) CreateInstance(ctx context.Context, req *insta
 	return s.resps[0].(*longrunningpb.Operation), nil
 }
 
-func (s *mockInstanceAdminServer) UpdateInstance(ctx context.Context, req *instancepb.UpdateInstanceRequest) (*longrunningpb.Operation, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) UpdateInstance(_ context.Context, req *instancepb.UpdateInstanceRequest) (*longrunningpb.Operation, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -135,23 +108,15 @@ func (s *mockInstanceAdminServer) UpdateInstance(ctx context.Context, req *insta
 	return s.resps[0].(*longrunningpb.Operation), nil
 }
 
-func (s *mockInstanceAdminServer) DeleteInstance(ctx context.Context, req *instancepb.DeleteInstanceRequest) (*emptypb.Empty, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) DeleteInstance(_ context.Context, req *instancepb.DeleteInstanceRequest) (*google_protobuf.Empty, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
 	}
-	return s.resps[0].(*emptypb.Empty), nil
+	return s.resps[0].(*google_protobuf.Empty), nil
 }
 
-func (s *mockInstanceAdminServer) SetIamPolicy(ctx context.Context, req *iampb.SetIamPolicyRequest) (*iampb.Policy, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) SetIamPolicy(_ context.Context, req *iampb.SetIamPolicyRequest) (*iampb.Policy, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -159,11 +124,7 @@ func (s *mockInstanceAdminServer) SetIamPolicy(ctx context.Context, req *iampb.S
 	return s.resps[0].(*iampb.Policy), nil
 }
 
-func (s *mockInstanceAdminServer) GetIamPolicy(ctx context.Context, req *iampb.GetIamPolicyRequest) (*iampb.Policy, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) GetIamPolicy(_ context.Context, req *iampb.GetIamPolicyRequest) (*iampb.Policy, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -171,11 +132,7 @@ func (s *mockInstanceAdminServer) GetIamPolicy(ctx context.Context, req *iampb.G
 	return s.resps[0].(*iampb.Policy), nil
 }
 
-func (s *mockInstanceAdminServer) TestIamPermissions(ctx context.Context, req *iampb.TestIamPermissionsRequest) (*iampb.TestIamPermissionsResponse, error) {
-	md, _ := metadata.FromIncomingContext(ctx)
-	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
-		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
-	}
+func (s *mockInstanceAdminServer) TestIamPermissions(_ context.Context, req *iampb.TestIamPermissionsRequest) (*iampb.TestIamPermissionsResponse, error) {
 	s.reqs = append(s.reqs, req)
 	if s.err != nil {
 		return nil, s.err
@@ -262,7 +219,7 @@ func TestInstanceAdminListInstanceConfigs(t *testing.T) {
 }
 
 func TestInstanceAdminListInstanceConfigsError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = grpc.Errorf(errCode, "test error")
 
 	var formattedParent string = InstanceAdminProjectPath("[PROJECT]")
@@ -321,7 +278,7 @@ func TestInstanceAdminGetInstanceConfig(t *testing.T) {
 }
 
 func TestInstanceAdminGetInstanceConfigError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = InstanceAdminInstanceConfigPath("[PROJECT]", "[INSTANCE_CONFIG]")
@@ -391,7 +348,7 @@ func TestInstanceAdminListInstances(t *testing.T) {
 }
 
 func TestInstanceAdminListInstancesError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = grpc.Errorf(errCode, "test error")
 
 	var formattedParent string = InstanceAdminProjectPath("[PROJECT]")
@@ -454,7 +411,7 @@ func TestInstanceAdminGetInstance(t *testing.T) {
 }
 
 func TestInstanceAdminGetInstanceError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = InstanceAdminInstancePath("[PROJECT]", "[INSTANCE]")
@@ -533,7 +490,7 @@ func TestInstanceAdminCreateInstance(t *testing.T) {
 }
 
 func TestInstanceAdminCreateInstanceError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = nil
 	mockInstanceAdmin.resps = append(mockInstanceAdmin.resps[:0], &longrunningpb.Operation{
 		Name: "longrunning-test",
@@ -628,7 +585,7 @@ func TestInstanceAdminUpdateInstance(t *testing.T) {
 }
 
 func TestInstanceAdminUpdateInstanceError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = nil
 	mockInstanceAdmin.resps = append(mockInstanceAdmin.resps[:0], &longrunningpb.Operation{
 		Name: "longrunning-test",
@@ -665,7 +622,7 @@ func TestInstanceAdminUpdateInstanceError(t *testing.T) {
 	_ = resp
 }
 func TestInstanceAdminDeleteInstance(t *testing.T) {
-	var expectedResponse *emptypb.Empty = &emptypb.Empty{}
+	var expectedResponse *google_protobuf.Empty = &google_protobuf.Empty{}
 
 	mockInstanceAdmin.err = nil
 	mockInstanceAdmin.reqs = nil
@@ -695,7 +652,7 @@ func TestInstanceAdminDeleteInstance(t *testing.T) {
 }
 
 func TestInstanceAdminDeleteInstanceError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = grpc.Errorf(errCode, "test error")
 
 	var formattedName string = InstanceAdminInstancePath("[PROJECT]", "[INSTANCE]")
@@ -755,7 +712,7 @@ func TestInstanceAdminSetIamPolicy(t *testing.T) {
 }
 
 func TestInstanceAdminSetIamPolicyError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = grpc.Errorf(errCode, "test error")
 
 	var formattedResource string = InstanceAdminInstancePath("[PROJECT]", "[INSTANCE]")
@@ -816,7 +773,7 @@ func TestInstanceAdminGetIamPolicy(t *testing.T) {
 }
 
 func TestInstanceAdminGetIamPolicyError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = grpc.Errorf(errCode, "test error")
 
 	var formattedResource string = InstanceAdminInstancePath("[PROJECT]", "[INSTANCE]")
@@ -872,7 +829,7 @@ func TestInstanceAdminTestIamPermissions(t *testing.T) {
 }
 
 func TestInstanceAdminTestIamPermissionsError(t *testing.T) {
-	errCode := codes.PermissionDenied
+	errCode := codes.Internal
 	mockInstanceAdmin.err = grpc.Errorf(errCode, "test error")
 
 	var formattedResource string = InstanceAdminInstancePath("[PROJECT]", "[INSTANCE]")

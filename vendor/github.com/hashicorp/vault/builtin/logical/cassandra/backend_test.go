@@ -74,9 +74,6 @@ func cleanupTestContainer(t *testing.T, cid dockertest.ContainerID) {
 }
 
 func TestBackend_basic(t *testing.T) {
-	if os.Getenv("TRAVIS") != "true" {
-		t.SkipNow()
-	}
 	config := logical.TestBackendConfig()
 	config.StorageView = &logical.InmemStorage{}
 	b, err := Factory(config)
@@ -100,9 +97,6 @@ func TestBackend_basic(t *testing.T) {
 }
 
 func TestBackend_roleCrud(t *testing.T) {
-	if os.Getenv("TRAVIS") != "true" {
-		t.SkipNow()
-	}
 	config := logical.TestBackendConfig()
 	config.StorageView = &logical.InmemStorage{}
 	b, err := Factory(config)

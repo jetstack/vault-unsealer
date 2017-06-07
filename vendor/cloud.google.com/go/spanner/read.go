@@ -94,7 +94,7 @@ func (r *RowIterator) Next() (*Row, error) {
 }
 
 // Do calls the provided function once in sequence for each row in the iteration.  If the
-// function returns a non-nil error, Do immediately returns that error.
+// function returns a non-nil error, Do immediately returns that value.
 //
 // If there are no rows in the iterator, Do will return nil without calling the
 // provided function.
@@ -537,7 +537,7 @@ func (p *partialResultSetDecoder) yield(chunked, last bool) *Row {
 
 // yieldTx returns transaction information via caller supplied callback.
 func errChunkedEmptyRow() error {
-	return spannerErrorf(codes.FailedPrecondition, "got invalid chunked PartialResultSet with empty Row")
+	return spannerErrorf(codes.FailedPrecondition, "partialResultSetDecoder gets chunked empty row")
 }
 
 // add tries to merge a new PartialResultSet into buffered Row. It returns
@@ -611,7 +611,7 @@ func (p *partialResultSetDecoder) isMergeable(a *proto3.Value) bool {
 // errIncompatibleMergeTypes returns error for incompatible protobuf types
 // that cannot be merged by partialResultSetDecoder.
 func errIncompatibleMergeTypes(a, b *proto3.Value) error {
-	return spannerErrorf(codes.FailedPrecondition, "incompatible type in chunked PartialResultSet. expected (%T), got (%T)", a.Kind, b.Kind)
+	return spannerErrorf(codes.FailedPrecondition, "partialResultSetDecoder merge(%T,%T) - incompatible types", a.Kind, b.Kind)
 }
 
 // errUnsupportedMergeType returns error for protobuf type that cannot be

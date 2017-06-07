@@ -39,10 +39,6 @@ func (c *fakeLogger) LogSync(ctx context.Context, e logging.Entry) error {
 	return nil
 }
 
-func (c *fakeLogger) Close() error {
-	return nil
-}
-
 func newTestClientUsingLogging(c *fakeLogger) *Client {
 	newLoggerInterface = func(ctx context.Context, project string, opts ...option.ClientOption) (loggerInterface, error) {
 		return c, nil

@@ -19,4 +19,5 @@ package kv
 type Service interface {
 	Set(key string, value []byte) error
 	Get(key string) ([]byte, error)
+	Test(key string) error
 }

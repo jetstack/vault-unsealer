@@ -10,6 +10,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/hashicorp/vault/builtin/logical/database/dbplugin"
+	"github.com/hashicorp/vault/plugins/helper/database/connutil"
 	dockertest "gopkg.in/ory-am/dockertest.v3"
 )
 
@@ -69,9 +70,6 @@ func prepareCassandraTestContainer(t *testing.T) (cleanup func(), retURL string)
 }
 
 func TestCassandra_Initialize(t *testing.T) {
-	if os.Getenv("TRAVIS") != "true" {
-		t.SkipNow()
-	}
 	cleanup, connURL := prepareCassandraTestContainer(t)
 	defer cleanup()
 
@@ -84,7 +82,7 @@ func TestCassandra_Initialize(t *testing.T) {
 
 	dbRaw, _ := New()
 	db := dbRaw.(*Cassandra)
-	connProducer := db.ConnectionProducer.(*cassandraConnectionProducer)
+	connProducer := db.ConnectionProducer.(*connutil.CassandraConnectionProducer)
 
 	err := db.Initialize(connectionDetails, true)
 	if err != nil {
@@ -102,9 +100,6 @@ func TestCassandra_Initialize(t *testing.T) {
 }
 
 func TestCassandra_CreateUser(t *testing.T) {
-	if os.Getenv("TRAVIS") != "true" {
-		t.SkipNow()
-	}
 	cleanup, connURL := prepareCassandraTestContainer(t)
 	defer cleanup()
 
@@ -137,9 +132,6 @@ func TestCassandra_CreateUser(t *testing.T) {
 }
 
 func TestMyCassandra_RenewUser(t *testing.T) {
-	if os.Getenv("TRAVIS") != "true" {
-		t.SkipNow()
-	}
 	cleanup, connURL := prepareCassandraTestContainer(t)
 	defer cleanup()
 
@@ -177,9 +169,6 @@ func TestMyCassandra_RenewUser(t *testing.T) {
 }
 
 func TestCassandra_RevokeUser(t *testing.T) {
-	if os.Getenv("TRAVIS") != "true" {
-		t.SkipNow()
-	}
 	cleanup, connURL := prepareCassandraTestContainer(t)
 	defer cleanup()
 

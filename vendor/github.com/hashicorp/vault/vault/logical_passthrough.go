@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/helper/parseutil"
+	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -126,13 +126,14 @@ func (b *PassthroughBackend) handleRead(
 	}
 
 	// Check if there is a ttl key
-	ttlDuration := b.System().DefaultLeaseTTL()
-	ttlRaw, ok := rawData["ttl"]
-	if !ok {
-		ttlRaw, ok = rawData["lease"]
+	var ttl string
+	ttl, _ = rawData["ttl"].(string)
+	if len(ttl) == 0 {
+		ttl, _ = rawData["lease"].(string)
 	}
-	if ok {
-		dur, err := parseutil.ParseDurationSecond(ttlRaw)
+	ttlDuration := b.System().DefaultLeaseTTL()
+	if len(ttl) != 0 {
+		dur, err := parseutil.ParseDurationSecond(ttl)
 		if err == nil {
 			ttlDuration = dur
 		}
