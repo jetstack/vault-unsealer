@@ -48,8 +48,13 @@ It will not unseal the Vault instance after initialising.`,
 			logrus.Fatalf("error connecting to vault: %s", err.Error())
 		}
 
-		v, err := vault.New("vault", store, cl, appConfig.GetInt(cfgSecretShares), appConfig.GetInt(cfgSecretThreshold))
-		v.SetInitRootToken(appConfig.GetString(cfgInitRootToken))
+		vaultConfig, err := vaultConfigForConfig(appConfig)
+
+		if err != nil {
+			logrus.Fatalf("error building vault config: %s", err.Error())
+		}
+
+		v, err := vault.New(store, cl, vaultConfig)
 
 		if err != nil {
 			logrus.Fatalf("error creating vault helper: %s", err.Error())

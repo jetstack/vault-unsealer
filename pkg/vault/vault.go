@@ -15,6 +15,7 @@
 package vault
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -24,20 +25,29 @@ import (
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv"
 )
 
+// That configures the vault API
+
+type Config struct {
+	// key prefix
+	KeyPrefix string
+
+	// how many key parts exist
+	SecretShares int
+	// how many of these parts are needed to unseal vault  (secretThreshold <= secretShares)
+	SecretThreshold int
+
+	// if this root token is set, the dynamic generated will be invalidated and this created instead
+	InitRootToken string
+	// should the root token be stored in the keyStore
+	StoreRootToken bool
+}
+
 // vault is an implementation of the Vault interface that will perform actions
 // against a Vault server, using a provided KMS to retreive
 type vault struct {
 	keyStore kv.Service
 	cl       *api.Client
-	prefix   string
-
-	// how many key parts exist
-	secretShares int
-	// how many of these parts are needed to unseal vault  (secretThreshold <= secretShares)
-	secretThreshold int
-
-	// if this root token is set, the dynamic generated will be invalidated and this created instead
-	initRootToken string
+	config   *Config
 }
 
 var _ Vault = &vault{}
@@ -48,22 +58,20 @@ type Vault interface {
 	Sealed() (bool, error)
 	Unseal() error
 	Init() error
-	SetInitRootToken(string)
 }
 
 // New returns a new vault Vault, or an error.
-func New(prefix string, k kv.Service, cl *api.Client, secretShares, secretThreshold int) (Vault, error) {
-	return &vault{
-		keyStore:        k,
-		cl:              cl,
-		prefix:          prefix,
-		secretShares:    secretShares,
-		secretThreshold: secretThreshold,
-	}, nil
-}
+func New(k kv.Service, cl *api.Client, config Config) (Vault, error) {
 
-func (v *vault) SetInitRootToken(token string) {
-	v.initRootToken = token
+	if config.SecretShares < config.SecretThreshold {
+		return nil, errors.New("the secret threshold can't be bigger than the shares")
+	}
+
+	return &vault{
+		keyStore: k,
+		cl:       cl,
+		config:   &config,
+	}, nil
 }
 
 func (u *vault) Sealed() (bool, error) {
@@ -117,8 +125,8 @@ func (u *vault) Init() error {
 	}
 
 	resp, err := u.cl.Sys().Init(&api.InitRequest{
-		SecretShares:    u.secretShares,
-		SecretThreshold: u.secretThreshold,
+		SecretShares:    u.config.SecretShares,
+		SecretThreshold: u.config.SecretThreshold,
 	})
 
 	if err != nil {
@@ -135,7 +143,7 @@ func (u *vault) Init() error {
 	}
 
 	// this sets up a predefined root token
-	if u.initRootToken != "" {
+	if u.config.InitRootToken != "" {
 		logrus.Info("setting up init root token, waiting for vault to be unsealed")
 
 		count := 0
@@ -160,7 +168,7 @@ func (u *vault) Init() error {
 
 		// setup root token with provided key
 		_, err := u.cl.Auth().Token().CreateOrphan(&api.TokenCreateRequest{
-			ID:          u.initRootToken,
+			ID:          u.config.InitRootToken,
 			Policies:    []string{"root"},
 			DisplayName: "root-token",
 			NoParent:    true,
@@ -183,5 +191,5 @@ func (u *vault) Init() error {
 }
 
 func (u *vault) unsealKeyForID(i int) string {
-	return fmt.Sprintf("%s-unseal-%d", u.prefix, i)
+	return fmt.Sprintf("%s-unseal-%d", u.config.KeyPrefix, i)
 }

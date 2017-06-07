@@ -56,7 +56,13 @@ to quickly create a Cobra application.`,
 			logrus.Fatalf("error connecting to vault: %s", err.Error())
 		}
 
-		v, err := vault.New("vault", store, cl, appConfig.GetInt(cfgSecretShares), appConfig.GetInt(cfgSecretThreshold))
+		if err != nil {
+			logrus.Fatalf("error building vault config: %s", err.Error())
+		}
+
+		vaultConfig, err := vaultConfigForConfig(appConfig)
+
+		v, err := vault.New(store, cl, vaultConfig)
 
 		if err != nil {
 			logrus.Fatalf("error creating vault helper: %s", err.Error())

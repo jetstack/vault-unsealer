@@ -24,11 +24,27 @@ import (
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv/aws_ssm"
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv/cloudkms"
 	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv/gcs"
+
+	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/vault"
 )
+
+func vaultConfigForConfig(cfg *viper.Viper) (vault.Config, error) {
+
+	return vault.Config{
+		KeyPrefix: "vault",
+
+		SecretShares:    appConfig.GetInt(cfgSecretShares),
+		SecretThreshold: appConfig.GetInt(cfgSecretThreshold),
+
+		InitRootToken:  appConfig.GetString(cfgInitRootToken),
+		StoreRootToken: appConfig.GetBool(cfgStoreRootToken),
+	}, nil
+}
 
 func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 
 	if cfg.GetString(cfgMode) == cfgModeValueGoogleCloudKMSGCS {
+
 		g, err := gcs.New(
 			cfg.GetString(cfgGoogleCloudStorageBucket),
 			cfg.GetString(cfgGoogleCloudStoragePrefix),
