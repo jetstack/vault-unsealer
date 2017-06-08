@@ -30,7 +30,7 @@ func (f *fakeKV) Set(key string, data []byte) error {
 func (f *fakeKV) Get(key string) ([]byte, error) {
 	out, ok := f.Values[key]
 	if !ok {
-		return []byte{}, fmt.Errorf("key '%s' not found", key)
+		return []byte{}, kv.NewNotFoundError(fmt.Sprintf("key '%s' not found", key))
 	}
 	return *out, nil
 }
@@ -49,12 +49,12 @@ func TestAWSIntegration(t *testing.T) {
 		t.Skip("Skip AWS integration tests: not environment variable 'AWS_REGION' specified")
 	}
 
-	kv := NewFakeKV()
+	fakeKV := NewFakeKV()
 
 	payloadKey := "test123"
 	payloadValue := "payload123"
 
-	a, err := New(kv, keyID)
+	a, err := New(fakeKV, keyID)
 	if err != nil {
 		t.Errorf("Unexpected error creating KMS kv: %s", err)
 	}
@@ -64,7 +64,7 @@ func TestAWSIntegration(t *testing.T) {
 		t.Errorf("Unexpected error storing value in KMS kv: %s", err)
 	}
 
-	value, ok := kv.Values[payloadKey]
+	value, ok := fakeKV.Values[payloadKey]
 	if !ok {
 		t.Errorf("Nothing stored in backend storage")
 	}
@@ -80,5 +80,10 @@ func TestAWSIntegration(t *testing.T) {
 
 	if exp, act := payloadValue, string(out); exp != act {
 		t.Errorf("Unexpected decrypt output: exp=%s act=%s", exp, act)
+	}
+
+	_, err = a.Get("not-found")
+	if _, ok := err.(*kv.NotFoundError); !ok {
+		t.Errorf("Expected an kv.NotFoundError for a non existing key")
 	}
 }

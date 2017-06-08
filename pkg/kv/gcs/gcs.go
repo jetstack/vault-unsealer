@@ -58,6 +58,9 @@ func (g *gcsStorage) Get(key string) ([]byte, error) {
 	r, err := g.cl.Bucket(g.bucket).Object(n).NewReader(ctx)
 
 	if err != nil {
+		if err == storage.ErrObjectNotExist {
+			return nil, kv.NewNotFoundError(fmt.Sprintf("error getting object for key '%s': %s", n, err.Error()))
+		}
 		return nil, fmt.Errorf("error getting object for key '%s': %s", n, err.Error())
 	}
 

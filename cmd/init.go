@@ -24,6 +24,7 @@ import (
 
 const cfgInitRootToken = "init-root-token"
 const cfgStoreRootToken = "store-root-token"
+const cfgOverwriteExisting = "overwrite-existing"
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
@@ -37,6 +38,7 @@ It will not unseal the Vault instance after initialising.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		appConfig.BindPFlag(cfgInitRootToken, cmd.PersistentFlags().Lookup(cfgInitRootToken))
 		appConfig.BindPFlag(cfgStoreRootToken, cmd.PersistentFlags().Lookup(cfgStoreRootToken))
+		appConfig.BindPFlag(cfgOverwriteExisting, cmd.PersistentFlags().Lookup(cfgOverwriteExisting))
 
 		store, err := kvStoreForConfig(appConfig)
 
@@ -71,6 +73,7 @@ It will not unseal the Vault instance after initialising.`,
 func init() {
 	initCmd.PersistentFlags().String(cfgInitRootToken, "", "root token for the new vault cluster")
 	initCmd.PersistentFlags().Bool(cfgStoreRootToken, true, "should the root token be stored in the key store")
+	initCmd.PersistentFlags().Bool(cfgOverwriteExisting, false, "overwrite existing unseal keys and root tokens, possibly dangerous!")
 
 	RootCmd.AddCommand(initCmd)
 }

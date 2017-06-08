@@ -50,7 +50,7 @@ func (a *awsKMS) decrypt(cipherText []byte) ([]byte, error) {
 func (a *awsKMS) Get(key string) ([]byte, error) {
 	cipherText, err := a.store.Get(key)
 	if err != nil {
-		return nil, err
+		return nil, err.(*kv.NotFoundError)
 	}
 
 	return a.decrypt(cipherText)
@@ -81,6 +81,11 @@ func (a *awsKMS) Set(key string, val []byte) error {
 
 func (g *awsKMS) Test(key string) error {
 	inputString := "test"
+
+	err := g.store.Test(key)
+	if err != nil {
+		return fmt.Errorf("test of backend store failed: %s", err.Error())
+	}
 
 	cipherText, err := g.encrypt([]byte(inputString))
 	if err != nil {
