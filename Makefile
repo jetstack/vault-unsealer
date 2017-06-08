@@ -25,6 +25,9 @@ build: go_build
 
 verify: go_verify
 
+.builder_image:
+	docker pull ${BUILD_IMAGE_NAME}
+
 # Builder image targets
 #######################
 docker_%: .builder_image
