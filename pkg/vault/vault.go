@@ -155,7 +155,7 @@ func (u *vault) Init() error {
 
 		// test every key
 		for _, key := range keys {
-			if u.keyStoreNotFound(key) {
+			if !u.keyStoreNotFound(key) {
 				return fmt.Errorf("error before init: keystore value for '%s' already exists", key)
 			}
 		}
