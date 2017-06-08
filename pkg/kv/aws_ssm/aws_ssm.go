@@ -19,7 +19,7 @@ type awsSSM struct {
 
 var _ kv.Service = &awsSSM{}
 
-func New(keyPrefix string) (kv.Service, error) {
+func New(keyPrefix string) (*awsSSM, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (a *awsSSM) Get(key string) ([]byte, error) {
 	}
 
 	if len(out.Parameters) < 1 {
-		return []byte{}, fmt.Errorf("key '%s' not found", key)
+		return []byte{}, kv.NewNotFoundError("key '%s' not found")
 	}
 
 	return base64.StdEncoding.DecodeString(*out.Parameters[0].Value)
@@ -56,9 +56,16 @@ func (a *awsSSM) Set(key string, val []byte) error {
 	_, err := a.ssmService.PutParameter(&ssm.PutParameterInput{
 		Description: aws.String("vault-unsealer"),
 		Name:        aws.String(a.name(key)),
-		Overwrite:   aws.Bool(true), // TODO: Potentally dangerous: Overwriting of the seal key == loosing vault backend
+		Overwrite:   aws.Bool(true),
 		Value:       aws.String(base64.StdEncoding.EncodeToString(val)),
 		Type:        aws.String("String"),
+	})
+	return err
+}
+
+func (a *awsSSM) Delete(key string) error {
+	_, err := a.ssmService.DeleteParameter(&ssm.DeleteParameterInput{
+		Name: aws.String(a.name(key)),
 	})
 	return err
 }

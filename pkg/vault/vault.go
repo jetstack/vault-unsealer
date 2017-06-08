@@ -40,6 +40,9 @@ type Config struct {
 	InitRootToken string
 	// should the root token be stored in the keyStore
 	StoreRootToken bool
+
+	// overwrite existing tokens
+	OverwriteExisting bool
 }
 
 // vault is an implementation of the Vault interface that will perform actions
@@ -117,11 +120,45 @@ func (u *vault) Unseal() error {
 	}
 }
 
+func (u *vault) keyStoreNotFound(key string) bool {
+	_, err := u.keyStore.Get(key)
+	if _, ok := err.(*kv.NotFoundError); ok {
+		return true
+	}
+	return false
+}
+
+func (u *vault) keyStoreSet(key string, val []byte) error {
+	if !u.config.OverwriteExisting && !u.keyStoreNotFound(key) {
+		return fmt.Errorf("error setting key '%s': it already exists", key)
+	}
+	return u.keyStore.Set(key, val)
+}
+
 func (u *vault) Init() error {
 	// test backend first
-	err := u.keyStore.Test("test-params")
+	err := u.keyStore.Test(u.testKey())
 	if err != nil {
 		return fmt.Errorf("error testing keystore before init: %s", err.Error())
+	}
+
+	// test for an existing keys
+	if !u.config.OverwriteExisting {
+		keys := []string{
+			u.rootTokenKey(),
+		}
+
+		// add unseal keys
+		for i := 0; i <= u.config.SecretShares; i++ {
+			keys = append(keys, u.unsealKeyForID(i))
+		}
+
+		// test every key
+		for _, key := range keys {
+			if u.keyStoreNotFound(key) {
+				return fmt.Errorf("error before init: keystore value for '%s' already exists", key)
+			}
+		}
 	}
 
 	resp, err := u.cl.Sys().Init(&api.InitRequest{
@@ -135,7 +172,7 @@ func (u *vault) Init() error {
 
 	for i, k := range resp.Keys {
 		keyID := u.unsealKeyForID(i)
-		err := u.keyStore.Set(keyID, []byte(k))
+		err := u.keyStoreSet(keyID, []byte(k))
 
 		if err != nil {
 			return fmt.Errorf("error storing unseal key '%s': %s", keyID, err.Error())
@@ -190,7 +227,7 @@ func (u *vault) Init() error {
 
 	if u.config.StoreRootToken {
 		rootTokenKey := u.rootTokenKey()
-		if err = u.keyStore.Set(rootTokenKey, []byte(resp.RootToken)); err != nil {
+		if err = u.keyStoreSet(rootTokenKey, []byte(resp.RootToken)); err != nil {
 			return fmt.Errorf("error storing root token '%s' in key'%s'", rootToken, rootTokenKey)
 		}
 		logrus.WithField("key", rootTokenKey).Info("root token stored in key store")
@@ -208,4 +245,8 @@ func (u *vault) unsealKeyForID(i int) string {
 
 func (u *vault) rootTokenKey() string {
 	return fmt.Sprintf("%s-root", u.config.KeyPrefix)
+}
+
+func (u *vault) testKey() string {
+	return fmt.Sprintf("%s-test", u.config.KeyPrefix)
 }
