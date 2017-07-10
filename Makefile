@@ -9,6 +9,9 @@ BUILD_IMAGE_NAME := golang:1.8
 
 GOPATH ?= /tmp/go
 
+CI_COMMIT_TAG ?= unknown
+CI_COMMIT_SHA ?= unknown
+
 help:
 	# all 		- runs verify, build and docker_build targets
 	# test 		- runs go_test target
@@ -56,7 +59,7 @@ docker_push: docker_build
 go_verify: go_fmt go_vet go_test
 
 go_build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w' -o vault-unsealer_linux_amd64
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -X main.version=$(CI_COMMIT_TAG) -X main.commit=$(CI_COMMIT_SHA) -X main.date=$(shell date -u +%Y-%m-%d_%H:%M:%S)' -o vault-unsealer_linux_amd64
 
 go_test:
 	go test $$(go list ./... | grep -v '/vendor/')

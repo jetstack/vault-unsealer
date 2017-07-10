@@ -7,5 +7,10 @@ builds:
       - darwin
     goarch:
       - amd64
+    flags: -tags netgo
 archive:
   format: binary
+release:
+  github:
+    owner: jetstack-experimental
+    name: vault-unsealer
