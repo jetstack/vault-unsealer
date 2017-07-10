@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/kv"
+	"github.com/jetstack-experimental/vault-unsealer/pkg/kv"
 )
 
 func TestAWSIntegration(t *testing.T) {

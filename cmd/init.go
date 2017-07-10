@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 
-	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/pkg/vault"
+	"github.com/jetstack-experimental/vault-unsealer/pkg/vault"
 )
 
 const cfgInitRootToken = "init-root-token"

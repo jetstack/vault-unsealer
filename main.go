@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"gitlab.jetstack.net/jetstack-experimental/vault-unsealer/cmd"
+	"github.com/jetstack-experimental/vault-unsealer/cmd"
 )
 
 func main() {
