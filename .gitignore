@@ -1,2 +1,3 @@
-vault-unsealer_*_*
-vault-unsealer
+/vault-unsealer_*_*
+/vault-unsealer
+/dist/
