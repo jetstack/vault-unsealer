@@ -19,16 +19,20 @@ type awsSSM struct {
 
 var _ kv.Service = &awsSSM{}
 
+func NewWithSession(sess *session.Session, keyPrefix string) (*awsSSM, error) {
+	return &awsSSM{
+		ssmService: ssm.New(sess),
+		keyPrefix:  keyPrefix,
+	}, nil
+}
+
 func New(keyPrefix string) (*awsSSM, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return nil, err
 	}
 
-	return &awsSSM{
-		ssmService: ssm.New(sess),
-		keyPrefix:  keyPrefix,
-	}, nil
+	return NewWithSession(sess, keyPrefix)
 }
 
 func (a *awsSSM) Get(key string) ([]byte, error) {

@@ -19,12 +19,7 @@ type awsKMS struct {
 
 var _ kv.Service = &awsKMS{}
 
-func New(store kv.Service, kmsID string) (kv.Service, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
-	}
-
+func NewWithSession(sess *session.Session, store kv.Service, kmsID string) (kv.Service, error) {
 	if kmsID == "" {
 		return nil, fmt.Errorf("invalid kmsID specified: '%s'", kmsID)
 	}
@@ -34,6 +29,15 @@ func New(store kv.Service, kmsID string) (kv.Service, error) {
 		kmsService: kms.New(sess),
 		kmsID:      kmsID,
 	}, nil
+}
+
+func New(store kv.Service, kmsID string) (kv.Service, error) {
+	sess, err := session.NewSession()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewWithSession(sess, store, kmsID)
 }
 
 func (a *awsKMS) decrypt(cipherText []byte) ([]byte, error) {
