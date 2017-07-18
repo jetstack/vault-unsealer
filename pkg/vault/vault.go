@@ -217,7 +217,7 @@ func (u *vault) Init() error {
 			return fmt.Errorf("error storing root token '%s' in key'%s'", rootToken, rootTokenKey)
 		}
 		logrus.WithField("key", rootTokenKey).Info("root token stored in key store")
-	} else {
+	} else if u.config.InitRootToken == "" {
 		logrus.WithField("root-token", resp.RootToken).Warnf("won't store root token in key store, this token grants full privileges to vault, so keep this secret")
 	}
 
