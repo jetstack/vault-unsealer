@@ -8,6 +8,7 @@ import (
 	"github.com/jetstack-experimental/vault-unsealer/pkg/kv"
 	"github.com/jetstack-experimental/vault-unsealer/pkg/kv/aws_kms"
 	"github.com/jetstack-experimental/vault-unsealer/pkg/kv/aws_ssm"
+	"github.com/jetstack-experimental/vault-unsealer/pkg/kv/aws_param"
 	"github.com/jetstack-experimental/vault-unsealer/pkg/kv/cloudkms"
 	"github.com/jetstack-experimental/vault-unsealer/pkg/kv/gcs"
 
@@ -69,6 +70,16 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 
 		return kms, nil
 	}
+
+	if cfg.GetString(cfgMode) == cfgModeValueAWSParameterStore {
+		ssm, err := aws_param.New(cfg.GetString(cfgAWSKMSKeyID), cfg.GetString(cfgAWSSSMKeyPrefix))
+		if err != nil {
+			return nil, fmt.Errorf("error creating AWS Parameter Store", err.Error())
+		}
+
+		return ssm, nil
+	}
+
 
 	return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))
 }
