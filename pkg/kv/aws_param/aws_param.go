@@ -1,7 +1,6 @@
 package aws_param
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -57,7 +56,7 @@ func (a *awsSSM) Get(key string) ([]byte, error) {
 		return []byte{}, kv.NewNotFoundError("key '%s' not found")
 	}
 
-	return base64.StdEncoding.DecodeString(*out.Parameters[0].Value)
+	return []byte(*out.Parameters[0].Value), nil
 }
 
 func (a *awsSSM) name(key string) string {
@@ -69,9 +68,9 @@ func (a *awsSSM) Set(key string, val []byte) error {
 		Description: aws.String("vault-unsealer"),
 		Name:        aws.String(a.name(key)),
 		Overwrite:   aws.Bool(true),
-		Value:       aws.String(base64.StdEncoding.EncodeToString(val)),
+		Value:       aws.String(string(val)),
 		Type:        aws.String("SecureString"),
-		KeyId:		 aws.String(a.kmsKeyId),
+		// KeyId:		 aws.String(a.kmsKeyId),
 	})
 	return err
 }
