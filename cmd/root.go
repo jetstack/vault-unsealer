@@ -17,6 +17,8 @@ const cfgSecretThreshold = "secret-threshold"
 
 const cfgMode = "mode"
 const cfgModeValueAWSKMSSSM = "aws-kms-ssm"
+const cfgModeValueAWSParameterStore = "aws-param"
+
 const cfgModeValueGoogleCloudKMSGCS = "google-cloud-kms-gcs"
 
 const cfgGoogleCloudKMSProject = "google-cloud-kms-project"
@@ -75,7 +77,7 @@ func init() {
 	configStringVar(
 		cfgMode,
 		cfgModeValueGoogleCloudKMSGCS,
-		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM),
+		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption; '%s' => AWS Parameter Store with encryption", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM, cfgModeValueAWSParameterStore),
 	)
 
 	// Secret config
