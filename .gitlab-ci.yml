@@ -20,7 +20,7 @@ after_script:
   - mv "${GOPATH}/src/${PKG_PATH}" "${CI_PROJECT_DIR}"
 
 verify:golang:
-  image: golang:1.8
+  image: golang:1.9.2
   stage: build
   tags:
   - docker
@@ -28,7 +28,7 @@ verify:golang:
   - make verify
 
 build:golang:
-  image: golang:1.8
+  image: golang:1.9.2
   stage: build
   tags:
   - docker
@@ -41,7 +41,7 @@ build:golang:
     - vault-unsealer_linux_amd64
 
 deploy:release:
-  image: golang:1.8
+  image: golang:1.9.2
   stage: deploy
   tags:
   - docker
