@@ -1,6 +1,6 @@
 variables:
   DOCKER_DRIVER: overlay
-  PKG_PATH: github.com/jetstack-experimental/vault-unsealer
+  PKG_PATH: github.com/jetstack/vault-unsealer
 
 stages:
 - build

@@ -12,5 +12,5 @@ archive:
   format: binary
 release:
   github:
-    owner: jetstack-experimental
+    owner: jetstack
     name: vault-unsealer

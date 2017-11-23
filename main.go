@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/jetstack-experimental/vault-unsealer/cmd"
+	"github.com/jetstack/vault-unsealer/cmd"
 )
 
 var (

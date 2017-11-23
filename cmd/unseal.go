@@ -6,7 +6,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
-	"github.com/jetstack-experimental/vault-unsealer/pkg/vault"
+	"github.com/jetstack/vault-unsealer/pkg/vault"
 )
 
 const cfgUnsealPeriod = "unseal-period"

@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
 
-	"github.com/jetstack-experimental/vault-unsealer/pkg/kv"
+	"github.com/jetstack/vault-unsealer/pkg/kv"
 )
 
 type awsKMS struct {

@@ -1,6 +1,6 @@
-GO_PKG = gitlab.jetstack.net/jetstack-experimental/vault-unsealer
+GO_PKG = gitlab.jetstack.net/jetstack/vault-unsealer
 
-REGISTRY := jetstackexperimental
+REGISTRY := quay.io/jetstack
 IMAGE_NAME := vault-unsealer
 BUILD_TAG := build
 IMAGE_TAGS := canary
