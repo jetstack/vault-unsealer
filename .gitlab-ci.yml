@@ -1,6 +1,7 @@
 variables:
   DOCKER_DRIVER: overlay
   PKG_PATH: github.com/jetstack/vault-unsealer
+  GORELEASER_HASH: 634f5eedd1000a1eb675c2ca93bbbc889aa0388df76aea3501d7734616910584
 
 stages:
 - build
@@ -46,8 +47,11 @@ deploy:release:
   tags:
   - docker
   script:
-  - curl -sL https://github.com/goreleaser/goreleaser/releases/download/v0.24.0/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
-  - echo "8d494e03d6ab6e2e1bcbb795859f3618454078eaeb21906437958b32b332cee4  /tmp/goreleaser.tar.gz" | sha256sum -c
+  - umask 0077
+  - mkdir -p /root/.gnupg
+  - echo "${GPG_PRIVATE_KEY}" | base64 -d > /root/.gnupg/secring.gpg
+  - curl -sL https://github.com/simonswine/goreleaser/releases/download/v0.36.0-gpg/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
+  - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
   - cd "${GOPATH}/src/${PKG_PATH}"
   - goreleaser
