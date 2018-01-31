@@ -15,242 +15,55 @@
 package pubsub
 
 import (
-	"log"
 	"sync"
 	"time"
 
+	vkit "cloud.google.com/go/pubsub/apiv1"
 	"golang.org/x/net/context"
-	"google.golang.org/api/iterator"
-	"google.golang.org/api/support/bundler"
 	pb "google.golang.org/genproto/googleapis/pubsub/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 )
 
-type MessageIterator struct {
-	impl interface {
-		next() (*Message, error)
-		stop()
-	}
-}
-
-type pollingMessageIterator struct {
-	// kaTicker controls how often we send an ack deadline extension request.
-	kaTicker *time.Ticker
-	// ackTicker controls how often we acknowledge a batch of messages.
-	ackTicker *time.Ticker
-
-	ka     *keepAlive
-	acker  *acker
-	nacker *bundler.Bundler
-	puller *puller
-
-	// mu ensures that cleanup only happens once, and concurrent Stop
-	// invocations block until cleanup completes.
-	mu sync.Mutex
-
-	// closed is used to signal that Stop has been called.
-	closed chan struct{}
-}
-
-var useStreamingPull = false
-
-// newMessageIterator starts a new MessageIterator.  Stop must be called on the MessageIterator
+// newMessageIterator starts a new streamingMessageIterator.  Stop must be called on the messageIterator
 // when it is no longer needed.
 // subName is the full name of the subscription to pull messages from.
 // ctx is the context to use for acking messages and extending message deadlines.
-func newMessageIterator(ctx context.Context, s service, subName string, po *pullOptions) *MessageIterator {
-	if !useStreamingPull {
-		return &MessageIterator{
-			impl: newPollingMessageIterator(ctx, s, subName, po),
-		}
-	}
-	sp := s.newStreamingPuller(ctx, subName, int32(po.ackDeadline.Seconds()))
-	err := sp.open()
-	if grpc.Code(err) == codes.Unimplemented {
-		log.Println("pubsub: streaming pull unimplemented; falling back to legacy pull")
-		return &MessageIterator{
-			impl: newPollingMessageIterator(ctx, s, subName, po),
-		}
-	}
-	// TODO(jba): handle other non-nil error?
-	log.Println("using streaming pull")
-	return &MessageIterator{
-		impl: newStreamingMessageIterator(ctx, sp, po),
-	}
-}
-
-func newPollingMessageIterator(ctx context.Context, s service, subName string, po *pullOptions) *pollingMessageIterator {
-	// TODO: make kaTicker frequency more configurable.
-	// (ackDeadline - 5s) is a reasonable default for now, because the minimum ack period is 10s.  This gives us 5s grace.
-	keepAlivePeriod := po.ackDeadline - 5*time.Second
-	kaTicker := time.NewTicker(keepAlivePeriod) // Stopped in it.Stop
-
-	// TODO: make ackTicker more configurable.  Something less than
-	// kaTicker is a reasonable default (there's no point extending
-	// messages when they could be acked instead).
-	ackTicker := time.NewTicker(keepAlivePeriod / 2) // Stopped in it.Stop
-
-	ka := &keepAlive{
-		s:             s,
-		Ctx:           ctx,
-		Sub:           subName,
-		ExtensionTick: kaTicker.C,
-		Deadline:      po.ackDeadline,
-		MaxExtension:  po.maxExtension,
-	}
-
-	ack := &acker{
-		s:       s,
-		Ctx:     ctx,
-		Sub:     subName,
-		AckTick: ackTicker.C,
-		Notify:  ka.Remove,
-	}
-
-	nacker := bundler.NewBundler("", func(ackIDs interface{}) {
-		// NACK by setting the ack deadline to zero, to make the message
-		// immediately available for redelivery.
-		//
-		// If the RPC fails, nothing we can do about it. In the worst case, the
-		// deadline for these messages will expire and they will still get
-		// redelivered.
-		_ = s.modifyAckDeadline(ctx, subName, 0, ackIDs.([]string))
-	})
-	nacker.DelayThreshold = keepAlivePeriod / 10 // nack promptly
-	nacker.BundleCountThreshold = 10
-
-	pull := newPuller(s, subName, ctx, po.maxPrefetch, ka.Add, ka.Remove)
-
-	ka.Start()
-	ack.Start()
-	return &pollingMessageIterator{
-		kaTicker:  kaTicker,
-		ackTicker: ackTicker,
-		ka:        ka,
-		acker:     ack,
-		nacker:    nacker,
-		puller:    pull,
-		closed:    make(chan struct{}),
-	}
-}
-
-// Next returns the next Message to be processed.  The caller must call
-// Message.Done when finished with it.
-// Once Stop has been called, calls to Next will return iterator.Done.
-func (it *MessageIterator) Next() (*Message, error) {
-	return it.impl.next()
-}
-
-func (it *pollingMessageIterator) next() (*Message, error) {
-	m, err := it.puller.Next()
-	if err == nil {
-		m.done = it.done
-		return m, nil
-	}
-
-	select {
-	// If Stop has been called, we return Done regardless the value of err.
-	case <-it.closed:
-		return nil, iterator.Done
-	default:
-		return nil, err
-	}
-}
-
-// Client code must call Stop on a MessageIterator when finished with it.
-// Stop will block until Done has been called on all Messages that have been
-// returned by Next, or until the context with which the MessageIterator was created
-// is cancelled or exceeds its deadline.
-// Stop need only be called once, but may be called multiple times from
-// multiple goroutines.
-func (it *MessageIterator) Stop() {
-	it.impl.stop()
-}
-
-func (it *pollingMessageIterator) stop() {
-	it.mu.Lock()
-	defer it.mu.Unlock()
-
-	select {
-	case <-it.closed:
-		// Cleanup has already been performed.
-		return
-	default:
-	}
-
-	// We close this channel before calling it.puller.Stop to ensure that we
-	// reliably return iterator.Done from Next.
-	close(it.closed)
-
-	// Stop the puller. Once this completes, no more messages will be added
-	// to it.ka.
-	it.puller.Stop()
-
-	// Start acking messages as they arrive, ignoring ackTicker.  This will
-	// result in it.ka.Stop, below, returning as soon as possible.
-	it.acker.FastMode()
-
-	// This will block until
-	//   (a) it.ka.Ctx is done, or
-	//   (b) all messages have been removed from keepAlive.
-	// (b) will happen once all outstanding messages have been either ACKed or NACKed.
-	it.ka.Stop()
-
-	// There are no more live messages, so kill off the acker.
-	it.acker.Stop()
-	it.nacker.Stop()
-	it.kaTicker.Stop()
-	it.ackTicker.Stop()
-}
-
-func (it *pollingMessageIterator) done(ackID string, ack bool) {
-	if ack {
-		it.acker.Ack(ackID)
-		// There's no need to call it.ka.Remove here, as acker will
-		// call it via its Notify function.
-	} else {
-		it.ka.Remove(ackID)
-		_ = it.nacker.Add(ackID, len(ackID)) // ignore error; this is just an optimization
-	}
+func newMessageIterator(ctx context.Context, subc *vkit.SubscriberClient, subName string, po *pullOptions) *streamingMessageIterator {
+	ps := newPullStream(ctx, subc, subName, int32(po.ackDeadline.Seconds()))
+	return newStreamingMessageIterator(ctx, ps, po)
 }
 
 type streamingMessageIterator struct {
 	ctx        context.Context
 	po         *pullOptions
-	sp         *streamingPuller
+	ps         *pullStream
 	kaTicker   *time.Ticker  // keep-alive (deadline extensions)
 	ackTicker  *time.Ticker  // message acks
 	nackTicker *time.Ticker  // message nacks (more frequent than acks)
 	failed     chan struct{} // closed on stream error
 	stopped    chan struct{} // closed when Stop is called
 	drained    chan struct{} // closed when stopped && no more pending messages
-	msgc       chan *Message
 	wg         sync.WaitGroup
 
 	mu                 sync.Mutex
 	keepAliveDeadlines map[string]time.Time
 	pendingReq         *pb.StreamingPullRequest
-	err                error // error from stream failure
+	pendingModAcks     map[string]int32 // ack IDs whose ack deadline is to be modified
+	err                error            // error from stream failure
 }
 
-const messageBufferSize = 1000
-
-func newStreamingMessageIterator(ctx context.Context, sp *streamingPuller, po *pullOptions) *streamingMessageIterator {
+func newStreamingMessageIterator(ctx context.Context, ps *pullStream, po *pullOptions) *streamingMessageIterator {
 	// TODO: make kaTicker frequency more configurable. (ackDeadline - 5s) is a
 	// reasonable default for now, because the minimum ack period is 10s. This
 	// gives us 5s grace.
 	keepAlivePeriod := po.ackDeadline - 5*time.Second
 	kaTicker := time.NewTicker(keepAlivePeriod)
 
-	// TODO: make ackTicker more configurable.  Something less than
-	// kaTicker is a reasonable default (there's no point extending
-	// messages when they could be acked instead).
-	ackTicker := time.NewTicker(keepAlivePeriod / 2)
-	nackTicker := time.NewTicker(keepAlivePeriod / 10)
+	// Ack promptly so users don't lose work if client crashes.
+	ackTicker := time.NewTicker(100 * time.Millisecond)
+	nackTicker := time.NewTicker(100 * time.Millisecond)
 	it := &streamingMessageIterator{
 		ctx:                ctx,
-		sp:                 sp,
+		ps:                 ps,
 		po:                 po,
 		kaTicker:           kaTicker,
 		ackTicker:          ackTicker,
@@ -258,94 +71,28 @@ func newStreamingMessageIterator(ctx context.Context, sp *streamingPuller, po *p
 		failed:             make(chan struct{}),
 		stopped:            make(chan struct{}),
 		drained:            make(chan struct{}),
-		msgc:               make(chan *Message, messageBufferSize),
 		keepAliveDeadlines: map[string]time.Time{},
 		pendingReq:         &pb.StreamingPullRequest{},
+		pendingModAcks:     map[string]int32{},
 	}
-	it.wg.Add(2)
-	go it.receiver()
+	it.wg.Add(1)
 	go it.sender()
 	return it
 }
 
-func (it *streamingMessageIterator) next() (*Message, error) {
-	// If ctx has been cancelled or the iterator is done, return straight
-	// away (even if there are buffered messages available).
-	select {
-	case <-it.ctx.Done():
-		return nil, it.ctx.Err()
-
-	case <-it.failed:
-		break
-
-	case <-it.stopped:
-		break
-
-	default:
-		// Wait for a message, but also for one of the above conditions.
-		select {
-		case msg := <-it.msgc:
-			// Since active select cases are chosen at random, this can return
-			// nil (from the channel close) even if it.failed or it.stopped is
-			// closed.
-			if msg == nil {
-				break
-			}
-			msg.done = it.done
-			return msg, nil
-
-		case <-it.ctx.Done():
-			return nil, it.ctx.Err()
-
-		case <-it.failed:
-			break
-
-		case <-it.stopped:
-			break
-		}
-	}
-	// Here if the iterator is done.
-	it.mu.Lock()
-	defer it.mu.Unlock()
-	return nil, it.err
-}
-
+// Subscription.receive will call stop on its messageIterator when finished with it.
+// Stop will block until Done has been called on all Messages that have been
+// returned by Next, or until the context with which the messageIterator was created
+// is cancelled or exceeds its deadline.
 func (it *streamingMessageIterator) stop() {
 	it.mu.Lock()
 	select {
 	case <-it.stopped:
-		it.mu.Unlock()
-		it.wg.Wait()
-		return
 	default:
 		close(it.stopped)
 	}
-	if it.err == nil {
-		it.err = iterator.Done
-	}
-	// Before reading from the channel, see if we're already drained.
 	it.checkDrained()
 	it.mu.Unlock()
-	// Nack all the pending messages.
-	// Grab the lock separately for each message to allow the receiver
-	// and sender goroutines to make progress.
-	// Why this will eventually terminate:
-	// - If the receiver is not blocked on a stream Recv, then
-	//   it will write all the messages it has received to the channel,
-	//   then exit, closing the channel.
-	// - If the receiver is blocked, then this loop will eventually
-	//   nack all the messages in the channel. Once done is called
-	//   on the remaining messages, the iterator will be marked as drained,
-	//   which will trigger the sender to terminate. When it does, it
-	//   performs a CloseSend on the stream, which will result in the blocked
-	//   stream Recv returning.
-	for m := range it.msgc {
-		it.mu.Lock()
-		delete(it.keepAliveDeadlines, m.ackID)
-		it.addDeadlineMod(m.ackID, 0)
-		it.checkDrained()
-		it.mu.Unlock()
-	}
 	it.wg.Wait()
 }
 
@@ -376,18 +123,9 @@ func (it *streamingMessageIterator) done(ackID string, ack bool) {
 	if ack {
 		it.pendingReq.AckIds = append(it.pendingReq.AckIds, ackID)
 	} else {
-		it.addDeadlineMod(ackID, 0) // Nack indicated by modifying the deadline to zero.
+		it.pendingModAcks[ackID] = 0 // Nack indicated by modifying the deadline to zero.
 	}
 	it.checkDrained()
-}
-
-// addDeadlineMod adds the ack ID to the pending request with the given deadline.
-//
-// Called with the lock held.
-func (it *streamingMessageIterator) addDeadlineMod(ackID string, deadlineSecs int32) {
-	pr := it.pendingReq
-	pr.ModifyDeadlineAckIds = append(pr.ModifyDeadlineAckIds, ackID)
-	pr.ModifyDeadlineSeconds = append(pr.ModifyDeadlineSeconds, deadlineSecs)
 }
 
 // fail is called when a stream method returns a permanent error.
@@ -400,53 +138,53 @@ func (it *streamingMessageIterator) fail(err error) {
 	it.mu.Unlock()
 }
 
-// receiver runs in a goroutine and handles all receives from the stream.
-func (it *streamingMessageIterator) receiver() {
-	defer it.wg.Done()
-	defer close(it.msgc)
+// receive makes a call to the stream's Recv method and returns
+// its messages.
+func (it *streamingMessageIterator) receive() ([]*Message, error) {
+	// Stop retrieving messages if the context is done, the stream
+	// failed, or the iterator's Stop method was called.
+	select {
+	case <-it.ctx.Done():
+		return nil, it.ctx.Err()
+	default:
+	}
+	it.mu.Lock()
+	err := it.err
+	it.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	// Receive messages from stream. This may block indefinitely.
+	res, err := it.ps.Recv()
+	// The pullStream handles retries, so any error here is fatal.
+	if err != nil {
+		it.fail(err)
+		return nil, err
+	}
+	msgs, err := convertMessages(res.ReceivedMessages)
+	if err != nil {
+		it.fail(err)
+		return nil, err
+	}
 
-	for {
-		// Stop retrieving messages if the context is done, the stream
-		// failed, or the iterator's Stop method was called.
-		select {
-		case <-it.ctx.Done():
-			return
-		case <-it.failed:
-			return
-		case <-it.stopped:
-			return
-		default:
-		}
-		// Receive messages from stream. This may block indefinitely.
-		msgs, err := it.sp.fetchMessages()
-
-		// The streamingPuller handles retries, so any error here
-		// is fatal to the iterator.
-		if err != nil {
-			it.fail(err)
-			return
-		}
-		// We received some messages. Remember them so we can
-		// keep them alive.
-		deadline := time.Now().Add(it.po.maxExtension)
-		it.mu.Lock()
-		for _, m := range msgs {
-			it.keepAliveDeadlines[m.ackID] = deadline
-		}
-		it.mu.Unlock()
-		// Deliver the messages to the channel.
-		for _, m := range msgs {
-			select {
-			case <-it.ctx.Done():
-				return
-			case <-it.failed:
-				return
-				// Don't return if stopped. We want to send the remaining
-				// messages on the channel, where they will be nacked.
-			case it.msgc <- m:
-			}
+	// We received some messages. Remember them so we can keep them alive. Also,
+	// arrange for a receipt mod-ack (which will occur at the next firing of
+	// nackTicker).
+	maxExt := time.Now().Add(it.po.maxExtension)
+	deadline := trunc32(int64(it.po.ackDeadline.Seconds()))
+	it.mu.Lock()
+	for _, m := range msgs {
+		m.doneFunc = it.done
+		it.keepAliveDeadlines[m.ackID] = maxExt
+		// The receipt mod-ack uses the subscription's configured ack deadline. Don't
+		// change the mod-ack if one is already pending. This is possible if there
+		// are retries.
+		if _, ok := it.pendingModAcks[m.ackID]; !ok {
+			it.pendingModAcks[m.ackID] = deadline
 		}
 	}
+	it.mu.Unlock()
+	return msgs, nil
 }
 
 // sender runs in a goroutine and handles all sends to the stream.
@@ -455,7 +193,7 @@ func (it *streamingMessageIterator) sender() {
 	defer it.kaTicker.Stop()
 	defer it.ackTicker.Stop()
 	defer it.nackTicker.Stop()
-	defer it.sp.closeSend()
+	defer it.ps.CloseSend()
 
 	done := false
 	for !done {
@@ -474,28 +212,34 @@ func (it *streamingMessageIterator) sender() {
 			// All outstanding messages have been marked done:
 			// nothing left to do except send the final request.
 			it.mu.Lock()
-			send = (len(it.pendingReq.AckIds) > 0 || len(it.pendingReq.ModifyDeadlineAckIds) > 0)
+			send = (len(it.pendingReq.AckIds) > 0 || len(it.pendingModAcks) > 0)
 			done = true
 
 		case <-it.kaTicker.C:
 			it.mu.Lock()
-			send = it.handleKeepAlives()
+			it.handleKeepAlives()
+			send = (len(it.pendingModAcks) > 0)
 
 		case <-it.nackTicker.C:
 			it.mu.Lock()
-			send = (len(it.pendingReq.ModifyDeadlineAckIds) > 0)
+			send = (len(it.pendingModAcks) > 0)
 
 		case <-it.ackTicker.C:
 			it.mu.Lock()
 			send = (len(it.pendingReq.AckIds) > 0)
-
 		}
 		// Lock is held here.
 		if send {
 			req := it.pendingReq
 			it.pendingReq = &pb.StreamingPullRequest{}
+			modAcks := it.pendingModAcks
+			it.pendingModAcks = map[string]int32{}
 			it.mu.Unlock()
-			err := it.sp.send(req)
+			for id, s := range modAcks {
+				req.ModifyDeadlineAckIds = append(req.ModifyDeadlineAckIds, id)
+				req.ModifyDeadlineSeconds = append(req.ModifyDeadlineSeconds, s)
+			}
+			err := it.send(req)
 			if err != nil {
 				// The streamingPuller handles retries, so any error here
 				// is fatal to the iterator.
@@ -508,20 +252,37 @@ func (it *streamingMessageIterator) sender() {
 	}
 }
 
+func (it *streamingMessageIterator) send(req *pb.StreamingPullRequest) error {
+	// Note: len(modAckIDs) == len(modSecs)
+	var rest *pb.StreamingPullRequest
+	for len(req.AckIds) > 0 || len(req.ModifyDeadlineAckIds) > 0 {
+		req, rest = splitRequest(req, maxPayload)
+		if err := it.ps.Send(req); err != nil {
+			return err
+		}
+		req = rest
+	}
+	return nil
+}
+
 // handleKeepAlives modifies the pending request to include deadline extensions
-// for live messages. It also purges expired messages. It reports whether
-// there were any live messages.
+// for live messages. It also purges expired messages.
 //
 // Called with the lock held.
-func (it *streamingMessageIterator) handleKeepAlives() bool {
-	live, expired := getKeepAliveAckIDs(it.keepAliveDeadlines)
-	for _, e := range expired {
-		delete(it.keepAliveDeadlines, e)
-	}
+func (it *streamingMessageIterator) handleKeepAlives() {
+	now := time.Now()
 	dl := trunc32(int64(it.po.ackDeadline.Seconds()))
-	for _, m := range live {
-		it.addDeadlineMod(m, dl)
+	for id, expiry := range it.keepAliveDeadlines {
+		if expiry.Before(now) {
+			// This delete will not result in skipping any map items, as implied by
+			// the spec at https://golang.org/ref/spec#For_statements, "For
+			// statements with range clause", note 3, and stated explicitly at
+			// https://groups.google.com/forum/#!msg/golang-nuts/UciASUb03Js/pzSq5iVFAQAJ.
+			delete(it.keepAliveDeadlines, id)
+		} else {
+			// This will not overwrite a nack, because nacking removes the ID from keepAliveDeadlines.
+			it.pendingModAcks[id] = dl
+		}
 	}
 	it.checkDrained()
-	return len(live) > 0
 }

@@ -67,6 +67,8 @@ type MockCtlMsg struct {
 // MockCloudSpanner is a mock implementation of SpannerServer interface.
 // TODO: make MockCloudSpanner a full-fleged Cloud Spanner implementation.
 type MockCloudSpanner struct {
+	sppb.SpannerServer
+
 	s      *grpc.Server
 	t      *testing.T
 	addr   string
@@ -230,13 +232,13 @@ func (m *MockCloudSpanner) Serve() {
 	if err != nil {
 		m.t.Fatalf("Failed to listen: %v", err)
 	}
-	go m.s.Serve(lis)
 	_, port, err := net.SplitHostPort(lis.Addr().String())
 	if err != nil {
 		m.t.Fatalf("Failed to parse listener address: %v", err)
 	}
 	sppb.RegisterSpannerServer(m.s, m)
 	m.addr = "localhost:" + port
+	go m.s.Serve(lis)
 }
 
 // Stop terminates MockCloudSpanner and closes the serving port.

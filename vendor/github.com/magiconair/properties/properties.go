@@ -511,6 +511,9 @@ func (p *Properties) Set(key, value string) (prev string, ok bool, err error) {
 	if p.DisableExpansion {
 		prev, ok = p.Get(key)
 		p.m[key] = value
+		if !ok {
+			p.k = append(p.k, key)
+		}
 		return prev, ok, nil
 	}
 
@@ -540,6 +543,13 @@ func (p *Properties) Set(key, value string) (prev string, ok bool, err error) {
 	}
 
 	return prev, ok, nil
+}
+
+// SetValue sets property key to the default string value
+// as defined by fmt.Sprintf("%v").
+func (p *Properties) SetValue(key string, value interface{}) error {
+	_, _, err := p.Set(key, fmt.Sprintf("%v", value))
+	return err
 }
 
 // MustSet sets the property key to the corresponding value.

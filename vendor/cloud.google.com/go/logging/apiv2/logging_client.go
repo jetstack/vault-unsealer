@@ -1,10 +1,10 @@
-// Copyright 2017, Google Inc. All rights reserved.
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,11 +30,7 @@ import (
 	loggingpb "google.golang.org/genproto/googleapis/logging/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-)
-
-var (
-	loggingProjectPathTemplate = gax.MustCompilePathTemplate("projects/{project}")
-	loggingLogPathTemplate     = gax.MustCompilePathTemplate("projects/{project}/logs/{log}")
+	"google.golang.org/grpc/metadata"
 )
 
 // CallOptions contains the retry settings for each method of Client.
@@ -49,13 +45,7 @@ type CallOptions struct {
 func defaultClientOptions() []option.ClientOption {
 	return []option.ClientOption{
 		option.WithEndpoint("logging.googleapis.com:443"),
-		option.WithScopes(
-			"https://www.googleapis.com/auth/cloud-platform",
-			"https://www.googleapis.com/auth/cloud-platform.read-only",
-			"https://www.googleapis.com/auth/logging.admin",
-			"https://www.googleapis.com/auth/logging.read",
-			"https://www.googleapis.com/auth/logging.write",
-		),
+		option.WithScopes(DefaultAuthScopes()...),
 	}
 }
 
@@ -65,17 +55,7 @@ func defaultCallOptions() *CallOptions {
 			gax.WithRetry(func() gax.Retryer {
 				return gax.OnCodes([]codes.Code{
 					codes.DeadlineExceeded,
-					codes.Unavailable,
-				}, gax.Backoff{
-					Initial:    100 * time.Millisecond,
-					Max:        1000 * time.Millisecond,
-					Multiplier: 1.2,
-				})
-			}),
-		},
-		{"default", "non_idempotent"}: {
-			gax.WithRetry(func() gax.Retryer {
-				return gax.OnCodes([]codes.Code{
+					codes.Internal,
 					codes.Unavailable,
 				}, gax.Backoff{
 					Initial:    100 * time.Millisecond,
@@ -88,6 +68,7 @@ func defaultCallOptions() *CallOptions {
 			gax.WithRetry(func() gax.Retryer {
 				return gax.OnCodes([]codes.Code{
 					codes.DeadlineExceeded,
+					codes.Internal,
 					codes.Unavailable,
 				}, gax.Backoff{
 					Initial:    100 * time.Millisecond,
@@ -117,8 +98,8 @@ type Client struct {
 	// The call options for this service.
 	CallOptions *CallOptions
 
-	// The metadata to be sent with each request.
-	xGoogHeader string
+	// The x-goog-* metadata to be sent with each request.
+	xGoogMetadata metadata.MD
 }
 
 // NewClient creates a new logging service v2 client.
@@ -155,55 +136,41 @@ func (c *Client) Close() error {
 // use by Google-written clients.
 func (c *Client) SetGoogleClientInfo(keyval ...string) {
 	kv := append([]string{"gl-go", version.Go()}, keyval...)
-	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", "")
-	c.xGoogHeader = gax.XGoogHeader(kv...)
-}
-
-// LoggingProjectPath returns the path for the project resource.
-func LoggingProjectPath(project string) string {
-	path, err := loggingProjectPathTemplate.Render(map[string]string{
-		"project": project,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return path
-}
-
-// LoggingLogPath returns the path for the log resource.
-func LoggingLogPath(project, log string) string {
-	path, err := loggingLogPathTemplate.Render(map[string]string{
-		"project": project,
-		"log":     log,
-	})
-	if err != nil {
-		panic(err)
-	}
-	return path
+	kv = append(kv, "gapic", version.Repo, "gax", gax.Version, "grpc", grpc.Version)
+	c.xGoogMetadata = metadata.Pairs("x-goog-api-client", gax.XGoogHeader(kv...))
 }
 
 // DeleteLog deletes all the log entries in a log.
 // The log reappears if it receives new entries.
-func (c *Client) DeleteLog(ctx context.Context, req *loggingpb.DeleteLogRequest) error {
-	ctx = insertXGoog(ctx, c.xGoogHeader)
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+// Log entries written shortly before the delete operation might not be
+// deleted.
+func (c *Client) DeleteLog(ctx context.Context, req *loggingpb.DeleteLogRequest, opts ...gax.CallOption) error {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.DeleteLog[0:len(c.CallOptions.DeleteLog):len(c.CallOptions.DeleteLog)], opts...)
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		_, err = c.client.DeleteLog(ctx, req)
+		_, err = c.client.DeleteLog(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.DeleteLog...)
+	}, opts...)
 	return err
 }
 
-// WriteLogEntries writes log entries to Stackdriver Logging.  All log entries are
-// written by this method.
-func (c *Client) WriteLogEntries(ctx context.Context, req *loggingpb.WriteLogEntriesRequest) (*loggingpb.WriteLogEntriesResponse, error) {
-	ctx = insertXGoog(ctx, c.xGoogHeader)
+// WriteLogEntries ## Log entry resources
+//
+// Writes log entries to Stackdriver Logging. This API method is the
+// only way to send log entries to Stackdriver Logging. This method
+// is used, directly or indirectly, by the Stackdriver Logging agent
+// (fluentd) and all logging libraries configured to use Stackdriver
+// Logging.
+func (c *Client) WriteLogEntries(ctx context.Context, req *loggingpb.WriteLogEntriesRequest, opts ...gax.CallOption) (*loggingpb.WriteLogEntriesResponse, error) {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.WriteLogEntries[0:len(c.CallOptions.WriteLogEntries):len(c.CallOptions.WriteLogEntries)], opts...)
 	var resp *loggingpb.WriteLogEntriesResponse
-	err := gax.Invoke(ctx, func(ctx context.Context) error {
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 		var err error
-		resp, err = c.client.WriteLogEntries(ctx, req)
+		resp, err = c.client.WriteLogEntries(ctx, req, settings.GRPC...)
 		return err
-	}, c.CallOptions.WriteLogEntries...)
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -212,9 +179,10 @@ func (c *Client) WriteLogEntries(ctx context.Context, req *loggingpb.WriteLogEnt
 
 // ListLogEntries lists log entries.  Use this method to retrieve log entries from
 // Stackdriver Logging.  For ways to export log entries, see
-// [Exporting Logs](/logging/docs/export).
-func (c *Client) ListLogEntries(ctx context.Context, req *loggingpb.ListLogEntriesRequest) *LogEntryIterator {
-	ctx = insertXGoog(ctx, c.xGoogHeader)
+// Exporting Logs (at /logging/docs/export).
+func (c *Client) ListLogEntries(ctx context.Context, req *loggingpb.ListLogEntriesRequest, opts ...gax.CallOption) *LogEntryIterator {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ListLogEntries[0:len(c.CallOptions.ListLogEntries):len(c.CallOptions.ListLogEntries)], opts...)
 	it := &LogEntryIterator{}
 	it.InternalFetch = func(pageSize int, pageToken string) ([]*loggingpb.LogEntry, string, error) {
 		var resp *loggingpb.ListLogEntriesResponse
@@ -224,11 +192,11 @@ func (c *Client) ListLogEntries(ctx context.Context, req *loggingpb.ListLogEntri
 		} else {
 			req.PageSize = int32(pageSize)
 		}
-		err := gax.Invoke(ctx, func(ctx context.Context) error {
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListLogEntries(ctx, req)
+			resp, err = c.client.ListLogEntries(ctx, req, settings.GRPC...)
 			return err
-		}, c.CallOptions.ListLogEntries...)
+		}, opts...)
 		if err != nil {
 			return nil, "", err
 		}
@@ -248,8 +216,9 @@ func (c *Client) ListLogEntries(ctx context.Context, req *loggingpb.ListLogEntri
 
 // ListMonitoredResourceDescriptors lists the descriptors for monitored resource types used by Stackdriver
 // Logging.
-func (c *Client) ListMonitoredResourceDescriptors(ctx context.Context, req *loggingpb.ListMonitoredResourceDescriptorsRequest) *MonitoredResourceDescriptorIterator {
-	ctx = insertXGoog(ctx, c.xGoogHeader)
+func (c *Client) ListMonitoredResourceDescriptors(ctx context.Context, req *loggingpb.ListMonitoredResourceDescriptorsRequest, opts ...gax.CallOption) *MonitoredResourceDescriptorIterator {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ListMonitoredResourceDescriptors[0:len(c.CallOptions.ListMonitoredResourceDescriptors):len(c.CallOptions.ListMonitoredResourceDescriptors)], opts...)
 	it := &MonitoredResourceDescriptorIterator{}
 	it.InternalFetch = func(pageSize int, pageToken string) ([]*monitoredrespb.MonitoredResourceDescriptor, string, error) {
 		var resp *loggingpb.ListMonitoredResourceDescriptorsResponse
@@ -259,11 +228,11 @@ func (c *Client) ListMonitoredResourceDescriptors(ctx context.Context, req *logg
 		} else {
 			req.PageSize = int32(pageSize)
 		}
-		err := gax.Invoke(ctx, func(ctx context.Context) error {
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListMonitoredResourceDescriptors(ctx, req)
+			resp, err = c.client.ListMonitoredResourceDescriptors(ctx, req, settings.GRPC...)
 			return err
-		}, c.CallOptions.ListMonitoredResourceDescriptors...)
+		}, opts...)
 		if err != nil {
 			return nil, "", err
 		}
@@ -281,10 +250,11 @@ func (c *Client) ListMonitoredResourceDescriptors(ctx context.Context, req *logg
 	return it
 }
 
-// ListLogs lists the logs in projects or organizations.
+// ListLogs lists the logs in projects, organizations, folders, or billing accounts.
 // Only logs that have entries are listed.
-func (c *Client) ListLogs(ctx context.Context, req *loggingpb.ListLogsRequest) *StringIterator {
-	ctx = insertXGoog(ctx, c.xGoogHeader)
+func (c *Client) ListLogs(ctx context.Context, req *loggingpb.ListLogsRequest, opts ...gax.CallOption) *StringIterator {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ListLogs[0:len(c.CallOptions.ListLogs):len(c.CallOptions.ListLogs)], opts...)
 	it := &StringIterator{}
 	it.InternalFetch = func(pageSize int, pageToken string) ([]string, string, error) {
 		var resp *loggingpb.ListLogsResponse
@@ -294,11 +264,11 @@ func (c *Client) ListLogs(ctx context.Context, req *loggingpb.ListLogsRequest) *
 		} else {
 			req.PageSize = int32(pageSize)
 		}
-		err := gax.Invoke(ctx, func(ctx context.Context) error {
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
 			var err error
-			resp, err = c.client.ListLogs(ctx, req)
+			resp, err = c.client.ListLogs(ctx, req, settings.GRPC...)
 			return err
-		}, c.CallOptions.ListLogs...)
+		}, opts...)
 		if err != nil {
 			return nil, "", err
 		}

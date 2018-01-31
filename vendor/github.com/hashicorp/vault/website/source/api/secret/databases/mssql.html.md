@@ -1,15 +1,15 @@
 ---
 layout: "api"
-page_title: "MSSQL Database Plugin - HTTP API"
-sidebar_current: "docs-http-secret-databases-mssql-maria"
+page_title: "MSSQL - Database - Secrets Engines - HTTP API"
+sidebar_current: "docs-http-secret-databases-mssql"
 description: |-
-  The MSSQL plugin for Vault's Database backend generates database credentials to access MSSQL servers.
+  The MSSQL plugin for Vault's database secrets engine generates database credentials to access MSSQL servers.
 ---
 
 # MSSQL Database Plugin HTTP API
 
-The MSSQL Database Plugin is one of the supported plugins for the Database
-backend. This plugin generates database credentials dynamically based on
+The MSSQL database plugin is one of the supported plugins for the database
+secrets engine. This plugin generates database credentials dynamically based on
 configured roles for the MSSQL database.
 
 ## Configure Connection
@@ -58,3 +58,26 @@ $ curl \
     https://vault.rocks/v1/database/config/mssql
 ```
 
+## Statements
+
+Statements are configured during role creation and are used by the plugin to
+determine what is sent to the datatabse on user creation, renewing, and
+revocation. For more information on configuring roles see the [Role
+API](/api/secret/databases/index.html#create-role) in the database secrets engine docs.
+
+### Parameters
+
+The following are the statements used by this plugin. If not mentioned in this
+list the plugin does not support that statement type.
+
+- `creation_statements` `(string: <required>)` – Specifies the database
+  statements executed to create and configure a user. Must be a
+  semicolon-separated string, a base64-encoded semicolon-separated string, a
+  serialized JSON string array, or a base64-encoded serialized JSON string
+  array. The '{{name}}' and '{{password}}' values will be substituted.
+
+- `revocation_statements` `(string: "")` – Specifies the database statements to
+  be executed to revoke a user. Must be a semicolon-separated string, a
+  base64-encoded semicolon-separated string, a serialized JSON string array, or
+  a base64-encoded serialized JSON string array. The '{{name}}' value will be
+  substituted. If not provided defaults to a generic drop user statement.

@@ -2,7 +2,6 @@ package cobra
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -118,6 +117,8 @@ func TestBashCompletions(t *testing.T) {
 	// check for filename extension flags
 	check(t, str, `flags_completion+=("_filedir")`)
 	// check for filename extension flags
+	check(t, str, `must_have_one_noun+=("three")`)
+	// check for filename extension flags
 	check(t, str, `flags_completion+=("__handle_filename_extension_flag json|yaml|yml")`)
 	// check for custom flags
 	check(t, str, `flags_completion+=("__complete_custom")`)
@@ -181,15 +182,12 @@ func BenchmarkBashCompletion(b *testing.B) {
 	cmdEcho.AddCommand(cmdTimes)
 	c.AddCommand(cmdEcho, cmdPrint, cmdDeprecated, cmdColon)
 
-	file, err := ioutil.TempFile("", "")
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer os.Remove(file.Name())
+	buf := new(bytes.Buffer)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if err := c.GenBashCompletion(file); err != nil {
+		buf.Reset()
+		if err := c.GenBashCompletion(buf); err != nil {
 			b.Fatal(err)
 		}
 	}

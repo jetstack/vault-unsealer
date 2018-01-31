@@ -50,6 +50,10 @@ const (
 	// View and manage the files in your Google Drive
 	DriveScope = "https://www.googleapis.com/auth/drive"
 
+	// View and manage Google Drive files and folders that you have opened
+	// or created with this app
+	DriveFileScope = "https://www.googleapis.com/auth/drive.file"
+
 	// View the files in your Google Drive
 	DriveReadonlyScope = "https://www.googleapis.com/auth/drive.readonly"
 
@@ -173,13 +177,13 @@ type AffineTransform struct {
 }
 
 func (s *AffineTransform) MarshalJSON() ([]byte, error) {
-	type noMethod AffineTransform
-	raw := noMethod(*s)
+	type NoMethod AffineTransform
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *AffineTransform) UnmarshalJSON(data []byte) error {
-	type noMethod AffineTransform
+	type NoMethod AffineTransform
 	var s1 struct {
 		ScaleX     gensupport.JSONFloat64 `json:"scaleX"`
 		ScaleY     gensupport.JSONFloat64 `json:"scaleY"`
@@ -187,9 +191,9 @@ func (s *AffineTransform) UnmarshalJSON(data []byte) error {
 		ShearY     gensupport.JSONFloat64 `json:"shearY"`
 		TranslateX gensupport.JSONFloat64 `json:"translateX"`
 		TranslateY gensupport.JSONFloat64 `json:"translateY"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -236,8 +240,8 @@ type AutoText struct {
 }
 
 func (s *AutoText) MarshalJSON() ([]byte, error) {
-	type noMethod AutoText
-	raw := noMethod(*s)
+	type NoMethod AutoText
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -268,8 +272,8 @@ type BatchUpdatePresentationRequest struct {
 }
 
 func (s *BatchUpdatePresentationRequest) MarshalJSON() ([]byte, error) {
-	type noMethod BatchUpdatePresentationRequest
-	raw := noMethod(*s)
+	type NoMethod BatchUpdatePresentationRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -307,8 +311,8 @@ type BatchUpdatePresentationResponse struct {
 }
 
 func (s *BatchUpdatePresentationResponse) MarshalJSON() ([]byte, error) {
-	type noMethod BatchUpdatePresentationResponse
-	raw := noMethod(*s)
+	type NoMethod BatchUpdatePresentationResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -345,8 +349,8 @@ type Bullet struct {
 }
 
 func (s *Bullet) MarshalJSON() ([]byte, error) {
-	type noMethod Bullet
-	raw := noMethod(*s)
+	type NoMethod Bullet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -373,8 +377,8 @@ type ColorScheme struct {
 }
 
 func (s *ColorScheme) MarshalJSON() ([]byte, error) {
-	type noMethod ColorScheme
-	raw := noMethod(*s)
+	type NoMethod ColorScheme
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -411,19 +415,19 @@ type ColorStop struct {
 }
 
 func (s *ColorStop) MarshalJSON() ([]byte, error) {
-	type noMethod ColorStop
-	raw := noMethod(*s)
+	type NoMethod ColorStop
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *ColorStop) UnmarshalJSON(data []byte) error {
-	type noMethod ColorStop
+	type NoMethod ColorStop
 	var s1 struct {
 		Alpha    gensupport.JSONFloat64 `json:"alpha"`
 		Position gensupport.JSONFloat64 `json:"position"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -443,6 +447,16 @@ type CreateImageRequest struct {
 	// to maintain aspect ratio. The provided transform is applied after
 	// this
 	// operation.
+	//
+	// The PageElementProperties.size property is
+	// optional. If you don't specify the size, the default size of the
+	// image is
+	// used.
+	//
+	// The PageElementProperties.transform property is
+	// optional. If you don't specify a transform, the image will be placed
+	// at the
+	// top left corner of the page.
 	ElementProperties *PageElementProperties `json:"elementProperties,omitempty"`
 
 	// ObjectId: A user-supplied object ID.
@@ -469,6 +483,8 @@ type CreateImageRequest struct {
 	// cannot exceed 25 megapixels, and must be in either in PNG, JPEG, or
 	// GIF
 	// format.
+	//
+	// The provided URL can be at most 2 kB in length.
 	Url string `json:"url,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "ElementProperties")
@@ -490,8 +506,8 @@ type CreateImageRequest struct {
 }
 
 func (s *CreateImageRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateImageRequest
-	raw := noMethod(*s)
+	type NoMethod CreateImageRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -518,8 +534,8 @@ type CreateImageResponse struct {
 }
 
 func (s *CreateImageResponse) MarshalJSON() ([]byte, error) {
-	type noMethod CreateImageResponse
-	raw := noMethod(*s)
+	type NoMethod CreateImageResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -572,8 +588,8 @@ type CreateLineRequest struct {
 }
 
 func (s *CreateLineRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateLineRequest
-	raw := noMethod(*s)
+	type NoMethod CreateLineRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -600,8 +616,8 @@ type CreateLineResponse struct {
 }
 
 func (s *CreateLineResponse) MarshalJSON() ([]byte, error) {
-	type noMethod CreateLineResponse
-	raw := noMethod(*s)
+	type NoMethod CreateLineResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -640,7 +656,7 @@ type CreateParagraphBulletsRequest struct {
 	// `DIAMOND` and `DISC` bullet glyph for
 	// the first 3 list nesting levels.
 	//   "BULLET_STAR_CIRCLE_SQUARE" - A bulleted list with a `STAR`,
-	// `CIRCLE` and `DISC` bullet glyph for
+	// `CIRCLE` and `SQUARE` bullet glyph for
 	// the first 3 list nesting levels.
 	//   "BULLET_ARROW3D_CIRCLE_SQUARE" - A bulleted list with a `ARROW3D`,
 	// `CIRCLE` and `SQUARE` bullet glyph for
@@ -707,8 +723,8 @@ type CreateParagraphBulletsRequest struct {
 }
 
 func (s *CreateParagraphBulletsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateParagraphBulletsRequest
-	raw := noMethod(*s)
+	type NoMethod CreateParagraphBulletsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1079,8 +1095,8 @@ type CreateShapeRequest struct {
 }
 
 func (s *CreateShapeRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateShapeRequest
-	raw := noMethod(*s)
+	type NoMethod CreateShapeRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1107,8 +1123,8 @@ type CreateShapeResponse struct {
 }
 
 func (s *CreateShapeResponse) MarshalJSON() ([]byte, error) {
-	type noMethod CreateShapeResponse
-	raw := noMethod(*s)
+	type NoMethod CreateShapeResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1181,8 +1197,8 @@ type CreateSheetsChartRequest struct {
 }
 
 func (s *CreateSheetsChartRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateSheetsChartRequest
-	raw := noMethod(*s)
+	type NoMethod CreateSheetsChartRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1210,8 +1226,8 @@ type CreateSheetsChartResponse struct {
 }
 
 func (s *CreateSheetsChartResponse) MarshalJSON() ([]byte, error) {
-	type noMethod CreateSheetsChartResponse
-	raw := noMethod(*s)
+	type NoMethod CreateSheetsChartResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1281,8 +1297,8 @@ type CreateSlideRequest struct {
 }
 
 func (s *CreateSlideRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateSlideRequest
-	raw := noMethod(*s)
+	type NoMethod CreateSlideRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1309,8 +1325,8 @@ type CreateSlideResponse struct {
 }
 
 func (s *CreateSlideResponse) MarshalJSON() ([]byte, error) {
-	type noMethod CreateSlideResponse
-	raw := noMethod(*s)
+	type NoMethod CreateSlideResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1366,8 +1382,8 @@ type CreateTableRequest struct {
 }
 
 func (s *CreateTableRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateTableRequest
-	raw := noMethod(*s)
+	type NoMethod CreateTableRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1394,14 +1410,25 @@ type CreateTableResponse struct {
 }
 
 func (s *CreateTableResponse) MarshalJSON() ([]byte, error) {
-	type noMethod CreateTableResponse
-	raw := noMethod(*s)
+	type NoMethod CreateTableResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // CreateVideoRequest: Creates a video.
 type CreateVideoRequest struct {
 	// ElementProperties: The element properties for the video.
+	//
+	// The PageElementProperties.size property is
+	// optional. If you don't specify a size, a default size is chosen by
+	// the
+	// server.
+	//
+	// The PageElementProperties.transform property is
+	// optional. The transform must not have shear components.
+	// If you don't specify a transform, the video will be placed at the top
+	// left
+	// corner of the page.
 	ElementProperties *PageElementProperties `json:"elementProperties,omitempty"`
 
 	// Id: The video source's unique identifier for this video.
@@ -1452,8 +1479,8 @@ type CreateVideoRequest struct {
 }
 
 func (s *CreateVideoRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateVideoRequest
-	raw := noMethod(*s)
+	type NoMethod CreateVideoRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1480,8 +1507,8 @@ type CreateVideoResponse struct {
 }
 
 func (s *CreateVideoResponse) MarshalJSON() ([]byte, error) {
-	type noMethod CreateVideoResponse
-	raw := noMethod(*s)
+	type NoMethod CreateVideoResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1569,22 +1596,22 @@ type CropProperties struct {
 }
 
 func (s *CropProperties) MarshalJSON() ([]byte, error) {
-	type noMethod CropProperties
-	raw := noMethod(*s)
+	type NoMethod CropProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *CropProperties) UnmarshalJSON(data []byte) error {
-	type noMethod CropProperties
+	type NoMethod CropProperties
 	var s1 struct {
 		Angle        gensupport.JSONFloat64 `json:"angle"`
 		BottomOffset gensupport.JSONFloat64 `json:"bottomOffset"`
 		LeftOffset   gensupport.JSONFloat64 `json:"leftOffset"`
 		RightOffset  gensupport.JSONFloat64 `json:"rightOffset"`
 		TopOffset    gensupport.JSONFloat64 `json:"topOffset"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -1628,8 +1655,8 @@ type DeleteObjectRequest struct {
 }
 
 func (s *DeleteObjectRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteObjectRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteObjectRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1673,8 +1700,8 @@ type DeleteParagraphBulletsRequest struct {
 }
 
 func (s *DeleteParagraphBulletsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteParagraphBulletsRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteParagraphBulletsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1711,8 +1738,8 @@ type DeleteTableColumnRequest struct {
 }
 
 func (s *DeleteTableColumnRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteTableColumnRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteTableColumnRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1749,8 +1776,8 @@ type DeleteTableRowRequest struct {
 }
 
 func (s *DeleteTableRowRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteTableRowRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteTableRowRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1808,8 +1835,8 @@ type DeleteTextRequest struct {
 }
 
 func (s *DeleteTextRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DeleteTextRequest
-	raw := noMethod(*s)
+	type NoMethod DeleteTextRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1846,18 +1873,18 @@ type Dimension struct {
 }
 
 func (s *Dimension) MarshalJSON() ([]byte, error) {
-	type noMethod Dimension
-	raw := noMethod(*s)
+	type NoMethod Dimension
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *Dimension) UnmarshalJSON(data []byte) error {
-	type noMethod Dimension
+	type NoMethod Dimension
 	var s1 struct {
 		Magnitude gensupport.JSONFloat64 `json:"magnitude"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -1928,8 +1955,8 @@ type DuplicateObjectRequest struct {
 }
 
 func (s *DuplicateObjectRequest) MarshalJSON() ([]byte, error) {
-	type noMethod DuplicateObjectRequest
-	raw := noMethod(*s)
+	type NoMethod DuplicateObjectRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1956,8 +1983,8 @@ type DuplicateObjectResponse struct {
 }
 
 func (s *DuplicateObjectResponse) MarshalJSON() ([]byte, error) {
-	type noMethod DuplicateObjectResponse
-	raw := noMethod(*s)
+	type NoMethod DuplicateObjectResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1986,8 +2013,90 @@ type Group struct {
 }
 
 func (s *Group) MarshalJSON() ([]byte, error) {
-	type noMethod Group
-	raw := noMethod(*s)
+	type NoMethod Group
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// GroupObjectsRequest: Groups objects to create an object group. For
+// example, groups PageElements to create a Group on the same page as
+// all the children.
+type GroupObjectsRequest struct {
+	// ChildrenObjectIds: The object IDs of the objects to group.
+	//
+	// Only page elements can be grouped. There should be at least two
+	// page
+	// elements on the same page that are not already in another group. Some
+	// page
+	// elements, such as videos, tables and placeholder shapes cannot be
+	// grouped.
+	ChildrenObjectIds []string `json:"childrenObjectIds,omitempty"`
+
+	// GroupObjectId: A user-supplied object ID for the group to be
+	// created.
+	//
+	// If you specify an ID, it must be unique among all pages and page
+	// elements
+	// in the presentation. The ID must start with an alphanumeric character
+	// or an
+	// underscore (matches regex `[a-zA-Z0-9_]`); remaining characters
+	// may include those as well as a hyphen or colon (matches
+	// regex
+	// `[a-zA-Z0-9_-:]`).
+	// The length of the ID must not be less than 5 or greater than 50.
+	//
+	// If you don't specify an ID, a unique one is generated.
+	GroupObjectId string `json:"groupObjectId,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ChildrenObjectIds")
+	// to unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ChildrenObjectIds") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *GroupObjectsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod GroupObjectsRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// GroupObjectsResponse: The result of grouping objects.
+type GroupObjectsResponse struct {
+	// ObjectId: The object ID of the created group.
+	ObjectId string `json:"objectId,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ObjectId") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ObjectId") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *GroupObjectsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod GroupObjectsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2024,8 +2133,8 @@ type Image struct {
 }
 
 func (s *Image) MarshalJSON() ([]byte, error) {
-	type noMethod Image
-	raw := noMethod(*s)
+	type NoMethod Image
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2050,7 +2159,7 @@ type ImageProperties struct {
 	// link.
 	Link *Link `json:"link,omitempty"`
 
-	// Outline: The outline of the image. If not set, the the image has no
+	// Outline: The outline of the image. If not set, the image has no
 	// outline.
 	Outline *Outline `json:"outline,omitempty"`
 
@@ -2089,20 +2198,20 @@ type ImageProperties struct {
 }
 
 func (s *ImageProperties) MarshalJSON() ([]byte, error) {
-	type noMethod ImageProperties
-	raw := noMethod(*s)
+	type NoMethod ImageProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *ImageProperties) UnmarshalJSON(data []byte) error {
-	type noMethod ImageProperties
+	type NoMethod ImageProperties
 	var s1 struct {
 		Brightness   gensupport.JSONFloat64 `json:"brightness"`
 		Contrast     gensupport.JSONFloat64 `json:"contrast"`
 		Transparency gensupport.JSONFloat64 `json:"transparency"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -2157,8 +2266,8 @@ type InsertTableColumnsRequest struct {
 }
 
 func (s *InsertTableColumnsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod InsertTableColumnsRequest
-	raw := noMethod(*s)
+	type NoMethod InsertTableColumnsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2205,8 +2314,8 @@ type InsertTableRowsRequest struct {
 }
 
 func (s *InsertTableRowsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod InsertTableRowsRequest
-	raw := noMethod(*s)
+	type NoMethod InsertTableRowsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2275,8 +2384,8 @@ type InsertTextRequest struct {
 }
 
 func (s *InsertTextRequest) MarshalJSON() ([]byte, error) {
-	type noMethod InsertTextRequest
-	raw := noMethod(*s)
+	type NoMethod InsertTextRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2332,16 +2441,15 @@ type LayoutPlaceholderIdMapping struct {
 }
 
 func (s *LayoutPlaceholderIdMapping) MarshalJSON() ([]byte, error) {
-	type noMethod LayoutPlaceholderIdMapping
-	raw := noMethod(*s)
+	type NoMethod LayoutPlaceholderIdMapping
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // LayoutProperties: The properties of Page are only
 // relevant for pages with page_type LAYOUT.
 type LayoutProperties struct {
-	// DisplayName: The human readable name of the layout in the
-	// presentation's locale.
+	// DisplayName: The human-readable name of the layout.
 	DisplayName string `json:"displayName,omitempty"`
 
 	// MasterObjectId: The object ID of the master that this layout is based
@@ -2369,8 +2477,8 @@ type LayoutProperties struct {
 }
 
 func (s *LayoutProperties) MarshalJSON() ([]byte, error) {
-	type noMethod LayoutProperties
-	raw := noMethod(*s)
+	type NoMethod LayoutProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2421,8 +2529,8 @@ type LayoutReference struct {
 }
 
 func (s *LayoutReference) MarshalJSON() ([]byte, error) {
-	type noMethod LayoutReference
-	raw := noMethod(*s)
+	type NoMethod LayoutReference
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2484,8 +2592,8 @@ type Line struct {
 }
 
 func (s *Line) MarshalJSON() ([]byte, error) {
-	type noMethod Line
-	raw := noMethod(*s)
+	type NoMethod Line
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2512,8 +2620,8 @@ type LineFill struct {
 }
 
 func (s *LineFill) MarshalJSON() ([]byte, error) {
-	type noMethod LineFill
-	raw := noMethod(*s)
+	type NoMethod LineFill
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2617,8 +2725,8 @@ type LineProperties struct {
 }
 
 func (s *LineProperties) MarshalJSON() ([]byte, error) {
-	type noMethod LineProperties
-	raw := noMethod(*s)
+	type NoMethod LineProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2669,8 +2777,8 @@ type Link struct {
 }
 
 func (s *Link) MarshalJSON() ([]byte, error) {
-	type noMethod Link
-	raw := noMethod(*s)
+	type NoMethod Link
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2708,8 +2816,77 @@ type List struct {
 }
 
 func (s *List) MarshalJSON() ([]byte, error) {
-	type noMethod List
-	raw := noMethod(*s)
+	type NoMethod List
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// MasterProperties: The properties of Page that are only
+// relevant for pages with page_type MASTER.
+type MasterProperties struct {
+	// DisplayName: The human-readable name of the master.
+	DisplayName string `json:"displayName,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DisplayName") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DisplayName") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *MasterProperties) MarshalJSON() ([]byte, error) {
+	type NoMethod MasterProperties
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// MergeTableCellsRequest: Merges cells in a Table.
+type MergeTableCellsRequest struct {
+	// ObjectId: The object ID of the table.
+	ObjectId string `json:"objectId,omitempty"`
+
+	// TableRange: The table range specifying which cells of the table to
+	// merge.
+	//
+	// Any text in the cells being merged will be concatenated and stored in
+	// the
+	// upper-left ("head") cell of the range. If the range is
+	// non-rectangular
+	// (which can occur in some cases where the range covers cells that
+	// are
+	// already merged), a 400 bad request error is returned.
+	TableRange *TableRange `json:"tableRange,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ObjectId") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ObjectId") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *MergeTableCellsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod MergeTableCellsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2738,8 +2915,8 @@ type NestingLevel struct {
 }
 
 func (s *NestingLevel) MarshalJSON() ([]byte, error) {
-	type noMethod NestingLevel
-	raw := noMethod(*s)
+	type NoMethod NestingLevel
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2778,8 +2955,8 @@ type NotesProperties struct {
 }
 
 func (s *NotesProperties) MarshalJSON() ([]byte, error) {
-	type noMethod NotesProperties
-	raw := noMethod(*s)
+	type NoMethod NotesProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2830,8 +3007,8 @@ type OpaqueColor struct {
 }
 
 func (s *OpaqueColor) MarshalJSON() ([]byte, error) {
-	type noMethod OpaqueColor
-	raw := noMethod(*s)
+	type NoMethod OpaqueColor
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2861,8 +3038,8 @@ type OptionalColor struct {
 }
 
 func (s *OptionalColor) MarshalJSON() ([]byte, error) {
-	type noMethod OptionalColor
-	raw := noMethod(*s)
+	type NoMethod OptionalColor
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2903,12 +3080,12 @@ type Outline struct {
 
 	// PropertyState: The outline property state.
 	//
-	// Updating the the outline on a page element will implicitly update
-	// this
-	// field to`RENDERED`, unless another value is specified in the same
-	// request.
-	// To have no outline on a page element, set this field to
-	// `NOT_RENDERED`. In
+	// Updating the outline on a page element will implicitly update this
+	// field
+	// to `RENDERED`, unless another value is specified in the same request.
+	// To
+	// have no outline on a page element, set this field to `NOT_RENDERED`.
+	// In
 	// this case, any other outline fields set in the same request will
 	// be
 	// ignored.
@@ -2961,8 +3138,8 @@ type Outline struct {
 }
 
 func (s *Outline) MarshalJSON() ([]byte, error) {
-	type noMethod Outline
-	raw := noMethod(*s)
+	type NoMethod Outline
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2989,8 +3166,8 @@ type OutlineFill struct {
 }
 
 func (s *OutlineFill) MarshalJSON() ([]byte, error) {
-	type noMethod OutlineFill
-	raw := noMethod(*s)
+	type NoMethod OutlineFill
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2999,6 +3176,10 @@ type Page struct {
 	// LayoutProperties: Layout specific properties. Only set if page_type =
 	// LAYOUT.
 	LayoutProperties *LayoutProperties `json:"layoutProperties,omitempty"`
+
+	// MasterProperties: Master specific properties. Only set if page_type =
+	// MASTER.
+	MasterProperties *MasterProperties `json:"masterProperties,omitempty"`
 
 	// NotesProperties: Notes specific properties. Only set if page_type =
 	// NOTES.
@@ -3075,8 +3256,8 @@ type Page struct {
 }
 
 func (s *Page) MarshalJSON() ([]byte, error) {
-	type noMethod Page
-	raw := noMethod(*s)
+	type NoMethod Page
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3084,7 +3265,7 @@ func (s *Page) MarshalJSON() ([]byte, error) {
 type PageBackgroundFill struct {
 	// PropertyState: The background fill property state.
 	//
-	// Updating the the fill on a page will implicitly update this field
+	// Updating the fill on a page will implicitly update this field
 	// to
 	// `RENDERED`, unless another value is specified in the same request.
 	// To
@@ -3143,8 +3324,8 @@ type PageBackgroundFill struct {
 }
 
 func (s *PageBackgroundFill) MarshalJSON() ([]byte, error) {
-	type noMethod PageBackgroundFill
-	raw := noMethod(*s)
+	type NoMethod PageBackgroundFill
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3190,6 +3371,19 @@ type PageElement struct {
 	Title string `json:"title,omitempty"`
 
 	// Transform: The transform of the page element.
+	//
+	// The visual appearance of the page element is determined by its
+	// absolute
+	// transform. To compute the absolute transform, preconcatenate a
+	// page
+	// element's transform with the transforms of all of its parent groups.
+	// If the
+	// page element is not in a group, its absolute transform is the same as
+	// the
+	// value in this field.
+	//
+	// The initial transform for the newly created Group is always the
+	// identity transform.
 	Transform *AffineTransform `json:"transform,omitempty"`
 
 	// Video: A video page element.
@@ -3216,8 +3410,8 @@ type PageElement struct {
 }
 
 func (s *PageElement) MarshalJSON() ([]byte, error) {
-	type noMethod PageElement
-	raw := noMethod(*s)
+	type NoMethod PageElement
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3255,8 +3449,8 @@ type PageElementProperties struct {
 }
 
 func (s *PageElementProperties) MarshalJSON() ([]byte, error) {
-	type noMethod PageElementProperties
-	raw := noMethod(*s)
+	type NoMethod PageElementProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3301,8 +3495,8 @@ type PageProperties struct {
 }
 
 func (s *PageProperties) MarshalJSON() ([]byte, error) {
-	type noMethod PageProperties
-	raw := noMethod(*s)
+	type NoMethod PageProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3335,8 +3529,8 @@ type ParagraphMarker struct {
 }
 
 func (s *ParagraphMarker) MarshalJSON() ([]byte, error) {
-	type noMethod ParagraphMarker
-	raw := noMethod(*s)
+	type NoMethod ParagraphMarker
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3450,18 +3644,18 @@ type ParagraphStyle struct {
 }
 
 func (s *ParagraphStyle) MarshalJSON() ([]byte, error) {
-	type noMethod ParagraphStyle
-	raw := noMethod(*s)
+	type NoMethod ParagraphStyle
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *ParagraphStyle) UnmarshalJSON(data []byte) error {
-	type noMethod ParagraphStyle
+	type NoMethod ParagraphStyle
 	var s1 struct {
 		LineSpacing gensupport.JSONFloat64 `json:"lineSpacing"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -3523,8 +3717,8 @@ type Placeholder struct {
 }
 
 func (s *Placeholder) MarshalJSON() ([]byte, error) {
-	type noMethod Placeholder
-	raw := noMethod(*s)
+	type NoMethod Placeholder
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3635,8 +3829,8 @@ type Presentation struct {
 }
 
 func (s *Presentation) MarshalJSON() ([]byte, error) {
-	type noMethod Presentation
-	raw := noMethod(*s)
+	type NoMethod Presentation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3646,12 +3840,12 @@ func (s *Presentation) MarshalJSON() ([]byte, error) {
 type Range struct {
 	// EndIndex: The optional zero-based index of the end of the
 	// collection.
-	// Required for `SPECIFIC_RANGE` delete mode.
+	// Required for `FIXED_RANGE` ranges.
 	EndIndex int64 `json:"endIndex,omitempty"`
 
 	// StartIndex: The optional zero-based index of the beginning of the
 	// collection.
-	// Required for `SPECIFIC_RANGE` and `FROM_START_INDEX` ranges.
+	// Required for `FIXED_RANGE` and `FROM_START_INDEX` ranges.
 	StartIndex int64 `json:"startIndex,omitempty"`
 
 	// Type: The type of range.
@@ -3689,8 +3883,8 @@ type Range struct {
 }
 
 func (s *Range) MarshalJSON() ([]byte, error) {
-	type noMethod Range
-	raw := noMethod(*s)
+	type NoMethod Range
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3806,8 +4000,8 @@ type Recolor struct {
 }
 
 func (s *Recolor) MarshalJSON() ([]byte, error) {
-	type noMethod Recolor
-	raw := noMethod(*s)
+	type NoMethod Recolor
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3840,8 +4034,8 @@ type RefreshSheetsChartRequest struct {
 }
 
 func (s *RefreshSheetsChartRequest) MarshalJSON() ([]byte, error) {
-	type noMethod RefreshSheetsChartRequest
-	raw := noMethod(*s)
+	type NoMethod RefreshSheetsChartRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3853,6 +4047,37 @@ type ReplaceAllShapesWithImageRequest struct {
 	// given text.
 	ContainsText *SubstringMatchCriteria `json:"containsText,omitempty"`
 
+	// ImageReplaceMethod: The image replace method.
+	//
+	// If you specify both a `replace_method` and an `image_replace_method`,
+	// the
+	// `image_replace_method` takes precedence.
+	//
+	// If you do not specify a value for `image_replace_method`, but specify
+	// a
+	// value for `replace_method`, then the specified `replace_method` value
+	// is
+	// used.
+	//
+	// If you do not specify either, then CENTER_INSIDE is used.
+	//
+	// Possible values:
+	//   "IMAGE_REPLACE_METHOD_UNSPECIFIED" - Unspecified image replace
+	// method. This value must not be used.
+	//   "CENTER_INSIDE" - Scales and centers the image to fit within the
+	// bounds of the original
+	// shape and maintains the image's aspect ratio. The rendered size of
+	// the
+	// image may be smaller than the size of the shape. This is the
+	// default
+	// method when one is not specified.
+	//   "CENTER_CROP" - Scales and centers the image to fill the bounds of
+	// the original shape.
+	// The image may be cropped in order to fill the shape. The rendered
+	// size of
+	// the image will be the same as that of the original shape.
+	ImageReplaceMethod string `json:"imageReplaceMethod,omitempty"`
+
 	// ImageUrl: The image URL.
 	//
 	// The image is fetched once at insertion time and a copy is stored
@@ -3862,9 +4087,26 @@ type ReplaceAllShapesWithImageRequest struct {
 	// cannot exceed 25 megapixels, and must be in either in PNG, JPEG, or
 	// GIF
 	// format.
+	//
+	// The provided URL can be at most 2 kB in length.
 	ImageUrl string `json:"imageUrl,omitempty"`
 
+	// PageObjectIds: If non-empty, limits the matches to page elements only
+	// on the given pages.
+	//
+	// Returns a 400 bad request error if given the page object ID of
+	// a
+	// notes page or a
+	// notes master, or if a
+	// page with that object ID doesn't exist in the presentation.
+	PageObjectIds []string `json:"pageObjectIds,omitempty"`
+
 	// ReplaceMethod: The replace method.
+	// Deprecated: use `image_replace_method` instead.
+	//
+	// If you specify both a `replace_method` and an `image_replace_method`,
+	// the
+	// `image_replace_method` takes precedence.
 	//
 	// Possible values:
 	//   "CENTER_INSIDE" - Scales and centers the image to fit within the
@@ -3899,8 +4141,8 @@ type ReplaceAllShapesWithImageRequest struct {
 }
 
 func (s *ReplaceAllShapesWithImageRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ReplaceAllShapesWithImageRequest
-	raw := noMethod(*s)
+	type NoMethod ReplaceAllShapesWithImageRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3929,8 +4171,8 @@ type ReplaceAllShapesWithImageResponse struct {
 }
 
 func (s *ReplaceAllShapesWithImageResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ReplaceAllShapesWithImageResponse
-	raw := noMethod(*s)
+	type NoMethod ReplaceAllShapesWithImageResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3967,6 +4209,16 @@ type ReplaceAllShapesWithSheetsChartRequest struct {
 	// see a link to the spreadsheet.
 	LinkingMode string `json:"linkingMode,omitempty"`
 
+	// PageObjectIds: If non-empty, limits the matches to page elements only
+	// on the given pages.
+	//
+	// Returns a 400 bad request error if given the page object ID of
+	// a
+	// notes page or a
+	// notes master, or if a
+	// page with that object ID doesn't exist in the presentation.
+	PageObjectIds []string `json:"pageObjectIds,omitempty"`
+
 	// SpreadsheetId: The ID of the Google Sheets spreadsheet that contains
 	// the chart.
 	SpreadsheetId string `json:"spreadsheetId,omitempty"`
@@ -3989,8 +4241,8 @@ type ReplaceAllShapesWithSheetsChartRequest struct {
 }
 
 func (s *ReplaceAllShapesWithSheetsChartRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ReplaceAllShapesWithSheetsChartRequest
-	raw := noMethod(*s)
+	type NoMethod ReplaceAllShapesWithSheetsChartRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4019,8 +4271,8 @@ type ReplaceAllShapesWithSheetsChartResponse struct {
 }
 
 func (s *ReplaceAllShapesWithSheetsChartResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ReplaceAllShapesWithSheetsChartResponse
-	raw := noMethod(*s)
+	type NoMethod ReplaceAllShapesWithSheetsChartResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4029,6 +4281,15 @@ func (s *ReplaceAllShapesWithSheetsChartResponse) MarshalJSON() ([]byte, error) 
 type ReplaceAllTextRequest struct {
 	// ContainsText: Finds text in a shape matching this substring.
 	ContainsText *SubstringMatchCriteria `json:"containsText,omitempty"`
+
+	// PageObjectIds: If non-empty, limits the matches to page elements only
+	// on the given pages.
+	//
+	// Returns a 400 bad request error if given the page object ID of
+	// a
+	// notes master,
+	// or if a page with that object ID doesn't exist in the presentation.
+	PageObjectIds []string `json:"pageObjectIds,omitempty"`
 
 	// ReplaceText: The text that will replace the matched text.
 	ReplaceText string `json:"replaceText,omitempty"`
@@ -4051,8 +4312,8 @@ type ReplaceAllTextRequest struct {
 }
 
 func (s *ReplaceAllTextRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ReplaceAllTextRequest
-	raw := noMethod(*s)
+	type NoMethod ReplaceAllTextRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4081,8 +4342,8 @@ type ReplaceAllTextResponse struct {
 }
 
 func (s *ReplaceAllTextResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ReplaceAllTextResponse
-	raw := noMethod(*s)
+	type NoMethod ReplaceAllTextResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4130,6 +4391,9 @@ type Request struct {
 	// DuplicateObject: Duplicates a slide or page element.
 	DuplicateObject *DuplicateObjectRequest `json:"duplicateObject,omitempty"`
 
+	// GroupObjects: Groups objects, such as page elements.
+	GroupObjects *GroupObjectsRequest `json:"groupObjects,omitempty"`
+
 	// InsertTableColumns: Inserts columns into a table.
 	InsertTableColumns *InsertTableColumnsRequest `json:"insertTableColumns,omitempty"`
 
@@ -4138,6 +4402,9 @@ type Request struct {
 
 	// InsertText: Inserts text into a shape or table cell.
 	InsertText *InsertTextRequest `json:"insertText,omitempty"`
+
+	// MergeTableCells: Merges cells in a Table.
+	MergeTableCells *MergeTableCellsRequest `json:"mergeTableCells,omitempty"`
 
 	// RefreshSheetsChart: Refreshes a Google Sheets chart.
 	RefreshSheetsChart *RefreshSheetsChartRequest `json:"refreshSheetsChart,omitempty"`
@@ -4153,11 +4420,22 @@ type Request struct {
 	// ReplaceAllText: Replaces all instances of specified text.
 	ReplaceAllText *ReplaceAllTextRequest `json:"replaceAllText,omitempty"`
 
+	// UngroupObjects: Ungroups objects, such as groups.
+	UngroupObjects *UngroupObjectsRequest `json:"ungroupObjects,omitempty"`
+
+	// UnmergeTableCells: Unmerges cells in a Table.
+	UnmergeTableCells *UnmergeTableCellsRequest `json:"unmergeTableCells,omitempty"`
+
 	// UpdateImageProperties: Updates the properties of an Image.
 	UpdateImageProperties *UpdateImagePropertiesRequest `json:"updateImageProperties,omitempty"`
 
 	// UpdateLineProperties: Updates the properties of a Line.
 	UpdateLineProperties *UpdateLinePropertiesRequest `json:"updateLineProperties,omitempty"`
+
+	// UpdatePageElementAltText: Updates the alt text title and/or
+	// description of a
+	// page element.
+	UpdatePageElementAltText *UpdatePageElementAltTextRequest `json:"updatePageElementAltText,omitempty"`
 
 	// UpdatePageElementTransform: Updates the transform of a page element.
 	UpdatePageElementTransform *UpdatePageElementTransformRequest `json:"updatePageElementTransform,omitempty"`
@@ -4176,8 +4454,20 @@ type Request struct {
 	// presentation.
 	UpdateSlidesPosition *UpdateSlidesPositionRequest `json:"updateSlidesPosition,omitempty"`
 
+	// UpdateTableBorderProperties: Updates the properties of the table
+	// borders in a Table.
+	UpdateTableBorderProperties *UpdateTableBorderPropertiesRequest `json:"updateTableBorderProperties,omitempty"`
+
 	// UpdateTableCellProperties: Updates the properties of a TableCell.
 	UpdateTableCellProperties *UpdateTableCellPropertiesRequest `json:"updateTableCellProperties,omitempty"`
+
+	// UpdateTableColumnProperties: Updates the properties of a
+	// Table
+	// column.
+	UpdateTableColumnProperties *UpdateTableColumnPropertiesRequest `json:"updateTableColumnProperties,omitempty"`
+
+	// UpdateTableRowProperties: Updates the properties of a Table row.
+	UpdateTableRowProperties *UpdateTableRowPropertiesRequest `json:"updateTableRowProperties,omitempty"`
 
 	// UpdateTextStyle: Updates the styling of text within a Shape or Table.
 	UpdateTextStyle *UpdateTextStyleRequest `json:"updateTextStyle,omitempty"`
@@ -4203,8 +4493,8 @@ type Request struct {
 }
 
 func (s *Request) MarshalJSON() ([]byte, error) {
-	type noMethod Request
-	raw := noMethod(*s)
+	type NoMethod Request
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4233,6 +4523,9 @@ type Response struct {
 
 	// DuplicateObject: The result of duplicating an object.
 	DuplicateObject *DuplicateObjectResponse `json:"duplicateObject,omitempty"`
+
+	// GroupObjects: The result of grouping objects.
+	GroupObjects *GroupObjectsResponse `json:"groupObjects,omitempty"`
 
 	// ReplaceAllShapesWithImage: The result of replacing all shapes
 	// matching some criteria with an
@@ -4265,8 +4558,8 @@ type Response struct {
 }
 
 func (s *Response) MarshalJSON() ([]byte, error) {
-	type noMethod Response
-	raw := noMethod(*s)
+	type NoMethod Response
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4299,20 +4592,20 @@ type RgbColor struct {
 }
 
 func (s *RgbColor) MarshalJSON() ([]byte, error) {
-	type noMethod RgbColor
-	raw := noMethod(*s)
+	type NoMethod RgbColor
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *RgbColor) UnmarshalJSON(data []byte) error {
-	type noMethod RgbColor
+	type NoMethod RgbColor
 	var s1 struct {
 		Blue  gensupport.JSONFloat64 `json:"blue"`
 		Green gensupport.JSONFloat64 `json:"green"`
 		Red   gensupport.JSONFloat64 `json:"red"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -4362,12 +4655,12 @@ type Shadow struct {
 
 	// PropertyState: The shadow property state.
 	//
-	// Updating the the shadow on a page element will implicitly update this
-	// field
-	// to `RENDERED`, unless another value is specified in the same request.
-	// To
-	// have no shadow on a page element, set this field to `NOT_RENDERED`.
-	// In this
+	// Updating the shadow on a page element will implicitly update this
+	// field to
+	// `RENDERED`, unless another value is specified in the same request. To
+	// have
+	// no shadow on a page element, set this field to `NOT_RENDERED`. In
+	// this
 	// case, any other shadow fields set in the same request will be
 	// ignored.
 	//
@@ -4431,18 +4724,18 @@ type Shadow struct {
 }
 
 func (s *Shadow) MarshalJSON() ([]byte, error) {
-	type noMethod Shadow
-	raw := noMethod(*s)
+	type NoMethod Shadow
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *Shadow) UnmarshalJSON(data []byte) error {
-	type noMethod Shadow
+	type NoMethod Shadow
 	var s1 struct {
 		Alpha gensupport.JSONFloat64 `json:"alpha"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -4817,8 +5110,8 @@ type Shape struct {
 }
 
 func (s *Shape) MarshalJSON() ([]byte, error) {
-	type noMethod Shape
-	raw := noMethod(*s)
+	type NoMethod Shape
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4826,7 +5119,7 @@ func (s *Shape) MarshalJSON() ([]byte, error) {
 type ShapeBackgroundFill struct {
 	// PropertyState: The background fill property state.
 	//
-	// Updating the the fill on a shape will implicitly update this field
+	// Updating the fill on a shape will implicitly update this field
 	// to
 	// `RENDERED`, unless another value is specified in the same request.
 	// To
@@ -4882,8 +5175,8 @@ type ShapeBackgroundFill struct {
 }
 
 func (s *ShapeBackgroundFill) MarshalJSON() ([]byte, error) {
-	type noMethod ShapeBackgroundFill
-	raw := noMethod(*s)
+	type NoMethod ShapeBackgroundFill
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4897,6 +5190,30 @@ func (s *ShapeBackgroundFill) MarshalJSON() ([]byte, error) {
 // corresponding
 // property_state field value.
 type ShapeProperties struct {
+	// ContentAlignment: The alignment of the content in the shape. If
+	// unspecified,
+	// the alignment is inherited from a parent placeholder if it exists. If
+	// the
+	// shape has no parent, the default alignment matches the alignment for
+	// new
+	// shapes created in the Slides editor.
+	//
+	// Possible values:
+	//   "CONTENT_ALIGNMENT_UNSPECIFIED" - An unspecified content alignment.
+	// The content alignment is inherited from
+	// the parent if it exists.
+	//   "CONTENT_ALIGNMENT_UNSUPPORTED" - An unsupported content alignment.
+	//   "TOP" - An alignment that aligns the content to the top of the
+	// content holder.
+	// Corresponds to ECMA-376 ST_TextAnchoringType 't'.
+	//   "MIDDLE" - An alignment that aligns the content to the middle of
+	// the content
+	// holder. Corresponds to ECMA-376 ST_TextAnchoringType 'ctr'.
+	//   "BOTTOM" - An alignment that aligns the content to the bottom of
+	// the content
+	// holder. Corresponds to ECMA-376 ST_TextAnchoringType 'b'.
+	ContentAlignment string `json:"contentAlignment,omitempty"`
+
 	// Link: The hyperlink destination of the shape. If unset, there is no
 	// link. Links
 	// are not inherited from parent placeholders.
@@ -4929,7 +5246,7 @@ type ShapeProperties struct {
 	// matching the defaults for new shapes created in the Slides editor.
 	ShapeBackgroundFill *ShapeBackgroundFill `json:"shapeBackgroundFill,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "Link") to
+	// ForceSendFields is a list of field names (e.g. "ContentAlignment") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -4937,18 +5254,19 @@ type ShapeProperties struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "Link") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
+	// NullFields is a list of field names (e.g. "ContentAlignment") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
 	NullFields []string `json:"-"`
 }
 
 func (s *ShapeProperties) MarshalJSON() ([]byte, error) {
-	type noMethod ShapeProperties
-	raw := noMethod(*s)
+	type NoMethod ShapeProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4994,8 +5312,8 @@ type SheetsChart struct {
 }
 
 func (s *SheetsChart) MarshalJSON() ([]byte, error) {
-	type noMethod SheetsChart
-	raw := noMethod(*s)
+	type NoMethod SheetsChart
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5024,8 +5342,8 @@ type SheetsChartProperties struct {
 }
 
 func (s *SheetsChartProperties) MarshalJSON() ([]byte, error) {
-	type noMethod SheetsChartProperties
-	raw := noMethod(*s)
+	type NoMethod SheetsChartProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5055,8 +5373,8 @@ type Size struct {
 }
 
 func (s *Size) MarshalJSON() ([]byte, error) {
-	type noMethod Size
-	raw := noMethod(*s)
+	type NoMethod Size
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5106,8 +5424,8 @@ type SlideProperties struct {
 }
 
 func (s *SlideProperties) MarshalJSON() ([]byte, error) {
-	type noMethod SlideProperties
-	raw := noMethod(*s)
+	type NoMethod SlideProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5152,18 +5470,18 @@ type SolidFill struct {
 }
 
 func (s *SolidFill) MarshalJSON() ([]byte, error) {
-	type noMethod SolidFill
-	raw := noMethod(*s)
+	type NoMethod SolidFill
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *SolidFill) UnmarshalJSON(data []byte) error {
-	type noMethod SolidFill
+	type NoMethod SolidFill
 	var s1 struct {
 		Alpha gensupport.JSONFloat64 `json:"alpha"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -5194,6 +5512,8 @@ type StretchedPictureFill struct {
 	// cannot exceed 25 megapixels, and must be in either in PNG, JPEG, or
 	// GIF
 	// format.
+	//
+	// The provided URL can be at most 2 kB in length.
 	ContentUrl string `json:"contentUrl,omitempty"`
 
 	// Size: The original size of the picture fill. This field is read-only.
@@ -5217,8 +5537,8 @@ type StretchedPictureFill struct {
 }
 
 func (s *StretchedPictureFill) MarshalJSON() ([]byte, error) {
-	type noMethod StretchedPictureFill
-	raw := noMethod(*s)
+	type NoMethod StretchedPictureFill
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5252,8 +5572,8 @@ type SubstringMatchCriteria struct {
 }
 
 func (s *SubstringMatchCriteria) MarshalJSON() ([]byte, error) {
-	type noMethod SubstringMatchCriteria
-	raw := noMethod(*s)
+	type NoMethod SubstringMatchCriteria
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5262,6 +5582,17 @@ func (s *SubstringMatchCriteria) MarshalJSON() ([]byte, error) {
 type Table struct {
 	// Columns: Number of columns in the table.
 	Columns int64 `json:"columns,omitempty"`
+
+	// HorizontalBorderRows: Properties of horizontal cell borders.
+	//
+	// A table's horizontal cell borders are represented as a grid. The grid
+	// has
+	// one more row than the number of rows in the table and the same number
+	// of
+	// columns as the table. For example, if the table is 3 x 3, its
+	// horizontal
+	// borders will be represented as a grid with 4 rows and 3 columns.
+	HorizontalBorderRows []*TableBorderRow `json:"horizontalBorderRows,omitempty"`
 
 	// Rows: Number of rows in the table.
 	Rows int64 `json:"rows,omitempty"`
@@ -5276,6 +5607,17 @@ type Table struct {
 	// have a row_span greater
 	// than 1.
 	TableRows []*TableRow `json:"tableRows,omitempty"`
+
+	// VerticalBorderRows: Properties of vertical cell borders.
+	//
+	// A table's vertical cell borders are represented as a grid. The grid
+	// has the
+	// same number of rows as the table and one more column than the number
+	// of
+	// columns in the table. For example, if the table is 3 x 3, its
+	// vertical
+	// borders will be represented as a grid with 3 rows and 4 columns.
+	VerticalBorderRows []*TableBorderRow `json:"verticalBorderRows,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Columns") to
 	// unconditionally include in API requests. By default, fields with
@@ -5295,8 +5637,153 @@ type Table struct {
 }
 
 func (s *Table) MarshalJSON() ([]byte, error) {
-	type noMethod Table
-	raw := noMethod(*s)
+	type NoMethod Table
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// TableBorderCell: The properties of each border cell.
+type TableBorderCell struct {
+	// Location: The location of the border within the border table.
+	Location *TableCellLocation `json:"location,omitempty"`
+
+	// TableBorderProperties: The border properties.
+	TableBorderProperties *TableBorderProperties `json:"tableBorderProperties,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Location") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Location") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *TableBorderCell) MarshalJSON() ([]byte, error) {
+	type NoMethod TableBorderCell
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// TableBorderFill: The fill of the border.
+type TableBorderFill struct {
+	// SolidFill: Solid fill.
+	SolidFill *SolidFill `json:"solidFill,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "SolidFill") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "SolidFill") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *TableBorderFill) MarshalJSON() ([]byte, error) {
+	type NoMethod TableBorderFill
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// TableBorderProperties: The border styling properties of
+// the
+// TableBorderCell.
+type TableBorderProperties struct {
+	// DashStyle: The dash style of the border.
+	//
+	// Possible values:
+	//   "DASH_STYLE_UNSPECIFIED" - Unspecified dash style.
+	//   "SOLID" - Solid line. Corresponds to ECMA-376 ST_PresetLineDashVal
+	// value 'solid'.
+	// This is the default dash style.
+	//   "DOT" - Dotted line. Corresponds to ECMA-376 ST_PresetLineDashVal
+	// value 'dot'.
+	//   "DASH" - Dashed line. Corresponds to ECMA-376 ST_PresetLineDashVal
+	// value 'dash'.
+	//   "DASH_DOT" - Alternating dashes and dots. Corresponds to ECMA-376
+	// ST_PresetLineDashVal
+	// value 'dashDot'.
+	//   "LONG_DASH" - Line with large dashes. Corresponds to ECMA-376
+	// ST_PresetLineDashVal
+	// value 'lgDash'.
+	//   "LONG_DASH_DOT" - Alternating large dashes and dots. Corresponds to
+	// ECMA-376
+	// ST_PresetLineDashVal value 'lgDashDot'.
+	DashStyle string `json:"dashStyle,omitempty"`
+
+	// TableBorderFill: The fill of the table border.
+	TableBorderFill *TableBorderFill `json:"tableBorderFill,omitempty"`
+
+	// Weight: The thickness of the border.
+	Weight *Dimension `json:"weight,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "DashStyle") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "DashStyle") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *TableBorderProperties) MarshalJSON() ([]byte, error) {
+	type NoMethod TableBorderProperties
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// TableBorderRow: Contents of each border row in a table.
+type TableBorderRow struct {
+	// TableBorderCells: Properties of each border cell. When a border's
+	// adjacent table cells are
+	// merged, it is not included in the response.
+	TableBorderCells []*TableBorderCell `json:"tableBorderCells,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "TableBorderCells") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "TableBorderCells") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *TableBorderRow) MarshalJSON() ([]byte, error) {
+	type NoMethod TableBorderRow
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5335,8 +5822,8 @@ type TableCell struct {
 }
 
 func (s *TableCell) MarshalJSON() ([]byte, error) {
-	type noMethod TableCell
-	raw := noMethod(*s)
+	type NoMethod TableCell
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5344,7 +5831,7 @@ func (s *TableCell) MarshalJSON() ([]byte, error) {
 type TableCellBackgroundFill struct {
 	// PropertyState: The background fill property state.
 	//
-	// Updating the the fill on a table cell will implicitly update this
+	// Updating the fill on a table cell will implicitly update this
 	// field
 	// to `RENDERED`, unless another value is specified in the same request.
 	// To
@@ -5400,8 +5887,8 @@ type TableCellBackgroundFill struct {
 }
 
 func (s *TableCellBackgroundFill) MarshalJSON() ([]byte, error) {
-	type noMethod TableCellBackgroundFill
-	raw := noMethod(*s)
+	type NoMethod TableCellBackgroundFill
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5431,31 +5918,51 @@ type TableCellLocation struct {
 }
 
 func (s *TableCellLocation) MarshalJSON() ([]byte, error) {
-	type noMethod TableCellLocation
-	raw := noMethod(*s)
+	type NoMethod TableCellLocation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // TableCellProperties: The properties of the TableCell.
 type TableCellProperties struct {
+	// ContentAlignment: The alignment of the content in the table cell. The
+	// default alignment
+	// matches the alignment for newly created table cells in the Slides
+	// editor.
+	//
+	// Possible values:
+	//   "CONTENT_ALIGNMENT_UNSPECIFIED" - An unspecified content alignment.
+	// The content alignment is inherited from
+	// the parent if it exists.
+	//   "CONTENT_ALIGNMENT_UNSUPPORTED" - An unsupported content alignment.
+	//   "TOP" - An alignment that aligns the content to the top of the
+	// content holder.
+	// Corresponds to ECMA-376 ST_TextAnchoringType 't'.
+	//   "MIDDLE" - An alignment that aligns the content to the middle of
+	// the content
+	// holder. Corresponds to ECMA-376 ST_TextAnchoringType 'ctr'.
+	//   "BOTTOM" - An alignment that aligns the content to the bottom of
+	// the content
+	// holder. Corresponds to ECMA-376 ST_TextAnchoringType 'b'.
+	ContentAlignment string `json:"contentAlignment,omitempty"`
+
 	// TableCellBackgroundFill: The background fill of the table cell. The
 	// default fill matches the fill
 	// for newly created table cells in the Slides editor.
 	TableCellBackgroundFill *TableCellBackgroundFill `json:"tableCellBackgroundFill,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g.
-	// "TableCellBackgroundFill") to unconditionally include in API
-	// requests. By default, fields with empty values are omitted from API
-	// requests. However, any non-pointer, non-interface field appearing in
-	// ForceSendFields will be sent to the server regardless of whether the
-	// field is empty or not. This may be used to include empty fields in
-	// Patch requests.
+	// ForceSendFields is a list of field names (e.g. "ContentAlignment") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "TableCellBackgroundFill")
-	// to include in API requests with the JSON null value. By default,
-	// fields with empty values are omitted from API requests. However, any
-	// field with an empty value appearing in NullFields will be sent to the
+	// NullFields is a list of field names (e.g. "ContentAlignment") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
 	// server as null. It is an error if a field in this list has a
 	// non-empty value. This may be used to include null fields in Patch
 	// requests.
@@ -5463,8 +5970,8 @@ type TableCellProperties struct {
 }
 
 func (s *TableCellProperties) MarshalJSON() ([]byte, error) {
-	type noMethod TableCellProperties
-	raw := noMethod(*s)
+	type NoMethod TableCellProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5491,8 +5998,8 @@ type TableColumnProperties struct {
 }
 
 func (s *TableColumnProperties) MarshalJSON() ([]byte, error) {
-	type noMethod TableColumnProperties
-	raw := noMethod(*s)
+	type NoMethod TableColumnProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5544,8 +6051,8 @@ type TableRange struct {
 }
 
 func (s *TableRange) MarshalJSON() ([]byte, error) {
-	type noMethod TableRange
-	raw := noMethod(*s)
+	type NoMethod TableRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5563,6 +6070,9 @@ type TableRow struct {
 	// match
 	// the number of columns of the entire table.
 	TableCells []*TableCell `json:"tableCells,omitempty"`
+
+	// TableRowProperties: Properties of the row.
+	TableRowProperties *TableRowProperties `json:"tableRowProperties,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "RowHeight") to
 	// unconditionally include in API requests. By default, fields with
@@ -5582,8 +6092,40 @@ type TableRow struct {
 }
 
 func (s *TableRow) MarshalJSON() ([]byte, error) {
-	type noMethod TableRow
-	raw := noMethod(*s)
+	type NoMethod TableRow
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// TableRowProperties: Properties of each row in a table.
+type TableRowProperties struct {
+	// MinRowHeight: Minimum height of the row. The row will be rendered in
+	// the Slides editor at
+	// a height equal to or greater than this value in order to show all the
+	// text
+	// in the row's cell(s).
+	MinRowHeight *Dimension `json:"minRowHeight,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "MinRowHeight") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "MinRowHeight") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *TableRowProperties) MarshalJSON() ([]byte, error) {
+	type NoMethod TableRowProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5617,8 +6159,8 @@ type TextContent struct {
 }
 
 func (s *TextContent) MarshalJSON() ([]byte, error) {
-	type noMethod TextContent
-	raw := noMethod(*s)
+	type NoMethod TextContent
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5683,8 +6225,8 @@ type TextElement struct {
 }
 
 func (s *TextElement) MarshalJSON() ([]byte, error) {
-	type noMethod TextElement
-	raw := noMethod(*s)
+	type NoMethod TextElement
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5716,8 +6258,8 @@ type TextRun struct {
 }
 
 func (s *TextRun) MarshalJSON() ([]byte, error) {
-	type noMethod TextRun
-	raw := noMethod(*s)
+	type NoMethod TextRun
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5911,8 +6453,8 @@ type TextStyle struct {
 }
 
 func (s *TextStyle) MarshalJSON() ([]byte, error) {
-	type noMethod TextStyle
-	raw := noMethod(*s)
+	type NoMethod TextStyle
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -5965,8 +6507,8 @@ type ThemeColorPair struct {
 }
 
 func (s *ThemeColorPair) MarshalJSON() ([]byte, error) {
-	type noMethod ThemeColorPair
-	raw := noMethod(*s)
+	type NoMethod ThemeColorPair
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6013,8 +6555,84 @@ type Thumbnail struct {
 }
 
 func (s *Thumbnail) MarshalJSON() ([]byte, error) {
-	type noMethod Thumbnail
-	raw := noMethod(*s)
+	type NoMethod Thumbnail
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UngroupObjectsRequest: Ungroups objects, such as groups.
+type UngroupObjectsRequest struct {
+	// ObjectIds: The object IDs of the objects to ungroup.
+	//
+	// Only groups that are not inside other
+	// groups can be ungrouped. All the groups
+	// should be on the same page. The group itself is deleted. The visual
+	// sizes
+	// and positions of all the children are preserved.
+	ObjectIds []string `json:"objectIds,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ObjectIds") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ObjectIds") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UngroupObjectsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UngroupObjectsRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UnmergeTableCellsRequest: Unmerges cells in a Table.
+type UnmergeTableCellsRequest struct {
+	// ObjectId: The object ID of the table.
+	ObjectId string `json:"objectId,omitempty"`
+
+	// TableRange: The table range specifying which cells of the table to
+	// unmerge.
+	//
+	// All merged cells in this range will be unmerged, and cells that are
+	// already
+	// unmerged will not be affected. If the range has no merged cells,
+	// the
+	// request will do nothing. If there is text in any of the merged cells,
+	// the
+	// text will remain in the upper-left ("head") cell of the resulting
+	// block of
+	// unmerged cells.
+	TableRange *TableRange `json:"tableRange,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ObjectId") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ObjectId") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UnmergeTableCellsRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UnmergeTableCellsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6061,8 +6679,8 @@ type UpdateImagePropertiesRequest struct {
 }
 
 func (s *UpdateImagePropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateImagePropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateImagePropertiesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6109,13 +6727,68 @@ type UpdateLinePropertiesRequest struct {
 }
 
 func (s *UpdateLinePropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateLinePropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateLinePropertiesRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UpdatePageElementAltTextRequest: Updates the alt text title and/or
+// description of a
+// page element.
+type UpdatePageElementAltTextRequest struct {
+	// Description: The updated alt text description of the page element. If
+	// unset the existing
+	// value will be maintained. The description is exposed to screen
+	// readers
+	// and other accessibility interfaces. Only use human readable values
+	// related
+	// to the content of the page element.
+	Description string `json:"description,omitempty"`
+
+	// ObjectId: The object ID of the page element the updates are applied
+	// to.
+	ObjectId string `json:"objectId,omitempty"`
+
+	// Title: The updated alt text title of the page element. If unset
+	// the
+	// existing value will be maintained. The title is exposed to screen
+	// readers
+	// and other accessibility interfaces. Only use human readable values
+	// related
+	// to the content of the page element.
+	Title string `json:"title,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Description") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Description") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UpdatePageElementAltTextRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdatePageElementAltTextRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // UpdatePageElementTransformRequest: Updates the transform of a page
 // element.
+//
+// Updating the transform of a group will change the absolute transform
+// of the
+// page elements in that group, which can change their visual
+// appearance. See
+// the documentation for PageElement.transform for more details.
 type UpdatePageElementTransformRequest struct {
 	// ApplyMode: The apply mode of the transform update.
 	//
@@ -6153,8 +6826,8 @@ type UpdatePageElementTransformRequest struct {
 }
 
 func (s *UpdatePageElementTransformRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdatePageElementTransformRequest
-	raw := noMethod(*s)
+	type NoMethod UpdatePageElementTransformRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6201,8 +6874,8 @@ type UpdatePagePropertiesRequest struct {
 }
 
 func (s *UpdatePagePropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdatePagePropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdatePagePropertiesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6262,8 +6935,8 @@ type UpdateParagraphStyleRequest struct {
 }
 
 func (s *UpdateParagraphStyleRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateParagraphStyleRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateParagraphStyleRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6310,8 +6983,8 @@ type UpdateShapePropertiesRequest struct {
 }
 
 func (s *UpdateShapePropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateShapePropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateShapePropertiesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6351,8 +7024,82 @@ type UpdateSlidesPositionRequest struct {
 }
 
 func (s *UpdateSlidesPositionRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateSlidesPositionRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateSlidesPositionRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UpdateTableBorderPropertiesRequest: Updates the properties of the
+// table borders in a Table.
+type UpdateTableBorderPropertiesRequest struct {
+	// BorderPosition: The border position in the table range the updates
+	// should apply to. If a
+	// border position is not specified, the updates will apply to all
+	// borders in
+	// the table range.
+	//
+	// Possible values:
+	//   "ALL" - All borders in the range.
+	//   "BOTTOM" - Borders at the bottom of the range.
+	//   "INNER" - Borders on the inside of the range.
+	//   "INNER_HORIZONTAL" - Horizontal borders on the inside of the range.
+	//   "INNER_VERTICAL" - Vertical borders on the inside of the range.
+	//   "LEFT" - Borders at the left of the range.
+	//   "OUTER" - Borders along the outside of the range.
+	//   "RIGHT" - Borders at the right of the range.
+	//   "TOP" - Borders at the top of the range.
+	BorderPosition string `json:"borderPosition,omitempty"`
+
+	// Fields: The fields that should be updated.
+	//
+	// At least one field must be specified. The root
+	// `tableBorderProperties` is
+	// implied and should not be specified. A single "*" can be used
+	// as
+	// short-hand for listing every field.
+	//
+	// For example to update the table border solid fill color, set
+	// `fields` to "tableBorderFill.solidFill.color".
+	//
+	// To reset a property to its default value, include its field name in
+	// the
+	// field mask but leave the field itself unset.
+	Fields string `json:"fields,omitempty"`
+
+	// ObjectId: The object ID of the table.
+	ObjectId string `json:"objectId,omitempty"`
+
+	// TableBorderProperties: The table border properties to update.
+	TableBorderProperties *TableBorderProperties `json:"tableBorderProperties,omitempty"`
+
+	// TableRange: The table range representing the subset of the table to
+	// which the updates
+	// are applied. If a table range is not specified, the updates will
+	// apply to
+	// the entire table.
+	TableRange *TableRange `json:"tableRange,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "BorderPosition") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "BorderPosition") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UpdateTableBorderPropertiesRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdateTableBorderPropertiesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6407,8 +7154,120 @@ type UpdateTableCellPropertiesRequest struct {
 }
 
 func (s *UpdateTableCellPropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateTableCellPropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateTableCellPropertiesRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UpdateTableColumnPropertiesRequest: Updates the properties of a Table
+// column.
+type UpdateTableColumnPropertiesRequest struct {
+	// ColumnIndices: The list of zero-based indices specifying which
+	// columns to update. If no
+	// indices are provided, all columns in the table will be updated.
+	ColumnIndices []int64 `json:"columnIndices,omitempty"`
+
+	// Fields: The fields that should be updated.
+	//
+	// At least one field must be specified. The root
+	// `tableColumnProperties` is
+	// implied and should not be specified. A single "*" can be used
+	// as
+	// short-hand for listing every field.
+	//
+	// For example to update the column width, set `fields` to
+	// "column_width".
+	//
+	// If '"column_width"' is included in the field mask but the property is
+	// left
+	// unset, the column width will default to 406,400 EMU (32 points).
+	Fields string `json:"fields,omitempty"`
+
+	// ObjectId: The object ID of the table.
+	ObjectId string `json:"objectId,omitempty"`
+
+	// TableColumnProperties: The table column properties to update.
+	//
+	// If the value of `table_column_properties#column_width` in the request
+	// is
+	// less than 406,400 EMU (32 points), a 400 bad request error is
+	// returned.
+	TableColumnProperties *TableColumnProperties `json:"tableColumnProperties,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ColumnIndices") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ColumnIndices") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UpdateTableColumnPropertiesRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdateTableColumnPropertiesRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// UpdateTableRowPropertiesRequest: Updates the properties of a Table
+// row.
+type UpdateTableRowPropertiesRequest struct {
+	// Fields: The fields that should be updated.
+	//
+	// At least one field must be specified. The root `tableRowProperties`
+	// is
+	// implied and should not be specified. A single "*" can be used
+	// as
+	// short-hand for listing every field.
+	//
+	// For example to update the minimum row height, set `fields`
+	// to
+	// "min_row_height".
+	//
+	// If '"min_row_height"' is included in the field mask but the property
+	// is
+	// left unset, the minimum row height will default to 0.
+	Fields string `json:"fields,omitempty"`
+
+	// ObjectId: The object ID of the table.
+	ObjectId string `json:"objectId,omitempty"`
+
+	// RowIndices: The list of zero-based indices specifying which rows to
+	// update. If no
+	// indices are provided, all rows in the table will be updated.
+	RowIndices []int64 `json:"rowIndices,omitempty"`
+
+	// TableRowProperties: The table row properties to update.
+	TableRowProperties *TableRowProperties `json:"tableRowProperties,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Fields") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Fields") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *UpdateTableRowPropertiesRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod UpdateTableRowPropertiesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6482,8 +7341,8 @@ type UpdateTextStyleRequest struct {
 }
 
 func (s *UpdateTextStyleRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateTextStyleRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateTextStyleRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6530,8 +7389,8 @@ type UpdateVideoPropertiesRequest struct {
 }
 
 func (s *UpdateVideoPropertiesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateVideoPropertiesRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateVideoPropertiesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6574,8 +7433,8 @@ type Video struct {
 }
 
 func (s *Video) MarshalJSON() ([]byte, error) {
-	type noMethod Video
-	raw := noMethod(*s)
+	type NoMethod Video
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6604,8 +7463,8 @@ type VideoProperties struct {
 }
 
 func (s *VideoProperties) MarshalJSON() ([]byte, error) {
-	type noMethod VideoProperties
-	raw := noMethod(*s)
+	type NoMethod VideoProperties
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6654,8 +7513,8 @@ type WeightedFontFamily struct {
 }
 
 func (s *WeightedFontFamily) MarshalJSON() ([]byte, error) {
-	type noMethod WeightedFontFamily
-	raw := noMethod(*s)
+	type NoMethod WeightedFontFamily
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6683,8 +7542,8 @@ type WordArt struct {
 }
 
 func (s *WordArt) MarshalJSON() ([]byte, error) {
-	type noMethod WordArt
-	raw := noMethod(*s)
+	type NoMethod WordArt
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6718,8 +7577,8 @@ type WriteControl struct {
 }
 
 func (s *WriteControl) MarshalJSON() ([]byte, error) {
-	type noMethod WriteControl
-	raw := noMethod(*s)
+	type NoMethod WriteControl
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -6852,7 +7711,7 @@ func (c *PresentationsBatchUpdateCall) Do(opts ...googleapi.CallOption) (*BatchU
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6881,6 +7740,7 @@ func (c *PresentationsBatchUpdateCall) Do(opts ...googleapi.CallOption) (*BatchU
 	//   },
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
 	//     "https://www.googleapis.com/auth/drive.readonly",
 	//     "https://www.googleapis.com/auth/presentations",
 	//     "https://www.googleapis.com/auth/spreadsheets",
@@ -6988,7 +7848,7 @@ func (c *PresentationsCreateCall) Do(opts ...googleapi.CallOption) (*Presentatio
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7008,6 +7868,7 @@ func (c *PresentationsCreateCall) Do(opts ...googleapi.CallOption) (*Presentatio
 	//   },
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
 	//     "https://www.googleapis.com/auth/presentations"
 	//   ]
 	// }
@@ -7121,7 +7982,7 @@ func (c *PresentationsGetCall) Do(opts ...googleapi.CallOption) (*Presentation, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7148,6 +8009,7 @@ func (c *PresentationsGetCall) Do(opts ...googleapi.CallOption) (*Presentation, 
 	//   },
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
 	//     "https://www.googleapis.com/auth/drive.readonly",
 	//     "https://www.googleapis.com/auth/presentations",
 	//     "https://www.googleapis.com/auth/presentations.readonly"
@@ -7267,7 +8129,7 @@ func (c *PresentationsPagesGetCall) Do(opts ...googleapi.CallOption) (*Page, err
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7300,6 +8162,7 @@ func (c *PresentationsPagesGetCall) Do(opts ...googleapi.CallOption) (*Page, err
 	//   },
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
 	//     "https://www.googleapis.com/auth/drive.readonly",
 	//     "https://www.googleapis.com/auth/presentations",
 	//     "https://www.googleapis.com/auth/presentations.readonly"
@@ -7323,6 +8186,8 @@ type PresentationsPagesGetThumbnailCall struct {
 // GetThumbnail: Generates a thumbnail of the latest version of the
 // specified page in the
 // presentation and returns a URL to the thumbnail image.
+//
+// This request counts as an expensive read request for quota purposes.
 func (r *PresentationsPagesService) GetThumbnail(presentationId string, pageObjectId string) *PresentationsPagesGetThumbnailCall {
 	c := &PresentationsPagesGetThumbnailCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.presentationId = presentationId
@@ -7450,12 +8315,12 @@ func (c *PresentationsPagesGetThumbnailCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Generates a thumbnail of the latest version of the specified page in the\npresentation and returns a URL to the thumbnail image.",
+	//   "description": "Generates a thumbnail of the latest version of the specified page in the\npresentation and returns a URL to the thumbnail image.\n\nThis request counts as an expensive read request for quota purposes.",
 	//   "flatPath": "v1/presentations/{presentationId}/pages/{pageObjectId}/thumbnail",
 	//   "httpMethod": "GET",
 	//   "id": "slides.presentations.pages.getThumbnail",
@@ -7500,6 +8365,7 @@ func (c *PresentationsPagesGetThumbnailCall) Do(opts ...googleapi.CallOption) (*
 	//   },
 	//   "scopes": [
 	//     "https://www.googleapis.com/auth/drive",
+	//     "https://www.googleapis.com/auth/drive.file",
 	//     "https://www.googleapis.com/auth/drive.readonly",
 	//     "https://www.googleapis.com/auth/presentations",
 	//     "https://www.googleapis.com/auth/presentations.readonly"

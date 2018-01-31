@@ -1,12 +1,12 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"tbys6C40o18GZwyMen5GMkdK-3s/z8hLagElncDGGS_B7W6I6uNUHDs\"",
+ "etag": "\"YWOzh2SDasdU84ArJnpYek-OMdg/eg3_eCWxB9N1rGAK3E85za1viGs\"",
  "discoveryVersion": "v1",
  "id": "androidpublisher:v2",
  "name": "androidpublisher",
  "canonicalName": "Android Publisher",
  "version": "v2",
- "revision": "20170222",
+ "revision": "20180114",
  "title": "Google Play Developer API",
  "description": "Lets Android application developers access their Google Play accounts.",
  "ownerDomain": "google.com",
@@ -21,7 +21,7 @@
  "basePath": "/androidpublisher/v2/applications/",
  "rootUrl": "https://www.googleapis.com/",
  "servicePath": "androidpublisher/v2/applications/",
- "batchPath": "batch",
+ "batchPath": "batch/androidpublisher/v2",
  "parameters": {
   "alt": {
    "type": "string",
@@ -100,6 +100,10 @@
     "sha1": {
      "type": "string",
      "description": "A sha1 hash of the APK payload, encoded as a hex string and matching the output of the sha1sum command."
+    },
+    "sha256": {
+     "type": "string",
+     "description": "A sha256 hash of the APK payload, encoded as a hex string and matching the output of the sha256sum command."
     }
    }
   },
@@ -597,88 +601,6 @@
     }
    }
   },
-  "InappproductsBatchRequest": {
-   "id": "InappproductsBatchRequest",
-   "type": "object",
-   "properties": {
-    "entrys": {
-     "type": "array",
-     "items": {
-      "$ref": "InappproductsBatchRequestEntry"
-     }
-    }
-   }
-  },
-  "InappproductsBatchRequestEntry": {
-   "id": "InappproductsBatchRequestEntry",
-   "type": "object",
-   "properties": {
-    "batchId": {
-     "type": "integer",
-     "format": "uint32"
-    },
-    "inappproductsinsertrequest": {
-     "$ref": "InappproductsInsertRequest"
-    },
-    "inappproductsupdaterequest": {
-     "$ref": "InappproductsUpdateRequest"
-    },
-    "methodName": {
-     "type": "string"
-    }
-   }
-  },
-  "InappproductsBatchResponse": {
-   "id": "InappproductsBatchResponse",
-   "type": "object",
-   "properties": {
-    "entrys": {
-     "type": "array",
-     "items": {
-      "$ref": "InappproductsBatchResponseEntry"
-     }
-    },
-    "kind": {
-     "type": "string",
-     "description": "Identifies what kind of resource this is. Value: the fixed string \"androidpublisher#inappproductsBatchResponse\".",
-     "default": "androidpublisher#inappproductsBatchResponse"
-    }
-   }
-  },
-  "InappproductsBatchResponseEntry": {
-   "id": "InappproductsBatchResponseEntry",
-   "type": "object",
-   "properties": {
-    "batchId": {
-     "type": "integer",
-     "format": "uint32"
-    },
-    "inappproductsinsertresponse": {
-     "$ref": "InappproductsInsertResponse"
-    },
-    "inappproductsupdateresponse": {
-     "$ref": "InappproductsUpdateResponse"
-    }
-   }
-  },
-  "InappproductsInsertRequest": {
-   "id": "InappproductsInsertRequest",
-   "type": "object",
-   "properties": {
-    "inappproduct": {
-     "$ref": "InAppProduct"
-    }
-   }
-  },
-  "InappproductsInsertResponse": {
-   "id": "InappproductsInsertResponse",
-   "type": "object",
-   "properties": {
-    "inappproduct": {
-     "$ref": "InAppProduct"
-    }
-   }
-  },
   "InappproductsListResponse": {
    "id": "InappproductsListResponse",
    "type": "object",
@@ -699,24 +621,6 @@
     },
     "tokenPagination": {
      "$ref": "TokenPagination"
-    }
-   }
-  },
-  "InappproductsUpdateRequest": {
-   "id": "InappproductsUpdateRequest",
-   "type": "object",
-   "properties": {
-    "inappproduct": {
-     "$ref": "InAppProduct"
-    }
-   }
-  },
-  "InappproductsUpdateResponse": {
-   "id": "InappproductsUpdateResponse",
-   "type": "object",
-   "properties": {
-    "inappproduct": {
-     "$ref": "InAppProduct"
     }
    }
   },
@@ -830,6 +734,10 @@
      "description": "This kind represents an inappPurchase object in the androidpublisher service.",
      "default": "androidpublisher#productPurchase"
     },
+    "orderId": {
+     "type": "string",
+     "description": "The order id associated with the purchase of the inapp product."
+    },
     "purchaseState": {
      "type": "integer",
      "description": "The purchase state of the order. Possible values are:  \n- Purchased \n- Cancelled",
@@ -839,6 +747,11 @@
      "type": "string",
      "description": "The time the product was purchased, in milliseconds since the epoch (Jan 1, 1970).",
      "format": "int64"
+    },
+    "purchaseType": {
+     "type": "integer",
+     "description": "The type of purchase of the inapp product. This field is only set if this purchase was not made using the standard in-app billing flow. Possible values are:  \n- Test (i.e. purchased from a license testing account)",
+     "format": "int32"
     }
    }
   },
@@ -977,7 +890,7 @@
     },
     "cancelReason": {
      "type": "integer",
-     "description": "The reason why a subscription was cancelled or is not auto-renewing. Possible values are:  \n- User cancelled the subscription \n- Subscription was cancelled by the system, for example because of a billing problem",
+     "description": "The reason why a subscription was cancelled or is not auto-renewing. Possible values are:  \n- User cancelled the subscription \n- Subscription was cancelled by the system, for example because of a billing problem \n- Subscription was replaced with a new subscription \n- Subscription was cancelled by the developer",
      "format": "int32"
     },
     "countryCode": {
@@ -998,9 +911,17 @@
      "description": "This kind represents a subscriptionPurchase object in the androidpublisher service.",
      "default": "androidpublisher#subscriptionPurchase"
     },
+    "linkedPurchaseToken": {
+     "type": "string",
+     "description": "The purchase token of the originating purchase if this subscription is one of the following:  \n- Re-signup of a canceled but non-lapsed subscription \n- Upgrade/downgrade from a previous subscription  For example, suppose a user originally signs up and you receive purchase token X, then the user cancels and goes through the resignup flow (before their subscription lapses) and you receive purchase token Y, and finally the user upgrades their subscription and you receive purchase token Z. If you call this API with purchase token Z, this field will be set to Y. If you call this API with purchase token Y, this field will be set to X. If you call this API with purchase token X, this field will not be set."
+    },
+    "orderId": {
+     "type": "string",
+     "description": "The order id of the latest recurring order associated with the purchase of the subscription."
+    },
     "paymentState": {
      "type": "integer",
-     "description": "The payment state of the subscription. Possible values are:  \n- Payment pending \n- Payment received",
+     "description": "The payment state of the subscription. Possible values are:  \n- Payment pending \n- Payment received \n- Free trial",
      "format": "int32"
     },
     "priceAmountMicros": {
@@ -1011,6 +932,11 @@
     "priceCurrencyCode": {
      "type": "string",
      "description": "ISO 4217 currency code for the subscription price. For example, if the price is specified in British pounds sterling, price_currency_code is \"GBP\"."
+    },
+    "purchaseType": {
+     "type": "integer",
+     "description": "The type of purchase of the subscription. This field is only set if this purchase was not made using the standard in-app billing flow. Possible values are:  \n- Test (i.e. purchased from a license testing account)",
+     "format": "int32"
     },
     "startTimeMillis": {
      "type": "string",
@@ -1094,7 +1020,8 @@
    "type": "object",
    "properties": {
     "track": {
-     "type": "string"
+     "type": "string",
+     "description": "Identifier for this track. One of \"alpha\", \"beta\", \"production\" or \"rollout\"."
     },
     "userFraction": {
      "type": "number",
@@ -2675,19 +2602,9 @@
         },
         "track": {
          "type": "string",
+         "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
          "required": true,
-         "enum": [
-          "alpha",
-          "beta",
-          "production",
-          "rollout"
-         ],
-         "enumDescriptions": [
-          "",
-          "",
-          "",
-          ""
-         ],
+         "pattern": "(alpha|beta|production|rollout)",
          "location": "path"
         }
        },
@@ -2722,19 +2639,9 @@
         },
         "track": {
          "type": "string",
+         "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
          "required": true,
-         "enum": [
-          "alpha",
-          "beta",
-          "production",
-          "rollout"
-         ],
-         "enumDescriptions": [
-          "",
-          "",
-          "",
-          ""
-         ],
+         "pattern": "(alpha|beta|production|rollout)",
          "location": "path"
         }
        },
@@ -2772,19 +2679,9 @@
         },
         "track": {
          "type": "string",
+         "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
          "required": true,
-         "enum": [
-          "alpha",
-          "beta",
-          "production",
-          "rollout"
-         ],
-         "enumDescriptions": [
-          "",
-          "",
-          "",
-          ""
-         ],
+         "pattern": "(alpha|beta|production|rollout)",
          "location": "path"
         }
        },
@@ -2827,20 +2724,9 @@
         },
         "track": {
          "type": "string",
-         "description": "The track type to read or modify.",
+         "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
          "required": true,
-         "enum": [
-          "alpha",
-          "beta",
-          "production",
-          "rollout"
-         ],
-         "enumDescriptions": [
-          "",
-          "",
-          "",
-          ""
-         ],
+         "pattern": "(alpha|beta|production|rollout)",
          "location": "path"
         }
        },
@@ -2906,20 +2792,9 @@
         },
         "track": {
          "type": "string",
-         "description": "The track type to read or modify.",
+         "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
          "required": true,
-         "enum": [
-          "alpha",
-          "beta",
-          "production",
-          "rollout"
-         ],
-         "enumDescriptions": [
-          "",
-          "",
-          "",
-          ""
-         ],
+         "pattern": "(alpha|beta|production|rollout)",
          "location": "path"
         }
        },
@@ -2958,20 +2833,9 @@
         },
         "track": {
          "type": "string",
-         "description": "The track type to read or modify.",
+         "description": "The track to read or modify. Acceptable values are: \"alpha\", \"beta\", \"production\" or \"rollout\".",
          "required": true,
-         "enum": [
-          "alpha",
-          "beta",
-          "production",
-          "rollout"
-         ],
-         "enumDescriptions": [
-          "",
-          "",
-          "",
-          ""
-         ],
+         "pattern": "(alpha|beta|production|rollout)",
          "location": "path"
         }
        },
@@ -3039,20 +2903,6 @@
   },
   "inappproducts": {
    "methods": {
-    "batch": {
-     "id": "androidpublisher.inappproducts.batch",
-     "path": "inappproducts/batch",
-     "httpMethod": "POST",
-     "request": {
-      "$ref": "InappproductsBatchRequest"
-     },
-     "response": {
-      "$ref": "InappproductsBatchResponse"
-     },
-     "scopes": [
-      "https://www.googleapis.com/auth/androidpublisher"
-     ]
-    },
     "delete": {
      "id": "androidpublisher.inappproducts.delete",
      "path": "{packageName}/inappproducts/{sku}",
@@ -3491,7 +3341,7 @@
        "parameters": {
         "endTime": {
          "type": "string",
-         "description": "The time, in milliseconds since the Epoch, of the newest voided in-app product purchase that you want to see in the response. The value of this parameter cannot be greater than the current time and is ignored if a pagination token is set. Default value is current time.",
+         "description": "The time, in milliseconds since the Epoch, of the newest voided in-app product purchase that you want to see in the response. The value of this parameter cannot be greater than the current time and is ignored if a pagination token is set. Default value is current time. Note: This filter is applied on the time at which the record is seen as voided by our systems and not the actual voided time returned in the response.",
          "format": "int64",
          "location": "query"
         },
@@ -3513,7 +3363,7 @@
         },
         "startTime": {
          "type": "string",
-         "description": "The time, in milliseconds since the Epoch, of the oldest voided in-app product purchase that you want to see in the response. The value of this parameter cannot be older than 30 days and is ignored if a pagination token is set. Default value is current time minus 30 days.",
+         "description": "The time, in milliseconds since the Epoch, of the oldest voided in-app product purchase that you want to see in the response. The value of this parameter cannot be older than 30 days and is ignored if a pagination token is set. Default value is current time minus 30 days. Note: This filter is applied on the time at which the record is seen as voided by our systems and not the actual voided time returned in the response.",
          "format": "int64",
          "location": "query"
         },

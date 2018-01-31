@@ -189,7 +189,8 @@ type Groups struct {
 
 	// WhoCanPostMessage: Permissions to post messages to the group.
 	// Possible values are: NONE_CAN_POST ALL_MANAGERS_CAN_POST
-	// ALL_MEMBERS_CAN_POST ALL_IN_DOMAIN_CAN_POST ANYONE_CAN_POST
+	// ALL_MEMBERS_CAN_POST ALL_OWNERS_CAN_POST ALL_IN_DOMAIN_CAN_POST
+	// ANYONE_CAN_POST
 	WhoCanPostMessage string `json:"whoCanPostMessage,omitempty"`
 
 	// WhoCanViewGroup: Permissions to view group. Possible values are:
@@ -226,8 +227,8 @@ type Groups struct {
 }
 
 func (s *Groups) MarshalJSON() ([]byte, error) {
-	type noMethod Groups
-	raw := noMethod(*s)
+	type NoMethod Groups
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -338,7 +339,7 @@ func (c *GroupsGetCall) Do(opts ...googleapi.CallOption) (*Groups, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -469,7 +470,7 @@ func (c *GroupsPatchCall) Do(opts ...googleapi.CallOption) (*Groups, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -602,7 +603,7 @@ func (c *GroupsUpdateCall) Do(opts ...googleapi.CallOption) (*Groups, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil

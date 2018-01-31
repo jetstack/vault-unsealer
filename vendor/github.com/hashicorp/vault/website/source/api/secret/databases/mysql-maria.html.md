@@ -1,15 +1,15 @@
 ---
 layout: "api"
-page_title: "MySQL/MariaDB Database Plugin - HTTP API"
+page_title: "MySQL/MariaDB - Database - Secrets Engines - HTTP API"
 sidebar_current: "docs-http-secret-databases-mysql-maria"
 description: |-
-  The MySQL/MariaDB plugin for Vault's Database backend generates database credentials to access MySQL and MariaDB servers.
+  The MySQL/MariaDB plugin for Vault's database secrets engine generates database credentials to access MySQL and MariaDB servers.
 ---
 
 # MySQL/MariaDB Database Plugin HTTP API
 
-The MySQL Database Plugin is one of the supported plugins for the Database
-backend. This plugin generates database credentials dynamically based on
+The MySQL database plugin is one of the supported plugins for the database
+secrets engine. This plugin generates database credentials dynamically based on
 configured roles for the MySQL database.
 
 ## Configure Connection
@@ -42,7 +42,7 @@ has a number of parameters to further configure a connection.
 {
   "plugin_name": "mysql-database-plugin",
   "allowed_roles": "readonly",
-  "connection_url": "root:mysql@tcp(127.0.0.1:3306)/"
+  "connection_url": "root:mysql@tcp(127.0.0.1:3306)/",
   "max_open_connections": 5,
   "max_connection_lifetime": "5s",
 }
@@ -58,3 +58,26 @@ $ curl \
     https://vault.rocks/v1/database/config/mysql
 ```
 
+## Statements
+
+Statements are configured during role creation and are used by the plugin to
+determine what is sent to the datatabse on user creation, renewing, and
+revocation. For more information on configuring roles see the [Role
+API](/api/secret/databases/index.html#create-role) in the database secrets engine docs.
+
+### Parameters
+
+The following are the statements used by this plugin. If not mentioned in this
+list the plugin does not support that statement type.
+
+- `creation_statements` `(string: <required>)` – Specifies the database
+  statements executed to create and configure a user. Must be a
+  semicolon-separated string, a base64-encoded semicolon-separated string, a
+  serialized JSON string array, or a base64-encoded serialized JSON string
+  array. The '{{name}}' and '{{password}}' values will be substituted.
+
+- `revocation_statements` `(string: "")` – Specifies the database statements to
+  be executed to revoke a user. Must be a semicolon-separated string, a
+  base64-encoded semicolon-separated string, a serialized JSON string array, or
+  a base64-encoded serialized JSON string array. The '{{name}}' value will be
+  substituted. If not provided defaults to a generic drop user statement.

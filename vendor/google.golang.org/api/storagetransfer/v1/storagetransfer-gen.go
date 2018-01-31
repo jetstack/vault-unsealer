@@ -140,8 +140,8 @@ type AwsAccessKey struct {
 }
 
 func (s *AwsAccessKey) MarshalJSON() ([]byte, error) {
-	type noMethod AwsAccessKey
-	raw := noMethod(*s)
+	type NoMethod AwsAccessKey
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -180,8 +180,8 @@ type AwsS3Data struct {
 }
 
 func (s *AwsS3Data) MarshalJSON() ([]byte, error) {
-	type noMethod AwsS3Data
-	raw := noMethod(*s)
+	type NoMethod AwsS3Data
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -230,8 +230,8 @@ type Date struct {
 }
 
 func (s *Date) MarshalJSON() ([]byte, error) {
-	type noMethod Date
-	raw := noMethod(*s)
+	type NoMethod Date
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -281,8 +281,8 @@ type ErrorLogEntry struct {
 }
 
 func (s *ErrorLogEntry) MarshalJSON() ([]byte, error) {
-	type noMethod ErrorLogEntry
-	raw := noMethod(*s)
+	type NoMethod ErrorLogEntry
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -473,8 +473,8 @@ type ErrorSummary struct {
 }
 
 func (s *ErrorSummary) MarshalJSON() ([]byte, error) {
-	type noMethod ErrorSummary
-	raw := noMethod(*s)
+	type NoMethod ErrorSummary
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -509,8 +509,8 @@ type GcsData struct {
 }
 
 func (s *GcsData) MarshalJSON() ([]byte, error) {
-	type noMethod GcsData
-	raw := noMethod(*s)
+	type NoMethod GcsData
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -541,8 +541,8 @@ type GoogleServiceAccount struct {
 }
 
 func (s *GoogleServiceAccount) MarshalJSON() ([]byte, error) {
-	type noMethod GoogleServiceAccount
-	raw := noMethod(*s)
+	type NoMethod GoogleServiceAccount
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -566,9 +566,10 @@ func (s *GoogleServiceAccount) MarshalJSON() ([]byte, error) {
 //
 // For an example of a valid TSV file, see
 // [Transferring data from
-// URLs](https://cloud.google.com/storage/transfer/#urls)
+// URLs](https://cloud.google.com/storage/transfer/create-url-list).
 //
-// When transferring data based on a URL list, keep the following in
+// Whe
+// n transferring data based on a URL list, keep the following in
 // mind:
 //
 // * When an object located at `http(s)://hostname:port/<URL-path>` is
@@ -633,8 +634,8 @@ type HttpData struct {
 }
 
 func (s *HttpData) MarshalJSON() ([]byte, error) {
-	type noMethod HttpData
-	raw := noMethod(*s)
+	type NoMethod HttpData
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -670,8 +671,8 @@ type ListOperationsResponse struct {
 }
 
 func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListOperationsResponse
-	raw := noMethod(*s)
+	type NoMethod ListOperationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -705,8 +706,8 @@ type ListTransferJobsResponse struct {
 }
 
 func (s *ListTransferJobsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListTransferJobsResponse
-	raw := noMethod(*s)
+	type NoMethod ListTransferJobsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -808,8 +809,8 @@ type ObjectConditions struct {
 }
 
 func (s *ObjectConditions) MarshalJSON() ([]byte, error) {
-	type noMethod ObjectConditions
-	raw := noMethod(*s)
+	type NoMethod ObjectConditions
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -819,8 +820,8 @@ func (s *ObjectConditions) MarshalJSON() ([]byte, error) {
 type Operation struct {
 	// Done: If the value is `false`, it means the operation is still in
 	// progress.
-	// If true, the operation is completed, and either `error` or `response`
-	// is
+	// If `true`, the operation is completed, and either `error` or
+	// `response` is
 	// available.
 	Done bool `json:"done,omitempty"`
 
@@ -876,8 +877,8 @@ type Operation struct {
 }
 
 func (s *Operation) MarshalJSON() ([]byte, error) {
-	type noMethod Operation
-	raw := noMethod(*s)
+	type NoMethod Operation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -942,8 +943,8 @@ type Schedule struct {
 }
 
 func (s *Schedule) MarshalJSON() ([]byte, error) {
-	type noMethod Schedule
-	raw := noMethod(*s)
+	type NoMethod Schedule
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -975,7 +976,7 @@ func (s *Schedule) MarshalJSON() ([]byte, error) {
 // arbitrary
 // information about the error. There is a predefined set of error
 // detail types
-// in the package `google.rpc` which can be used for common error
+// in the package `google.rpc` that can be used for common error
 // conditions.
 //
 // # Language mapping
@@ -1008,7 +1009,7 @@ func (s *Schedule) MarshalJSON() ([]byte, error) {
 //
 // - Workflow errors. A typical workflow has multiple steps. Each step
 // may
-//     have a `Status` message for error reporting purpose.
+//     have a `Status` message for error reporting.
 //
 // - Batch operations. If a client uses batch request and batch
 // response, the
@@ -1031,9 +1032,9 @@ type Status struct {
 	// google.rpc.Code.
 	Code int64 `json:"code,omitempty"`
 
-	// Details: A list of messages that carry the error details.  There will
-	// be a
-	// common set of message types for APIs to use.
+	// Details: A list of messages that carry the error details.  There is a
+	// common set of
+	// message types for APIs to use.
 	Details []googleapi.RawMessage `json:"details,omitempty"`
 
 	// Message: A developer-facing error message, which should be in
@@ -1061,8 +1062,8 @@ type Status struct {
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
-	type noMethod Status
-	raw := noMethod(*s)
+	type NoMethod Status
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1108,8 +1109,8 @@ type TimeOfDay struct {
 }
 
 func (s *TimeOfDay) MarshalJSON() ([]byte, error) {
-	type noMethod TimeOfDay
-	raw := noMethod(*s)
+	type NoMethod TimeOfDay
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1131,17 +1132,18 @@ type TransferCounters struct {
 
 	// BytesFoundFromSource: Bytes found in the data source that are
 	// scheduled to be transferred,
-	// which will be copied, excluded based on conditions, or skipped due
-	// to
-	// failures.
+	// excluding any that are filtered based on object conditions or skipped
+	// due
+	// to sync.
 	BytesFoundFromSource int64 `json:"bytesFoundFromSource,omitempty,string"`
 
 	// BytesFoundOnlyFromSink: Bytes found only in the data sink that are
 	// scheduled to be deleted.
 	BytesFoundOnlyFromSink int64 `json:"bytesFoundOnlyFromSink,omitempty,string"`
 
-	// BytesFromSourceFailed: Bytes in the data source that failed during
-	// the transfer.
+	// BytesFromSourceFailed: Bytes in the data source that failed to be
+	// transferred or that failed to
+	// be deleted after being transferred.
 	BytesFromSourceFailed int64 `json:"bytesFromSourceFailed,omitempty,string"`
 
 	// BytesFromSourceSkippedBySync: Bytes in the data source that are not
@@ -1165,17 +1167,18 @@ type TransferCounters struct {
 
 	// ObjectsFoundFromSource: Objects found in the data source that are
 	// scheduled to be transferred,
-	// which will be copied, excluded based on conditions, or skipped due
-	// to
-	// failures.
+	// excluding any that are filtered based on object conditions or skipped
+	// due
+	// to sync.
 	ObjectsFoundFromSource int64 `json:"objectsFoundFromSource,omitempty,string"`
 
 	// ObjectsFoundOnlyFromSink: Objects found only in the data sink that
 	// are scheduled to be deleted.
 	ObjectsFoundOnlyFromSink int64 `json:"objectsFoundOnlyFromSink,omitempty,string"`
 
-	// ObjectsFromSourceFailed: Objects in the data source that failed
-	// during the transfer.
+	// ObjectsFromSourceFailed: Objects in the data source that failed to be
+	// transferred or that failed
+	// to be deleted after being transferred.
 	ObjectsFromSourceFailed int64 `json:"objectsFromSourceFailed,omitempty,string"`
 
 	// ObjectsFromSourceSkippedBySync: Objects in the data source that are
@@ -1202,8 +1205,8 @@ type TransferCounters struct {
 }
 
 func (s *TransferCounters) MarshalJSON() ([]byte, error) {
-	type noMethod TransferCounters
-	raw := noMethod(*s)
+	type NoMethod TransferCounters
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1236,11 +1239,9 @@ type TransferJob struct {
 
 	// ProjectId: The ID of the Google Cloud Platform Console project that
 	// owns the job.
-	// Required.
 	ProjectId string `json:"projectId,omitempty"`
 
 	// Schedule: Schedule specification.
-	// Required.
 	Schedule *Schedule `json:"schedule,omitempty"`
 
 	// Status: Status of the job. This value MUST be specified
@@ -1266,7 +1267,6 @@ type TransferJob struct {
 	Status string `json:"status,omitempty"`
 
 	// TransferSpec: Transfer specification.
-	// Required.
 	TransferSpec *TransferSpec `json:"transferSpec,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -1291,8 +1291,8 @@ type TransferJob struct {
 }
 
 func (s *TransferJob) MarshalJSON() ([]byte, error) {
-	type noMethod TransferJob
-	raw := noMethod(*s)
+	type NoMethod TransferJob
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1356,8 +1356,8 @@ type TransferOperation struct {
 }
 
 func (s *TransferOperation) MarshalJSON() ([]byte, error) {
-	type noMethod TransferOperation
-	raw := noMethod(*s)
+	type NoMethod TransferOperation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1367,11 +1367,16 @@ func (s *TransferOperation) MarshalJSON() ([]byte, error) {
 type TransferOptions struct {
 	// DeleteObjectsFromSourceAfterTransfer: Whether objects should be
 	// deleted from the source after they are
-	// transferred to the sink.
+	// transferred to the sink.  Note that this option
+	// and
+	// `deleteObjectsUniqueInSink` are mutually exclusive.
 	DeleteObjectsFromSourceAfterTransfer bool `json:"deleteObjectsFromSourceAfterTransfer,omitempty"`
 
 	// DeleteObjectsUniqueInSink: Whether objects that exist only in the
-	// sink should be deleted.
+	// sink should be deleted.  Note that
+	// this option and `deleteObjectsFromSourceAfterTransfer` are
+	// mutually
+	// exclusive.
 	DeleteObjectsUniqueInSink bool `json:"deleteObjectsUniqueInSink,omitempty"`
 
 	// OverwriteObjectsAlreadyExistingInSink: Whether overwriting objects
@@ -1398,8 +1403,8 @@ type TransferOptions struct {
 }
 
 func (s *TransferOptions) MarshalJSON() ([]byte, error) {
-	type noMethod TransferOptions
-	raw := noMethod(*s)
+	type NoMethod TransferOptions
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1451,8 +1456,8 @@ type TransferSpec struct {
 }
 
 func (s *TransferSpec) MarshalJSON() ([]byte, error) {
-	type noMethod TransferSpec
-	raw := noMethod(*s)
+	type NoMethod TransferSpec
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1463,7 +1468,13 @@ type UpdateTransferJobRequest struct {
 	// Required.
 	ProjectId string `json:"projectId,omitempty"`
 
-	// TransferJob: The job to update.
+	// TransferJob: The job to update. `transferJob` is expected to specify
+	// only three fields:
+	// `description`, `transferSpec`, and `status`.  An
+	// UpdateTransferJobRequest
+	// that specifies other fields will be rejected with an
+	// error
+	// `INVALID_ARGUMENT`.
 	// Required.
 	TransferJob *TransferJob `json:"transferJob,omitempty"`
 
@@ -1498,8 +1509,8 @@ type UpdateTransferJobRequest struct {
 }
 
 func (s *UpdateTransferJobRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateTransferJobRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateTransferJobRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1621,7 +1632,7 @@ func (c *GoogleServiceAccountsGetCall) Do(opts ...googleapi.CallOption) (*Google
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1747,7 +1758,7 @@ func (c *TransferJobsCreateCall) Do(opts ...googleapi.CallOption) (*TransferJob,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1887,7 +1898,7 @@ func (c *TransferJobsGetCall) Do(opts ...googleapi.CallOption) (*TransferJob, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2059,7 +2070,7 @@ func (c *TransferJobsListCall) Do(opts ...googleapi.CallOption) (*ListTransferJo
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2223,7 +2234,7 @@ func (c *TransferJobsPatchCall) Do(opts ...googleapi.CallOption) (*TransferJob, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2353,7 +2364,7 @@ func (c *TransferOperationsCancelCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2479,7 +2490,7 @@ func (c *TransferOperationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2622,7 +2633,7 @@ func (c *TransferOperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2670,9 +2681,18 @@ type TransferOperationsListCall struct {
 // server doesn't support this method, it returns
 // `UNIMPLEMENTED`.
 //
-// NOTE: the `name` binding below allows API services to override the
+// NOTE: the `name` binding allows API services to override the
 // binding
 // to use different resource name schemes, such as `users/*/operations`.
+// To
+// override the binding, API services can add a binding such
+// as
+// "/v1/{name=users/*}/operations" to their service configuration.
+// For backwards compatibility, the default name includes the
+// operations
+// collection id, however overriding users must ensure the name
+// binding
+// is the parent resource, without the operations collection id.
 func (r *TransferOperationsService) List(name string) *TransferOperationsListCall {
 	c := &TransferOperationsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -2795,12 +2815,12 @@ func (c *TransferOperationsListCall) Do(opts ...googleapi.CallOption) (*ListOper
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding below allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`.",
+	//   "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`. To\noverride the binding, API services can add a binding such as\n`\"/v1/{name=users/*}/operations\"` to their service configuration.\nFor backwards compatibility, the default name includes the operations\ncollection id, however overriding users must ensure the name binding\nis the parent resource, without the operations collection id.",
 	//   "flatPath": "v1/transferOperations",
 	//   "httpMethod": "GET",
 	//   "id": "storagetransfer.transferOperations.list",
@@ -2964,7 +2984,7 @@ func (c *TransferOperationsPauseCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3099,7 +3119,7 @@ func (c *TransferOperationsResumeCall) Do(opts ...googleapi.CallOption) (*Empty,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil

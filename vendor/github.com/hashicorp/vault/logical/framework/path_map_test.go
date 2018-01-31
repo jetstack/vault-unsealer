@@ -1,10 +1,10 @@
 package framework
 
 import (
-	"sync"
+	"context"
 	"testing"
 
-	"github.com/hashicorp/vault/helper/salt"
+	saltpkg "github.com/hashicorp/vault/helper/salt"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -13,8 +13,10 @@ func TestPathMap(t *testing.T) {
 	storage := new(logical.InmemStorage)
 	var b logical.Backend = &Backend{Paths: p.Paths()}
 
+	ctx := context.Background()
+
 	// Write via HTTP
-	_, err := b.HandleRequest(&logical.Request{
+	_, err := b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      "map/foo/a",
 		Data: map[string]interface{}{
@@ -27,7 +29,7 @@ func TestPathMap(t *testing.T) {
 	}
 
 	// Read via HTTP
-	resp, err := b.HandleRequest(&logical.Request{
+	resp, err := b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "map/foo/a",
 		Storage:   storage,
@@ -40,7 +42,7 @@ func TestPathMap(t *testing.T) {
 	}
 
 	// Read via API
-	v, err := p.Get(storage, "a")
+	v, err := p.Get(ctx, storage, "a")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -49,7 +51,7 @@ func TestPathMap(t *testing.T) {
 	}
 
 	// Read via API with other casing
-	v, err = p.Get(storage, "A")
+	v, err = p.Get(ctx, storage, "A")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -58,7 +60,7 @@ func TestPathMap(t *testing.T) {
 	}
 
 	// Verify List
-	keys, err := p.List(storage, "")
+	keys, err := p.List(ctx, storage, "")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -67,7 +69,7 @@ func TestPathMap(t *testing.T) {
 	}
 
 	// LIST via HTTP
-	resp, err = b.HandleRequest(&logical.Request{
+	resp, err = b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.ListOperation,
 		Path:      "map/foo/",
 		Storage:   storage,
@@ -81,7 +83,7 @@ func TestPathMap(t *testing.T) {
 	}
 
 	// Delete via HTTP
-	resp, err = b.HandleRequest(&logical.Request{
+	resp, err = b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.DeleteOperation,
 		Path:      "map/foo/a",
 		Storage:   storage,
@@ -94,7 +96,7 @@ func TestPathMap(t *testing.T) {
 	}
 
 	// Re-read via HTTP
-	resp, err = b.HandleRequest(&logical.Request{
+	resp, err = b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "map/foo/a",
 		Storage:   storage,
@@ -107,7 +109,7 @@ func TestPathMap(t *testing.T) {
 	}
 
 	// Re-read via API
-	v, err = p.Get(storage, "a")
+	v, err = p.Get(ctx, storage, "a")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -120,7 +122,7 @@ func TestPathMap_getInvalid(t *testing.T) {
 	p := &PathMap{Name: "foo"}
 	storage := new(logical.InmemStorage)
 
-	v, err := p.Get(storage, "nope")
+	v, err := p.Get(context.Background(), storage, "nope")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -140,18 +142,23 @@ func TestPathMap_routes(t *testing.T) {
 
 func TestPathMap_Salted(t *testing.T) {
 	storage := new(logical.InmemStorage)
-	var mut sync.RWMutex
-	salt, err := salt.NewSalt(storage, &salt.Config{
-		HashFunc: salt.SHA1Hash,
+
+	salt, err := saltpkg.NewSalt(storage, &saltpkg.Config{
+		HashFunc: saltpkg.SHA1Hash,
 	})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	p := &PathMap{Name: "foo", Salt: salt, SaltMutex: &mut}
+
+	testSalting(t, context.Background(), storage, salt, &PathMap{Name: "foo", Salt: salt})
+}
+
+func testSalting(t *testing.T, ctx context.Context, storage logical.Storage, salt *saltpkg.Salt, p *PathMap) {
 	var b logical.Backend = &Backend{Paths: p.Paths()}
+	var err error
 
 	// Write via HTTP
-	_, err = b.HandleRequest(&logical.Request{
+	_, err = b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      "map/foo/a",
 		Data: map[string]interface{}{
@@ -164,7 +171,7 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Non-salted version should not be there
-	out, err := storage.Get("struct/map/foo/a")
+	out, err := storage.Get(ctx, "struct/map/foo/a")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -173,10 +180,8 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Ensure the path is salted
-	mut.RLock()
-	expect := salt.SaltID("a")
-	mut.RUnlock()
-	out, err = storage.Get("struct/map/foo/" + expect)
+	expect := "s" + salt.SaltIDHashFunc("a", saltpkg.SHA256Hash)
+	out, err = storage.Get(ctx, "struct/map/foo/"+expect)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -185,7 +190,7 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Read via HTTP
-	resp, err := b.HandleRequest(&logical.Request{
+	resp, err := b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "map/foo/a",
 		Storage:   storage,
@@ -198,7 +203,7 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Read via API
-	v, err := p.Get(storage, "a")
+	v, err := p.Get(ctx, storage, "a")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -207,7 +212,7 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Read via API with other casing
-	v, err = p.Get(storage, "A")
+	v, err = p.Get(ctx, storage, "A")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -216,7 +221,7 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Verify List
-	keys, err := p.List(storage, "")
+	keys, err := p.List(ctx, storage, "")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -225,7 +230,7 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Delete via HTTP
-	resp, err = b.HandleRequest(&logical.Request{
+	resp, err = b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.DeleteOperation,
 		Path:      "map/foo/a",
 		Storage:   storage,
@@ -238,7 +243,7 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Re-read via HTTP
-	resp, err = b.HandleRequest(&logical.Request{
+	resp, err = b.HandleRequest(ctx, &logical.Request{
 		Operation: logical.ReadOperation,
 		Path:      "map/foo/a",
 		Storage:   storage,
@@ -251,11 +256,95 @@ func TestPathMap_Salted(t *testing.T) {
 	}
 
 	// Re-read via API
-	v, err = p.Get(storage, "a")
+	v, err = p.Get(ctx, storage, "a")
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
 	if v != nil {
 		t.Fatalf("bad: %#v", v)
 	}
+
+	// Put in a non-salted version and make sure that after reading it's been
+	// upgraded
+	err = storage.Put(ctx, &logical.StorageEntry{
+		Key:   "struct/map/foo/b",
+		Value: []byte(`{"foo": "bar"}`),
+	})
+	if err != nil {
+		t.Fatal("err: %v", err)
+	}
+	// A read should transparently upgrade
+	resp, err = b.HandleRequest(ctx, &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "map/foo/b",
+		Storage:   storage,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	list, _ := storage.List(ctx, "struct/map/foo/")
+	if len(list) != 1 {
+		t.Fatalf("unexpected number of entries left after upgrade; expected 1, got %d", len(list))
+	}
+	found := false
+	for _, v := range list {
+		if v == "s"+salt.SaltIDHashFunc("b", saltpkg.SHA256Hash) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("did not find upgraded value")
+	}
+
+	// Put in a SHA1 salted version and make sure that after reading its been
+	// upgraded
+	err = storage.Put(ctx, &logical.StorageEntry{
+		Key:   "struct/map/foo/" + salt.SaltID("b"),
+		Value: []byte(`{"foo": "bar"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A read should transparently upgrade
+	resp, err = b.HandleRequest(ctx, &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "map/foo/b",
+		Storage:   storage,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	list, _ = storage.List(ctx, "struct/map/foo/")
+	if len(list) != 1 {
+		t.Fatalf("unexpected number of entries left after upgrade; expected 1, got %d", len(list))
+	}
+	found = false
+	for _, v := range list {
+		if v == "s"+salt.SaltIDHashFunc("b", saltpkg.SHA256Hash) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("did not find upgraded value")
+	}
+}
+
+func TestPathMap_SaltFunc(t *testing.T) {
+	storage := new(logical.InmemStorage)
+
+	salt, err := saltpkg.NewSalt(storage, &saltpkg.Config{
+		HashFunc: saltpkg.SHA1Hash,
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	saltFunc := func() (*saltpkg.Salt, error) {
+		return salt, nil
+	}
+
+	testSalting(t, context.Background(), storage, salt, &PathMap{Name: "foo", SaltFunc: saltFunc})
 }

@@ -44,6 +44,8 @@ var complexTests = [][]string{
 	{"\nkey=value\n", "key", "value"},
 	{"\rkey=value\r", "key", "value"},
 	{"\r\nkey=value\r\n", "key", "value"},
+	{"\nkey=value\n \nkey2=value2", "key", "value", "key2", "value2"},
+	{"\nkey=value\n\t\nkey2=value2", "key", "value", "key2", "value2"},
 
 	// escaped chars in key
 	{"k\\ ey = value", "k ey", "value"},
@@ -458,6 +460,19 @@ func TestDisableExpansion(t *testing.T) {
 	assert.Equal(t, p.MustGet("keyB"), "${keyA}")
 }
 
+func TestDisableExpansionStillUpdatesKeys(t *testing.T) {
+	p := NewProperties()
+	p.MustSet("p1", "a")
+	assert.Equal(t, p.Keys(), []string{"p1"})
+	assert.Equal(t, p.String(), "p1 = a\n")
+
+	p.DisableExpansion = true
+	p.MustSet("p2", "b")
+
+	assert.Equal(t, p.Keys(), []string{"p1", "p2"})
+	assert.Equal(t, p.String(), "p1 = a\np2 = b\n")
+}
+
 func TestMustGet(t *testing.T) {
 	input := "key = value\nkey2 = ghi"
 	p := mustParse(t, input)
@@ -716,6 +731,23 @@ func TestSet(t *testing.T) {
 			assert.Equal(t, prev, test.prev)
 		}
 		assert.Equal(t, p.Keys(), test.keys)
+	}
+}
+
+func TestSetValue(t *testing.T) {
+	tests := []interface{}{
+		true, false,
+		int8(123), int16(123), int32(123), int64(123), int(123),
+		uint8(123), uint16(123), uint32(123), uint64(123), uint(123),
+		float32(1.23), float64(1.23),
+		"abc",
+	}
+
+	for _, v := range tests {
+		p := NewProperties()
+		err := p.SetValue("x", v)
+		assert.Equal(t, err, nil)
+		assert.Equal(t, p.GetString("x", ""), fmt.Sprintf("%v", v))
 	}
 }
 

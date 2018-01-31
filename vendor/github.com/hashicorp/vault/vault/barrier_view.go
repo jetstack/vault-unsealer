@@ -1,7 +1,8 @@
 package vault
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"strings"
 
 	"github.com/hashicorp/vault/logical"
@@ -20,6 +21,10 @@ type BarrierView struct {
 	readonly bool
 }
 
+var (
+	ErrRelativePath = errors.New("relative paths not supported")
+)
+
 // NewBarrierView takes an underlying security barrier and returns
 // a view of it that can only operate with the given prefix.
 func NewBarrierView(barrier BarrierStorage, prefix string) *BarrierView {
@@ -32,25 +37,25 @@ func NewBarrierView(barrier BarrierStorage, prefix string) *BarrierView {
 // sanityCheck is used to perform a sanity check on a key
 func (v *BarrierView) sanityCheck(key string) error {
 	if strings.Contains(key, "..") {
-		return fmt.Errorf("key cannot be relative path")
+		return ErrRelativePath
 	}
 	return nil
 }
 
 // logical.Storage impl.
-func (v *BarrierView) List(prefix string) ([]string, error) {
+func (v *BarrierView) List(ctx context.Context, prefix string) ([]string, error) {
 	if err := v.sanityCheck(prefix); err != nil {
 		return nil, err
 	}
-	return v.barrier.List(v.expandKey(prefix))
+	return v.barrier.List(ctx, v.expandKey(prefix))
 }
 
 // logical.Storage impl.
-func (v *BarrierView) Get(key string) (*logical.StorageEntry, error) {
+func (v *BarrierView) Get(ctx context.Context, key string) (*logical.StorageEntry, error) {
 	if err := v.sanityCheck(key); err != nil {
 		return nil, err
 	}
-	entry, err := v.barrier.Get(v.expandKey(key))
+	entry, err := v.barrier.Get(ctx, v.expandKey(key))
 	if err != nil {
 		return nil, err
 	}
@@ -62,13 +67,14 @@ func (v *BarrierView) Get(key string) (*logical.StorageEntry, error) {
 	}
 
 	return &logical.StorageEntry{
-		Key:   entry.Key,
-		Value: entry.Value,
+		Key:      entry.Key,
+		Value:    entry.Value,
+		SealWrap: entry.SealWrap,
 	}, nil
 }
 
 // logical.Storage impl.
-func (v *BarrierView) Put(entry *logical.StorageEntry) error {
+func (v *BarrierView) Put(ctx context.Context, entry *logical.StorageEntry) error {
 	if err := v.sanityCheck(entry.Key); err != nil {
 		return err
 	}
@@ -80,14 +86,15 @@ func (v *BarrierView) Put(entry *logical.StorageEntry) error {
 	}
 
 	nested := &Entry{
-		Key:   expandedKey,
-		Value: entry.Value,
+		Key:      expandedKey,
+		Value:    entry.Value,
+		SealWrap: entry.SealWrap,
 	}
-	return v.barrier.Put(nested)
+	return v.barrier.Put(ctx, nested)
 }
 
 // logical.Storage impl.
-func (v *BarrierView) Delete(key string) error {
+func (v *BarrierView) Delete(ctx context.Context, key string) error {
 	if err := v.sanityCheck(key); err != nil {
 		return err
 	}
@@ -98,8 +105,7 @@ func (v *BarrierView) Delete(key string) error {
 		return logical.ErrReadOnly
 	}
 
-
-	return v.barrier.Delete(expandedKey)
+	return v.barrier.Delete(ctx, expandedKey)
 }
 
 // SubView constructs a nested sub-view using the given prefix
