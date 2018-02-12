@@ -1,6 +1,7 @@
 package transit
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 
@@ -33,6 +34,13 @@ func (b *backend) pathRewrap() *framework.Path {
 				Type:        framework.TypeString,
 				Description: "Nonce for when convergent encryption is used",
 			},
+
+			"key_version": &framework.FieldSchema{
+				Type: framework.TypeInt,
+				Description: `The version of the key to use for encryption.
+Must be 0 (for latest) or a value greater than or equal
+to the min_encryption_version configured on the key.`,
+			},
 		},
 
 		Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -44,8 +52,7 @@ func (b *backend) pathRewrap() *framework.Path {
 	}
 }
 
-func (b *backend) pathRewrapWrite(
-	req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathRewrapWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	batchInputRaw := d.Raw["batch_input"]
 	var batchInputItems []BatchRequestItem
 	var err error
@@ -69,6 +76,7 @@ func (b *backend) pathRewrapWrite(
 			Ciphertext: ciphertext,
 			Context:    d.Get("context").(string),
 			Nonce:      d.Get("nonce").(string),
+			KeyVersion: d.Get("key_version").(int),
 		}
 	}
 
@@ -105,7 +113,7 @@ func (b *backend) pathRewrapWrite(
 	}
 
 	// Get the policy
-	p, lock, err := b.lm.GetPolicyShared(req.Storage, d.Get("name").(string))
+	p, lock, err := b.lm.GetPolicyShared(ctx, req.Storage, d.Get("name").(string))
 	if lock != nil {
 		defer lock.RUnlock()
 	}
@@ -113,7 +121,7 @@ func (b *backend) pathRewrapWrite(
 		return nil, err
 	}
 	if p == nil {
-		return logical.ErrorResponse("policy not found"), logical.ErrInvalidRequest
+		return logical.ErrorResponse("encryption key not found"), logical.ErrInvalidRequest
 	}
 
 	for i, item := range batchInputItems {
@@ -132,7 +140,7 @@ func (b *backend) pathRewrapWrite(
 			}
 		}
 
-		ciphertext, err := p.Encrypt(item.DecodedContext, item.DecodedNonce, plaintext)
+		ciphertext, err := p.Encrypt(item.KeyVersion, item.DecodedContext, item.DecodedNonce, plaintext)
 		if err != nil {
 			switch err.(type) {
 			case errutil.UserError:

@@ -163,6 +163,7 @@ type Binding struct {
 	// group.
 	//    For example, `admins@example.com`.
 	//
+	//
 	// * `domain:{domain}`: A Google Apps domain name that represents all
 	// the
 	//    users of that domain. For example, `google.com` or
@@ -195,8 +196,8 @@ type Binding struct {
 }
 
 func (s *Binding) MarshalJSON() ([]byte, error) {
-	type noMethod Binding
-	raw := noMethod(*s)
+	type NoMethod Binding
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -250,8 +251,8 @@ type Cardinality struct {
 }
 
 func (s *Cardinality) MarshalJSON() ([]byte, error) {
-	type noMethod Cardinality
-	raw := noMethod(*s)
+	type NoMethod Cardinality
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -296,8 +297,8 @@ type EndCondition struct {
 }
 
 func (s *EndCondition) MarshalJSON() ([]byte, error) {
-	type noMethod EndCondition
-	raw := noMethod(*s)
+	type NoMethod EndCondition
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -345,8 +346,8 @@ type ListConfigsResponse struct {
 }
 
 func (s *ListConfigsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListConfigsResponse
-	raw := noMethod(*s)
+	type NoMethod ListConfigsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -390,8 +391,8 @@ type ListVariablesResponse struct {
 }
 
 func (s *ListVariablesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListVariablesResponse
-	raw := noMethod(*s)
+	type NoMethod ListVariablesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -434,8 +435,8 @@ type ListWaitersResponse struct {
 }
 
 func (s *ListWaitersResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListWaitersResponse
-	raw := noMethod(*s)
+	type NoMethod ListWaitersResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -445,8 +446,8 @@ func (s *ListWaitersResponse) MarshalJSON() ([]byte, error) {
 type Operation struct {
 	// Done: If the value is `false`, it means the operation is still in
 	// progress.
-	// If true, the operation is completed, and either `error` or `response`
-	// is
+	// If `true`, the operation is completed, and either `error` or
+	// `response` is
 	// available.
 	Done bool `json:"done,omitempty"`
 
@@ -509,8 +510,8 @@ type Operation struct {
 }
 
 func (s *Operation) MarshalJSON() ([]byte, error) {
-	type noMethod Operation
-	raw := noMethod(*s)
+	type NoMethod Operation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -549,11 +550,9 @@ func (s *Operation) MarshalJSON() ([]byte, error) {
 //     }
 //
 // For a description of IAM and its features, see the
-// [IAM developer's guide](https://cloud.google.com/iam).
+// [IAM developer's guide](https://cloud.google.com/iam/docs).
 type Policy struct {
 	// Bindings: Associates a list of `members` to a `role`.
-	// Multiple `bindings` must not be specified for the same
-	// `role`.
 	// `bindings` with no members will result in an error.
 	Bindings []*Binding `json:"bindings,omitempty"`
 
@@ -577,7 +576,7 @@ type Policy struct {
 	// policy is overwritten blindly.
 	Etag string `json:"etag,omitempty"`
 
-	// Version: Version of the `Policy`. The default version is 0.
+	// Version: Deprecated.
 	Version int64 `json:"version,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -602,8 +601,8 @@ type Policy struct {
 }
 
 func (s *Policy) MarshalJSON() ([]byte, error) {
-	type noMethod Policy
-	raw := noMethod(*s)
+	type NoMethod Policy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -623,9 +622,11 @@ type RuntimeConfig struct {
 	//
 	// The `[PROJECT_ID]` must be a valid project ID, and `[CONFIG_NAME]` is
 	// an
-	// arbitrary name that matches RFC 1035 segment specification. The
-	// length of
-	// `[CONFIG_NAME]` must be less than 64 bytes.
+	// arbitrary name that matches
+	// the
+	// `[0-9A-Za-z](?:[_.A-Za-z0-9-]{0,62}[_.A-Za-z0-9])?` regular
+	// expression.
+	// The length of `[CONFIG_NAME]` must be less than 64 characters.
 	//
 	// You pick the RuntimeConfig resource name, but the server will
 	// validate that
@@ -656,8 +657,8 @@ type RuntimeConfig struct {
 }
 
 func (s *RuntimeConfig) MarshalJSON() ([]byte, error) {
-	type noMethod RuntimeConfig
-	raw := noMethod(*s)
+	type NoMethod RuntimeConfig
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -689,8 +690,8 @@ type SetIamPolicyRequest struct {
 }
 
 func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SetIamPolicyRequest
-	raw := noMethod(*s)
+	type NoMethod SetIamPolicyRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -722,7 +723,7 @@ func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 // arbitrary
 // information about the error. There is a predefined set of error
 // detail types
-// in the package `google.rpc` which can be used for common error
+// in the package `google.rpc` that can be used for common error
 // conditions.
 //
 // # Language mapping
@@ -755,7 +756,7 @@ func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
 //
 // - Workflow errors. A typical workflow has multiple steps. Each step
 // may
-//     have a `Status` message for error reporting purpose.
+//     have a `Status` message for error reporting.
 //
 // - Batch operations. If a client uses batch request and batch
 // response, the
@@ -778,9 +779,9 @@ type Status struct {
 	// google.rpc.Code.
 	Code int64 `json:"code,omitempty"`
 
-	// Details: A list of messages that carry the error details.  There will
-	// be a
-	// common set of message types for APIs to use.
+	// Details: A list of messages that carry the error details.  There is a
+	// common set of
+	// message types for APIs to use.
 	Details []googleapi.RawMessage `json:"details,omitempty"`
 
 	// Message: A developer-facing error message, which should be in
@@ -808,8 +809,8 @@ type Status struct {
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
-	type noMethod Status
-	raw := noMethod(*s)
+	type NoMethod Status
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -843,8 +844,8 @@ type TestIamPermissionsRequest struct {
 }
 
 func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod TestIamPermissionsRequest
-	raw := noMethod(*s)
+	type NoMethod TestIamPermissionsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -878,8 +879,8 @@ type TestIamPermissionsResponse struct {
 }
 
 func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod TestIamPermissionsResponse
-	raw := noMethod(*s)
+	type NoMethod TestIamPermissionsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -913,9 +914,12 @@ type Variable struct {
 	// one
 	// non-slash character. Multiple slashes are coalesced into single
 	// slash
-	// character. Each path segment should follow RFC 1035 segment
-	// specification.
-	// The length of a `[VARIABLE_NAME]` must be less than 256 bytes.
+	// character. Each path segment should
+	// match
+	// [0-9A-Za-z](?:[_.A-Za-z0-9-]{0,62}[_.A-Za-z0-9])? regular
+	// expression.
+	// The length of a `[VARIABLE_NAME]` must be less than 256
+	// characters.
 	//
 	// Once you create a variable, you cannot change the variable name.
 	Name string `json:"name,omitempty"`
@@ -972,8 +976,8 @@ type Variable struct {
 }
 
 func (s *Variable) MarshalJSON() ([]byte, error) {
-	type noMethod Variable
-	raw := noMethod(*s)
+	type NoMethod Variable
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1091,8 +1095,8 @@ type Waiter struct {
 }
 
 func (s *Waiter) MarshalJSON() ([]byte, error) {
-	type noMethod Waiter
-	raw := noMethod(*s)
+	type NoMethod Waiter
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1127,8 +1131,8 @@ type WatchVariableRequest struct {
 }
 
 func (s *WatchVariableRequest) MarshalJSON() ([]byte, error) {
-	type noMethod WatchVariableRequest
-	raw := noMethod(*s)
+	type NoMethod WatchVariableRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1251,7 +1255,7 @@ func (c *ProjectsConfigsCreateCall) Do(opts ...googleapi.CallOption) (*RuntimeCo
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1385,7 +1389,7 @@ func (c *ProjectsConfigsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1525,7 +1529,7 @@ func (c *ProjectsConfigsGetCall) Do(opts ...googleapi.CallOption) (*RuntimeConfi
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1668,7 +1672,7 @@ func (c *ProjectsConfigsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Pol
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1824,7 +1828,7 @@ func (c *ProjectsConfigsListCall) Do(opts ...googleapi.CallOption) (*ListConfigs
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -1991,7 +1995,7 @@ func (c *ProjectsConfigsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Pol
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2137,7 +2141,7 @@ func (c *ProjectsConfigsTestIamPermissionsCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2274,7 +2278,7 @@ func (c *ProjectsConfigsUpdateCall) Do(opts ...googleapi.CallOption) (*RuntimeCo
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2421,7 +2425,7 @@ func (c *ProjectsConfigsOperationsGetCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2564,7 +2568,7 @@ func (c *ProjectsConfigsOperationsTestIamPermissionsCall) Do(opts ...googleapi.C
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2727,7 +2731,7 @@ func (c *ProjectsConfigsVariablesCreateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2741,7 +2745,7 @@ func (c *ProjectsConfigsVariablesCreateCall) Do(opts ...googleapi.CallOption) (*
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "The path to the RutimeConfig resource that this variable should belong to.\nThe configuration must exist beforehand; the path must by in the format:\n\n`projects/[PROJECT_ID]/configs/[CONFIG_NAME]`",
+	//       "description": "The path to the RutimeConfig resource that this variable should belong to.\nThe configuration must exist beforehand; the path must be in the format:\n\n`projects/[PROJECT_ID]/configs/[CONFIG_NAME]`",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/configs/[^/]+$",
 	//       "required": true,
@@ -2877,7 +2881,7 @@ func (c *ProjectsConfigsVariablesDeleteCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3022,7 +3026,7 @@ func (c *ProjectsConfigsVariablesGetCall) Do(opts ...googleapi.CallOption) (*Var
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3205,7 +3209,7 @@ func (c *ProjectsConfigsVariablesListCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3235,7 +3239,7 @@ func (c *ProjectsConfigsVariablesListCall) Do(opts ...googleapi.CallOption) (*Li
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "The path to the RuntimeConfig resource for which you want to list variables.\nThe configuration must exist beforehand; the path must by in the format:\n\n`projects/[PROJECT_ID]/configs/[CONFIG_NAME]`",
+	//       "description": "The path to the RuntimeConfig resource for which you want to list variables.\nThe configuration must exist beforehand; the path must be in the format:\n\n`projects/[PROJECT_ID]/configs/[CONFIG_NAME]`",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/configs/[^/]+$",
 	//       "required": true,
@@ -3390,7 +3394,7 @@ func (c *ProjectsConfigsVariablesTestIamPermissionsCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3526,7 +3530,7 @@ func (c *ProjectsConfigsVariablesUpdateCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3682,7 +3686,7 @@ func (c *ProjectsConfigsVariablesWatchCall) Do(opts ...googleapi.CallOption) (*V
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3844,7 +3848,7 @@ func (c *ProjectsConfigsWaitersCreateCall) Do(opts ...googleapi.CallOption) (*Op
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3858,7 +3862,7 @@ func (c *ProjectsConfigsWaitersCreateCall) Do(opts ...googleapi.CallOption) (*Op
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "The path to the configuration that will own the waiter.\nThe configuration must exist beforehand; the path must by in the format:\n\n`projects/[PROJECT_ID]/configs/[CONFIG_NAME]`.",
+	//       "description": "The path to the configuration that will own the waiter.\nThe configuration must exist beforehand; the path must be in the format:\n\n`projects/[PROJECT_ID]/configs/[CONFIG_NAME]`.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/configs/[^/]+$",
 	//       "required": true,
@@ -3978,7 +3982,7 @@ func (c *ProjectsConfigsWaitersDeleteCall) Do(opts ...googleapi.CallOption) (*Em
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4118,7 +4122,7 @@ func (c *ProjectsConfigsWaitersGetCall) Do(opts ...googleapi.CallOption) (*Waite
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4274,7 +4278,7 @@ func (c *ProjectsConfigsWaitersListCall) Do(opts ...googleapi.CallOption) (*List
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4299,7 +4303,7 @@ func (c *ProjectsConfigsWaitersListCall) Do(opts ...googleapi.CallOption) (*List
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "The path to the configuration for which you want to get a list of waiters.\nThe configuration must exist beforehand; the path must by in the format:\n\n`projects/[PROJECT_ID]/configs/[CONFIG_NAME]`",
+	//       "description": "The path to the configuration for which you want to get a list of waiters.\nThe configuration must exist beforehand; the path must be in the format:\n\n`projects/[PROJECT_ID]/configs/[CONFIG_NAME]`",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/configs/[^/]+$",
 	//       "required": true,
@@ -4449,7 +4453,7 @@ func (c *ProjectsConfigsWaitersTestIamPermissionsCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil

@@ -1,6 +1,7 @@
 package cassandra
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ const (
 	cassandraTypeName      = "cassandra"
 )
 
+var _ dbplugin.Database = &Cassandra{}
+
 // Cassandra is an implementation of Database interface
 type Cassandra struct {
 	connutil.ConnectionProducer
@@ -29,10 +32,15 @@ type Cassandra struct {
 
 // New returns a new Cassandra instance
 func New() (interface{}, error) {
-	connProducer := &connutil.CassandraConnectionProducer{}
+	connProducer := &cassandraConnectionProducer{}
 	connProducer.Type = cassandraTypeName
 
-	credsProducer := &credsutil.CassandraCredentialsProducer{}
+	credsProducer := &credsutil.SQLCredentialsProducer{
+		DisplayNameLen: 15,
+		RoleNameLen:    15,
+		UsernameLen:    100,
+		Separator:      "_",
+	}
 
 	dbType := &Cassandra{
 		ConnectionProducer:  connProducer,
@@ -59,8 +67,8 @@ func (c *Cassandra) Type() (string, error) {
 	return cassandraTypeName, nil
 }
 
-func (c *Cassandra) getConnection() (*gocql.Session, error) {
-	session, err := c.Connection()
+func (c *Cassandra) getConnection(ctx context.Context) (*gocql.Session, error) {
+	session, err := c.Connection(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -70,13 +78,13 @@ func (c *Cassandra) getConnection() (*gocql.Session, error) {
 
 // CreateUser generates the username/password on the underlying Cassandra secret backend as instructed by
 // the CreationStatement provided.
-func (c *Cassandra) CreateUser(statements dbplugin.Statements, usernamePrefix string, expiration time.Time) (username string, password string, err error) {
+func (c *Cassandra) CreateUser(ctx context.Context, statements dbplugin.Statements, usernameConfig dbplugin.UsernameConfig, expiration time.Time) (username string, password string, err error) {
 	// Grab the lock
 	c.Lock()
 	defer c.Unlock()
 
 	// Get the connection
-	session, err := c.getConnection()
+	session, err := c.getConnection(ctx)
 	if err != nil {
 		return "", "", err
 	}
@@ -90,10 +98,13 @@ func (c *Cassandra) CreateUser(statements dbplugin.Statements, usernamePrefix st
 		rollbackCQL = defaultUserDeletionCQL
 	}
 
-	username, err = c.GenerateUsername(usernamePrefix)
+	username, err = c.GenerateUsername(usernameConfig)
+	username = strings.Replace(username, "-", "_", -1)
 	if err != nil {
 		return "", "", err
 	}
+	// Cassandra doesn't like the uppercase usernames
+	username = strings.ToLower(username)
 
 	password, err = c.GeneratePassword()
 	if err != nil {
@@ -130,18 +141,18 @@ func (c *Cassandra) CreateUser(statements dbplugin.Statements, usernamePrefix st
 }
 
 // RenewUser is not supported on Cassandra, so this is a no-op.
-func (c *Cassandra) RenewUser(statements dbplugin.Statements, username string, expiration time.Time) error {
+func (c *Cassandra) RenewUser(ctx context.Context, statements dbplugin.Statements, username string, expiration time.Time) error {
 	// NOOP
 	return nil
 }
 
 // RevokeUser attempts to drop the specified user.
-func (c *Cassandra) RevokeUser(statements dbplugin.Statements, username string) error {
+func (c *Cassandra) RevokeUser(ctx context.Context, statements dbplugin.Statements, username string) error {
 	// Grab the lock
 	c.Lock()
 	defer c.Unlock()
 
-	session, err := c.getConnection()
+	session, err := c.getConnection(ctx)
 	if err != nil {
 		return err
 	}

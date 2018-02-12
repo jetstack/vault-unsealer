@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"time"
 
 	"github.com/hashicorp/vault/builtin/logical/database/dbplugin"
@@ -36,31 +37,30 @@ func pathRoles(b *databaseBackend) *framework.Path {
 			},
 			"creation_statements": {
 				Type: framework.TypeString,
-				Description: `Statements to be executed to create a user. Must be a semicolon-separated
-							string, a base64-encoded semicolon-separated string, a serialized JSON string
-							array, or a base64-encoded serialized JSON string array. The '{{name}}', 
-							'{{password}}', and '{{expiration}}' values will be substituted.`,
+				Description: `Specifies the database statements executed to
+				create and configure a user. See the plugin's API page for more
+				information on support and formatting for this parameter.`,
 			},
 			"revocation_statements": {
 				Type: framework.TypeString,
-				Description: `Statements to be executed to revoke a user. Must be a semicolon-separated
-							string, a base64-encoded semicolon-separated string, a serialized JSON string
-							array, or a base64-encoded serialized JSON string array. The '{{name}}' value
-							will be substituted.`,
+				Description: `Specifies the database statements to be executed
+				to revoke a user. See the plugin's API page for more information
+				on support and formatting for this parameter.`,
 			},
 			"renew_statements": {
 				Type: framework.TypeString,
-				Description: `Statements to be executed to renew a user. Must be a semicolon-separated
-							string, a base64-encoded semicolon-separated string, a serialized JSON string
-							array, or a base64-encoded serialized JSON string array. The '{{name}}' value
-							will be substituted.`,
+				Description: `Specifies the database statements to be executed
+				to renew a user. Not every plugin type will support this
+				functionality. See the plugin's API page for more information on
+				support and formatting for this parameter. `,
 			},
 			"rollback_statements": {
 				Type: framework.TypeString,
-				Description: `Statements to be executed to revoke a user. Must be a semicolon-separated
-							string, a base64-encoded semicolon-separated string, a serialized JSON string
-							array, or a base64-encoded serialized JSON string array. The '{{name}}' value
-							will be substituted.`,
+				Description: `Specifies the database statements to be executed
+				rollback a create operation in the event of an error. Not every
+				plugin type will support this functionality. See the plugin's
+				API page for more information on support and formatting for this
+				parameter.`,
 			},
 
 			"default_ttl": {
@@ -86,8 +86,8 @@ func pathRoles(b *databaseBackend) *framework.Path {
 }
 
 func (b *databaseBackend) pathRoleDelete() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		err := req.Storage.Delete("role/" + data.Get("name").(string))
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		err := req.Storage.Delete(ctx, "role/"+data.Get("name").(string))
 		if err != nil {
 			return nil, err
 		}
@@ -97,8 +97,8 @@ func (b *databaseBackend) pathRoleDelete() framework.OperationFunc {
 }
 
 func (b *databaseBackend) pathRoleRead() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		role, err := b.Role(req.Storage, data.Get("name").(string))
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		role, err := b.Role(ctx, req.Storage, data.Get("name").(string))
 		if err != nil {
 			return nil, err
 		}
@@ -121,8 +121,8 @@ func (b *databaseBackend) pathRoleRead() framework.OperationFunc {
 }
 
 func (b *databaseBackend) pathRoleList() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		entries, err := req.Storage.List("role/")
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		entries, err := req.Storage.List(ctx, "role/")
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +132,7 @@ func (b *databaseBackend) pathRoleList() framework.OperationFunc {
 }
 
 func (b *databaseBackend) pathRoleCreate() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		name := data.Get("name").(string)
 		if name == "" {
 			return logical.ErrorResponse("empty role name attribute given"), nil
@@ -172,7 +172,7 @@ func (b *databaseBackend) pathRoleCreate() framework.OperationFunc {
 		if err != nil {
 			return nil, err
 		}
-		if err := req.Storage.Put(entry); err != nil {
+		if err := req.Storage.Put(ctx, entry); err != nil {
 			return nil, err
 		}
 
@@ -182,7 +182,7 @@ func (b *databaseBackend) pathRoleCreate() framework.OperationFunc {
 
 type roleEntry struct {
 	DBName     string              `json:"db_name" mapstructure:"db_name" structs:"db_name"`
-	Statements dbplugin.Statements `json:"statments" mapstructure:"statements" structs:"statments"`
+	Statements dbplugin.Statements `json:"statements" mapstructure:"statements" structs:"statements"`
 	DefaultTTL time.Duration       `json:"default_ttl" mapstructure:"default_ttl" structs:"default_ttl"`
 	MaxTTL     time.Duration       `json:"max_ttl" mapstructure:"max_ttl" structs:"max_ttl"`
 }

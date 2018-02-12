@@ -49,6 +49,12 @@ const basePath = "https://spanner.googleapis.com/"
 const (
 	// View and manage your data across Google Cloud Platform services
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
+
+	// Administer your Spanner databases
+	SpannerAdminScope = "https://www.googleapis.com/auth/spanner.admin"
+
+	// View and manage the contents of your Spanner databases
+	SpannerDataScope = "https://www.googleapis.com/auth/spanner.data"
 )
 
 func New(client *http.Client) (*Service, error) {
@@ -156,163 +162,6 @@ type ProjectsInstancesOperationsService struct {
 	s *Service
 }
 
-// AuditConfig: Specifies the audit configuration for a service.
-// The configuration determines which permission types are logged, and
-// what
-// identities, if any, are exempted from logging.
-// An AuditConifg must have one or more AuditLogConfigs.
-//
-// If there are AuditConfigs for both `allServices` and a specific
-// service,
-// the union of the two AuditConfigs is used for that service: the
-// log_types
-// specified in each AuditConfig are enabled, and the exempted_members
-// in each
-// AuditConfig are exempted.
-//
-// Example Policy with multiple AuditConfigs:
-//
-//     {
-//       "audit_configs": [
-//         {
-//           "service": "allServices"
-//           "audit_log_configs": [
-//             {
-//               "log_type": "DATA_READ",
-//               "exempted_members": [
-//                 "user:foo@gmail.com"
-//               ]
-//             },
-//             {
-//               "log_type": "DATA_WRITE",
-//             },
-//             {
-//               "log_type": "ADMIN_READ",
-//             }
-//           ]
-//         },
-//         {
-//           "service": "fooservice.googleapis.com"
-//           "audit_log_configs": [
-//             {
-//               "log_type": "DATA_READ",
-//             },
-//             {
-//               "log_type": "DATA_WRITE",
-//               "exempted_members": [
-//                 "user:bar@gmail.com"
-//               ]
-//             }
-//           ]
-//         }
-//       ]
-//     }
-//
-// For fooservice, this policy enables DATA_READ, DATA_WRITE and
-// ADMIN_READ
-// logging. It also exempts foo@gmail.com from DATA_READ logging,
-// and
-// bar@gmail.com from DATA_WRITE logging.
-type AuditConfig struct {
-	// AuditLogConfigs: The configuration for logging of each type of
-	// permission.
-	// Next ID: 4
-	AuditLogConfigs []*AuditLogConfig `json:"auditLogConfigs,omitempty"`
-
-	ExemptedMembers []string `json:"exemptedMembers,omitempty"`
-
-	// Service: Specifies a service that will be enabled for audit
-	// logging.
-	// For example, `storage.googleapis.com`,
-	// `cloudsql.googleapis.com`.
-	// `allServices` is a special value that covers all services.
-	Service string `json:"service,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "AuditLogConfigs") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "AuditLogConfigs") to
-	// include in API requests with the JSON null value. By default, fields
-	// with empty values are omitted from API requests. However, any field
-	// with an empty value appearing in NullFields will be sent to the
-	// server as null. It is an error if a field in this list has a
-	// non-empty value. This may be used to include null fields in Patch
-	// requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *AuditConfig) MarshalJSON() ([]byte, error) {
-	type noMethod AuditConfig
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// AuditLogConfig: Provides the configuration for logging a type of
-// permissions.
-// Example:
-//
-//     {
-//       "audit_log_configs": [
-//         {
-//           "log_type": "DATA_READ",
-//           "exempted_members": [
-//             "user:foo@gmail.com"
-//           ]
-//         },
-//         {
-//           "log_type": "DATA_WRITE",
-//         }
-//       ]
-//     }
-//
-// This enables 'DATA_READ' and 'DATA_WRITE' logging, while
-// exempting
-// foo@gmail.com from DATA_READ logging.
-type AuditLogConfig struct {
-	// ExemptedMembers: Specifies the identities that do not cause logging
-	// for this type of
-	// permission.
-	// Follows the same format of Binding.members.
-	ExemptedMembers []string `json:"exemptedMembers,omitempty"`
-
-	// LogType: The log type that this config enables.
-	//
-	// Possible values:
-	//   "LOG_TYPE_UNSPECIFIED" - Default case. Should never be this.
-	//   "ADMIN_READ" - Admin reads. Example: CloudIAM getIamPolicy
-	//   "DATA_WRITE" - Data writes. Example: CloudSQL Users create
-	//   "DATA_READ" - Data reads. Example: CloudSQL Users list
-	LogType string `json:"logType,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "ExemptedMembers") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "ExemptedMembers") to
-	// include in API requests with the JSON null value. By default, fields
-	// with empty values are omitted from API requests. However, any field
-	// with an empty value appearing in NullFields will be sent to the
-	// server as null. It is an error if a field in this list has a
-	// non-empty value. This may be used to include null fields in Patch
-	// requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
-	type noMethod AuditLogConfig
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
 // BeginTransactionRequest: The request for BeginTransaction.
 type BeginTransactionRequest struct {
 	// Options: Required. Options for the new transaction.
@@ -336,8 +185,8 @@ type BeginTransactionRequest struct {
 }
 
 func (s *BeginTransactionRequest) MarshalJSON() ([]byte, error) {
-	type noMethod BeginTransactionRequest
-	raw := noMethod(*s)
+	type NoMethod BeginTransactionRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -368,6 +217,7 @@ type Binding struct {
 	// * `group:{emailid}`: An email address that represents a Google
 	// group.
 	//    For example, `admins@example.com`.
+	//
 	//
 	// * `domain:{domain}`: A Google Apps domain name that represents all
 	// the
@@ -401,8 +251,8 @@ type Binding struct {
 }
 
 func (s *Binding) MarshalJSON() ([]byte, error) {
-	type noMethod Binding
-	raw := noMethod(*s)
+	type NoMethod Binding
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -455,13 +305,9 @@ type ChildLink struct {
 }
 
 func (s *ChildLink) MarshalJSON() ([]byte, error) {
-	type noMethod ChildLink
-	raw := noMethod(*s)
+	type NoMethod ChildLink
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// CloudAuditOptions: Write a Cloud Audit log
-type CloudAuditOptions struct {
 }
 
 // CommitRequest: The request for Commit.
@@ -507,8 +353,8 @@ type CommitRequest struct {
 }
 
 func (s *CommitRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CommitRequest
-	raw := noMethod(*s)
+	type NoMethod CommitRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -541,147 +387,8 @@ type CommitResponse struct {
 }
 
 func (s *CommitResponse) MarshalJSON() ([]byte, error) {
-	type noMethod CommitResponse
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// Condition: A condition to be met.
-type Condition struct {
-	// Iam: Trusted attributes supplied by the IAM system.
-	//
-	// Possible values:
-	//   "NO_ATTR" - Default non-attribute.
-	//   "AUTHORITY" - Either principal or (if present) authority selector.
-	//   "ATTRIBUTION" - The principal (even if an authority selector is
-	// present), which
-	// must only be used for attribution, not authorization.
-	//   "SECURITY_REALM" - Any of the security realms in the IAMContext
-	// (go/security-realms).
-	// When used with IN, the condition indicates "any of the request's
-	// realms
-	// match one of the given values; with NOT_IN, "none of the realms
-	// match
-	// any of the given values". It is not permitted to grant access based
-	// on
-	// the *absence* of a realm, so realm conditions can only be used in
-	// a "positive" context (e.g., ALLOW/IN or DENY/NOT_IN).
-	//   "APPROVER" - An approver (distinct from the requester) that has
-	// authorized this
-	// request.
-	// When used with IN, the condition indicates that one of the
-	// approvers
-	// associated with the request matches the specified principal, or is
-	// a
-	// member of the specified group. Approvers can only grant
-	// additional
-	// access, and are thus only used in a strictly positive context
-	// (e.g. ALLOW/IN or DENY/NOT_IN).
-	// See: go/rpc-security-policy-dynamicauth.
-	//   "JUSTIFICATION_TYPE" - What types of justifications have been
-	// supplied with this request.
-	// String values should match enum names from
-	// tech.iam.JustificationType,
-	// e.g. "MANUAL_STRING". It is not permitted to grant access based
-	// on
-	// the *absence* of a justification, so justification conditions can
-	// only
-	// be used in a "positive" context (e.g., ALLOW/IN or
-	// DENY/NOT_IN).
-	//
-	// Multiple justifications, e.g., a Buganizer ID and a
-	// manually-entered
-	// reason, are normal and supported.
-	Iam string `json:"iam,omitempty"`
-
-	// Op: An operator to apply the subject with.
-	//
-	// Possible values:
-	//   "NO_OP" - Default no-op.
-	//   "EQUALS" - DEPRECATED. Use IN instead.
-	//   "NOT_EQUALS" - DEPRECATED. Use NOT_IN instead.
-	//   "IN" - The condition is true if the subject (or any element of it
-	// if it is
-	// a set) matches any of the supplied values.
-	//   "NOT_IN" - The condition is true if the subject (or every element
-	// of it if it is
-	// a set) matches none of the supplied values.
-	//   "DISCHARGED" - Subject is discharged
-	Op string `json:"op,omitempty"`
-
-	// Svc: Trusted attributes discharged by the service.
-	Svc string `json:"svc,omitempty"`
-
-	// Sys: Trusted attributes supplied by any service that owns resources
-	// and uses
-	// the IAM system for access control.
-	//
-	// Possible values:
-	//   "NO_ATTR" - Default non-attribute type
-	//   "REGION" - Region of the resource
-	//   "SERVICE" - Service name
-	//   "NAME" - Resource name
-	//   "IP" - IP address of the caller
-	Sys string `json:"sys,omitempty"`
-
-	// Value: DEPRECATED. Use 'values' instead.
-	Value string `json:"value,omitempty"`
-
-	// Values: The objects of the condition. This is mutually exclusive with
-	// 'value'.
-	Values []string `json:"values,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Iam") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Iam") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *Condition) MarshalJSON() ([]byte, error) {
-	type noMethod Condition
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// CounterOptions: Options for counters
-type CounterOptions struct {
-	// Field: The field value to attribute.
-	Field string `json:"field,omitempty"`
-
-	// Metric: The metric to update.
-	Metric string `json:"metric,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Field") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Field") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *CounterOptions) MarshalJSON() ([]byte, error) {
-	type noMethod CounterOptions
-	raw := noMethod(*s)
+	type NoMethod CommitResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -710,8 +417,8 @@ type CreateDatabaseMetadata struct {
 }
 
 func (s *CreateDatabaseMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod CreateDatabaseMetadata
-	raw := noMethod(*s)
+	type NoMethod CreateDatabaseMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -754,8 +461,8 @@ type CreateDatabaseRequest struct {
 }
 
 func (s *CreateDatabaseRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateDatabaseRequest
-	raw := noMethod(*s)
+	type NoMethod CreateDatabaseRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -800,8 +507,8 @@ type CreateInstanceMetadata struct {
 }
 
 func (s *CreateInstanceMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod CreateInstanceMetadata
-	raw := noMethod(*s)
+	type NoMethod CreateInstanceMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -837,13 +544,37 @@ type CreateInstanceRequest struct {
 }
 
 func (s *CreateInstanceRequest) MarshalJSON() ([]byte, error) {
-	type noMethod CreateInstanceRequest
-	raw := noMethod(*s)
+	type NoMethod CreateInstanceRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// DataAccessOptions: Write a Data Access (Gin) log
-type DataAccessOptions struct {
+// CreateSessionRequest: The request for CreateSession.
+type CreateSessionRequest struct {
+	// Session: The session to create.
+	Session *Session `json:"session,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Session") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Session") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *CreateSessionRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod CreateSessionRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // Database: A Cloud Spanner database.
@@ -889,8 +620,8 @@ type Database struct {
 }
 
 func (s *Database) MarshalJSON() ([]byte, error) {
-	type noMethod Database
-	raw := noMethod(*s)
+	type NoMethod Database
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -921,8 +652,8 @@ type Delete struct {
 }
 
 func (s *Delete) MarshalJSON() ([]byte, error) {
-	type noMethod Delete
-	raw := noMethod(*s)
+	type NoMethod Delete
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1034,8 +765,8 @@ type ExecuteSqlRequest struct {
 }
 
 func (s *ExecuteSqlRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ExecuteSqlRequest
-	raw := noMethod(*s)
+	type NoMethod ExecuteSqlRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1073,8 +804,8 @@ type Field struct {
 }
 
 func (s *Field) MarshalJSON() ([]byte, error) {
-	type noMethod Field
-	raw := noMethod(*s)
+	type NoMethod Field
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1107,8 +838,8 @@ type GetDatabaseDdlResponse struct {
 }
 
 func (s *GetDatabaseDdlResponse) MarshalJSON() ([]byte, error) {
-	type noMethod GetDatabaseDdlResponse
-	raw := noMethod(*s)
+	type NoMethod GetDatabaseDdlResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1177,6 +908,14 @@ type Instance struct {
 	Name string `json:"name,omitempty"`
 
 	// NodeCount: Required. The number of nodes allocated to this instance.
+	// This may be zero
+	// in API responses for instances that are not yet in state
+	// `READY`.
+	//
+	// See [the
+	// documentation](https://cloud.google.com/spanner/docs/instances#node_co
+	// unt)
+	// for more information about nodes.
 	NodeCount int64 `json:"nodeCount,omitempty"`
 
 	// State: Output only. The current instance state. For
@@ -1218,8 +957,8 @@ type Instance struct {
 }
 
 func (s *Instance) MarshalJSON() ([]byte, error) {
-	type noMethod Instance
-	raw := noMethod(*s)
+	type NoMethod Instance
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1258,8 +997,8 @@ type InstanceConfig struct {
 }
 
 func (s *InstanceConfig) MarshalJSON() ([]byte, error) {
-	type noMethod InstanceConfig
-	raw := noMethod(*s)
+	type NoMethod InstanceConfig
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1402,8 +1141,8 @@ type KeyRange struct {
 }
 
 func (s *KeyRange) MarshalJSON() ([]byte, error) {
-	type noMethod KeyRange
-	raw := noMethod(*s)
+	type NoMethod KeyRange
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1456,8 +1195,8 @@ type KeySet struct {
 }
 
 func (s *KeySet) MarshalJSON() ([]byte, error) {
-	type noMethod KeySet
-	raw := noMethod(*s)
+	type NoMethod KeySet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1494,8 +1233,8 @@ type ListDatabasesResponse struct {
 }
 
 func (s *ListDatabasesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListDatabasesResponse
-	raw := noMethod(*s)
+	type NoMethod ListDatabasesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1533,8 +1272,8 @@ type ListInstanceConfigsResponse struct {
 }
 
 func (s *ListInstanceConfigsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListInstanceConfigsResponse
-	raw := noMethod(*s)
+	type NoMethod ListInstanceConfigsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1571,8 +1310,8 @@ type ListInstancesResponse struct {
 }
 
 func (s *ListInstancesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListInstancesResponse
-	raw := noMethod(*s)
+	type NoMethod ListInstancesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1608,23 +1347,27 @@ type ListOperationsResponse struct {
 }
 
 func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListOperationsResponse
-	raw := noMethod(*s)
+	type NoMethod ListOperationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// LogConfig: Specifies what kind of log the caller must write
-type LogConfig struct {
-	// CloudAudit: Cloud audit options.
-	CloudAudit *CloudAuditOptions `json:"cloudAudit,omitempty"`
+// ListSessionsResponse: The response for ListSessions.
+type ListSessionsResponse struct {
+	// NextPageToken: `next_page_token` can be sent in a
+	// subsequent
+	// ListSessions call to fetch more of the matching
+	// sessions.
+	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// Counter: Counter options.
-	Counter *CounterOptions `json:"counter,omitempty"`
+	// Sessions: The list of requested sessions.
+	Sessions []*Session `json:"sessions,omitempty"`
 
-	// DataAccess: Data access options.
-	DataAccess *DataAccessOptions `json:"dataAccess,omitempty"`
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
 
-	// ForceSendFields is a list of field names (e.g. "CloudAudit") to
+	// ForceSendFields is a list of field names (e.g. "NextPageToken") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -1632,18 +1375,18 @@ type LogConfig struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "CloudAudit") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
+	// NullFields is a list of field names (e.g. "NextPageToken") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
 	// null. It is an error if a field in this list has a non-empty value.
 	// This may be used to include null fields in Patch requests.
 	NullFields []string `json:"-"`
 }
 
-func (s *LogConfig) MarshalJSON() ([]byte, error) {
-	type noMethod LogConfig
-	raw := noMethod(*s)
+func (s *ListSessionsResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod ListSessionsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1699,8 +1442,8 @@ type Mutation struct {
 }
 
 func (s *Mutation) MarshalJSON() ([]byte, error) {
-	type noMethod Mutation
-	raw := noMethod(*s)
+	type NoMethod Mutation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1710,8 +1453,8 @@ func (s *Mutation) MarshalJSON() ([]byte, error) {
 type Operation struct {
 	// Done: If the value is `false`, it means the operation is still in
 	// progress.
-	// If true, the operation is completed, and either `error` or `response`
-	// is
+	// If `true`, the operation is completed, and either `error` or
+	// `response` is
 	// available.
 	Done bool `json:"done,omitempty"`
 
@@ -1774,8 +1517,8 @@ type Operation struct {
 }
 
 func (s *Operation) MarshalJSON() ([]byte, error) {
-	type noMethod Operation
-	raw := noMethod(*s)
+	type NoMethod Operation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1921,8 +1664,8 @@ type PartialResultSet struct {
 }
 
 func (s *PartialResultSet) MarshalJSON() ([]byte, error) {
-	type noMethod PartialResultSet
-	raw := noMethod(*s)
+	type NoMethod PartialResultSet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2006,8 +1749,8 @@ type PlanNode struct {
 }
 
 func (s *PlanNode) MarshalJSON() ([]byte, error) {
-	type noMethod PlanNode
-	raw := noMethod(*s)
+	type NoMethod PlanNode
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2048,13 +1791,7 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 // For a description of IAM and its features, see the
 // [IAM developer's guide](https://cloud.google.com/iam).
 type Policy struct {
-	// AuditConfigs: Specifies cloud audit logging configuration for this
-	// policy.
-	AuditConfigs []*AuditConfig `json:"auditConfigs,omitempty"`
-
 	// Bindings: Associates a list of `members` to a `role`.
-	// Multiple `bindings` must not be specified for the same
-	// `role`.
 	// `bindings` with no members will result in an error.
 	Bindings []*Binding `json:"bindings,omitempty"`
 
@@ -2078,22 +1815,6 @@ type Policy struct {
 	// policy is overwritten blindly.
 	Etag string `json:"etag,omitempty"`
 
-	IamOwned bool `json:"iamOwned,omitempty"`
-
-	// Rules: If more than one rule is specified, the rules are applied in
-	// the following
-	// manner:
-	// - All matching LOG rules are always applied.
-	// - If any DENY/DENY_WITH_LOG rule matches, permission is denied.
-	//   Logging will be applied if one or more matching rule requires
-	// logging.
-	// - Otherwise, if any ALLOW/ALLOW_WITH_LOG rule matches, permission is
-	//   granted.
-	//   Logging will be applied if one or more matching rule requires
-	// logging.
-	// - Otherwise, if no rule applies, permission is denied.
-	Rules []*Rule `json:"rules,omitempty"`
-
 	// Version: Version of the `Policy`. The default version is 0.
 	Version int64 `json:"version,omitempty"`
 
@@ -2101,7 +1822,7 @@ type Policy struct {
 	// server.
 	googleapi.ServerResponse `json:"-"`
 
-	// ForceSendFields is a list of field names (e.g. "AuditConfigs") to
+	// ForceSendFields is a list of field names (e.g. "Bindings") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -2109,18 +1830,18 @@ type Policy struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "AuditConfigs") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
+	// NullFields is a list of field names (e.g. "Bindings") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
 	// null. It is an error if a field in this list has a non-empty value.
 	// This may be used to include null fields in Patch requests.
 	NullFields []string `json:"-"`
 }
 
 func (s *Policy) MarshalJSON() ([]byte, error) {
-	type noMethod Policy
-	raw := noMethod(*s)
+	type NoMethod Policy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2152,12 +1873,12 @@ type QueryPlan struct {
 }
 
 func (s *QueryPlan) MarshalJSON() ([]byte, error) {
-	type noMethod QueryPlan
-	raw := noMethod(*s)
+	type NoMethod QueryPlan
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// ReadOnly: Options for read-only transactions.
+// ReadOnly: Message type to initiate a read-only transaction.
 type ReadOnly struct {
 	// ExactStaleness: Executes all reads at a timestamp that is
 	// `exact_staleness`
@@ -2206,6 +1927,10 @@ type ReadOnly struct {
 	// previously committed transaction whose timestamp is known.
 	//
 	// Note that this option can only be used in single-use transactions.
+	//
+	// A timestamp in RFC3339 UTC \"Zulu\" format, accurate to
+	// nanoseconds.
+	// Example: "2014-10-02T15:01:23.045123456Z".
 	MinReadTimestamp string `json:"minReadTimestamp,omitempty"`
 
 	// ReadTimestamp: Executes all reads at the given timestamp. Unlike
@@ -2219,6 +1944,10 @@ type ReadOnly struct {
 	// for coordinating many reads against a consistent snapshot of
 	// the
 	// data.
+	//
+	// A timestamp in RFC3339 UTC \"Zulu\" format, accurate to
+	// nanoseconds.
+	// Example: "2014-10-02T15:01:23.045123456Z".
 	ReadTimestamp string `json:"readTimestamp,omitempty"`
 
 	// ReturnReadTimestamp: If true, the Cloud Spanner-selected read
@@ -2250,8 +1979,8 @@ type ReadOnly struct {
 }
 
 func (s *ReadOnly) MarshalJSON() ([]byte, error) {
-	type noMethod ReadOnly
-	raw := noMethod(*s)
+	type NoMethod ReadOnly
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2322,12 +2051,14 @@ type ReadRequest struct {
 }
 
 func (s *ReadRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ReadRequest
-	raw := noMethod(*s)
+	type NoMethod ReadRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// ReadWrite: Options for read-write transactions.
+// ReadWrite: Message type to initiate a read-write transaction.
+// Currently this
+// transaction type has no options.
 type ReadWrite struct {
 }
 
@@ -2376,8 +2107,8 @@ type ResultSet struct {
 }
 
 func (s *ResultSet) MarshalJSON() ([]byte, error) {
-	type noMethod ResultSet
-	raw := noMethod(*s)
+	type NoMethod ResultSet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2418,8 +2149,8 @@ type ResultSetMetadata struct {
 }
 
 func (s *ResultSetMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod ResultSetMetadata
-	raw := noMethod(*s)
+	type NoMethod ResultSetMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2460,8 +2191,8 @@ type ResultSetStats struct {
 }
 
 func (s *ResultSetStats) MarshalJSON() ([]byte, error) {
-	type noMethod ResultSetStats
-	raw := noMethod(*s)
+	type NoMethod ResultSetStats
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2488,111 +2219,67 @@ type RollbackRequest struct {
 }
 
 func (s *RollbackRequest) MarshalJSON() ([]byte, error) {
-	type noMethod RollbackRequest
-	raw := noMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// Rule: A rule to be applied in a Policy.
-type Rule struct {
-	// Action: Required
-	//
-	// Possible values:
-	//   "NO_ACTION" - Default no action.
-	//   "ALLOW" - Matching 'Entries' grant access.
-	//   "ALLOW_WITH_LOG" - Matching 'Entries' grant access and the caller
-	// promises to log
-	// the request per the returned log_configs.
-	//   "DENY" - Matching 'Entries' deny access.
-	//   "DENY_WITH_LOG" - Matching 'Entries' deny access and the caller
-	// promises to log
-	// the request per the returned log_configs.
-	//   "LOG" - Matching 'Entries' tell IAM.Check callers to generate logs.
-	Action string `json:"action,omitempty"`
-
-	// Conditions: Additional restrictions that must be met
-	Conditions []*Condition `json:"conditions,omitempty"`
-
-	// Description: Human-readable description of the rule.
-	Description string `json:"description,omitempty"`
-
-	// In: If one or more 'in' clauses are specified, the rule matches
-	// if
-	// the PRINCIPAL/AUTHORITY_SELECTOR is in at least one of these entries.
-	In []string `json:"in,omitempty"`
-
-	// LogConfig: The config returned to callers of tech.iam.IAM.CheckPolicy
-	// for any entries
-	// that match the LOG action.
-	LogConfig []*LogConfig `json:"logConfig,omitempty"`
-
-	// NotIn: If one or more 'not_in' clauses are specified, the rule
-	// matches
-	// if the PRINCIPAL/AUTHORITY_SELECTOR is in none of the entries.
-	// The format for in and not_in entries is the same as for members in
-	// a
-	// Binding (see google/iam/v1/policy.proto).
-	NotIn []string `json:"notIn,omitempty"`
-
-	// Permissions: A permission is a string of form '<service>.<resource
-	// type>.<verb>'
-	// (e.g., 'storage.buckets.list'). A value of '*' matches all
-	// permissions,
-	// and a verb part of '*' (e.g., 'storage.buckets.*') matches all verbs.
-	Permissions []string `json:"permissions,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Action") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Action") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *Rule) MarshalJSON() ([]byte, error) {
-	type noMethod Rule
-	raw := noMethod(*s)
+	type NoMethod RollbackRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // Session: A session in the Cloud Spanner API.
 type Session struct {
-	// Name: Required. The name of the session.
+	// ApproximateLastUseTime: Output only. The approximate timestamp when
+	// the session is last used. It is
+	// typically earlier than the actual last use time.
+	ApproximateLastUseTime string `json:"approximateLastUseTime,omitempty"`
+
+	// CreateTime: Output only. The timestamp when the session is created.
+	CreateTime string `json:"createTime,omitempty"`
+
+	// Labels: The labels for the session.
+	//
+	//  * Label keys must be between 1 and 63 characters long and must
+	// conform to
+	//    the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.
+	//  * Label values must be between 0 and 63 characters long and must
+	// conform
+	//    to the regular expression `([a-z]([-a-z0-9]*[a-z0-9])?)?`.
+	//  * No more than 64 labels can be associated with a given
+	// session.
+	//
+	// See https://goo.gl/xmQnxf for more information on and examples of
+	// labels.
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Name: The name of the session. This is always system-assigned; values
+	// provided
+	// when creating a session are ignored.
 	Name string `json:"name,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
 	googleapi.ServerResponse `json:"-"`
 
-	// ForceSendFields is a list of field names (e.g. "Name") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
+	// ForceSendFields is a list of field names (e.g.
+	// "ApproximateLastUseTime") to unconditionally include in API requests.
+	// By default, fields with empty values are omitted from API requests.
+	// However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "Name") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
+	// NullFields is a list of field names (e.g. "ApproximateLastUseTime")
+	// to include in API requests with the JSON null value. By default,
+	// fields with empty values are omitted from API requests. However, any
+	// field with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
 	NullFields []string `json:"-"`
 }
 
 func (s *Session) MarshalJSON() ([]byte, error) {
-	type noMethod Session
-	raw := noMethod(*s)
+	type NoMethod Session
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2605,15 +2292,6 @@ type SetIamPolicyRequest struct {
 	// Projects)
 	// might reject them.
 	Policy *Policy `json:"policy,omitempty"`
-
-	// UpdateMask: OPTIONAL: A FieldMask specifying which fields of the
-	// policy to modify. Only
-	// the fields in the mask will be modified. If no mask is provided,
-	// the
-	// following default mask is used:
-	// paths: "bindings, etag"
-	// This field is only used by Cloud IAM.
-	UpdateMask string `json:"updateMask,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Policy") to
 	// unconditionally include in API requests. By default, fields with
@@ -2633,8 +2311,8 @@ type SetIamPolicyRequest struct {
 }
 
 func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SetIamPolicyRequest
-	raw := noMethod(*s)
+	type NoMethod SetIamPolicyRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2675,8 +2353,8 @@ type ShortRepresentation struct {
 }
 
 func (s *ShortRepresentation) MarshalJSON() ([]byte, error) {
-	type noMethod ShortRepresentation
-	raw := noMethod(*s)
+	type NoMethod ShortRepresentation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2708,7 +2386,7 @@ func (s *ShortRepresentation) MarshalJSON() ([]byte, error) {
 // arbitrary
 // information about the error. There is a predefined set of error
 // detail types
-// in the package `google.rpc` which can be used for common error
+// in the package `google.rpc` that can be used for common error
 // conditions.
 //
 // # Language mapping
@@ -2741,7 +2419,7 @@ func (s *ShortRepresentation) MarshalJSON() ([]byte, error) {
 //
 // - Workflow errors. A typical workflow has multiple steps. Each step
 // may
-//     have a `Status` message for error reporting purpose.
+//     have a `Status` message for error reporting.
 //
 // - Batch operations. If a client uses batch request and batch
 // response, the
@@ -2764,9 +2442,9 @@ type Status struct {
 	// google.rpc.Code.
 	Code int64 `json:"code,omitempty"`
 
-	// Details: A list of messages that carry the error details.  There will
-	// be a
-	// common set of message types for APIs to use.
+	// Details: A list of messages that carry the error details.  There is a
+	// common set of
+	// message types for APIs to use.
 	Details []googleapi.RawMessage `json:"details,omitempty"`
 
 	// Message: A developer-facing error message, which should be in
@@ -2794,8 +2472,8 @@ type Status struct {
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
-	type noMethod Status
-	raw := noMethod(*s)
+	type NoMethod Status
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2830,8 +2508,8 @@ type StructType struct {
 }
 
 func (s *StructType) MarshalJSON() ([]byte, error) {
-	type noMethod StructType
-	raw := noMethod(*s)
+	type NoMethod StructType
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2862,8 +2540,8 @@ type TestIamPermissionsRequest struct {
 }
 
 func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod TestIamPermissionsRequest
-	raw := noMethod(*s)
+	type NoMethod TestIamPermissionsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2897,8 +2575,8 @@ type TestIamPermissionsResponse struct {
 }
 
 func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod TestIamPermissionsResponse
-	raw := noMethod(*s)
+	type NoMethod TestIamPermissionsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2920,6 +2598,10 @@ type Transaction struct {
 	// for the transaction. Not returned by default:
 	// see
 	// TransactionOptions.ReadOnly.return_read_timestamp.
+	//
+	// A timestamp in RFC3339 UTC \"Zulu\" format, accurate to
+	// nanoseconds.
+	// Example: "2014-10-02T15:01:23.045123456Z".
 	ReadTimestamp string `json:"readTimestamp,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -2944,8 +2626,8 @@ type Transaction struct {
 }
 
 func (s *Transaction) MarshalJSON() ([]byte, error) {
-	type noMethod Transaction
-	raw := noMethod(*s)
+	type NoMethod Transaction
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3276,8 +2958,8 @@ type TransactionOptions struct {
 }
 
 func (s *TransactionOptions) MarshalJSON() ([]byte, error) {
-	type noMethod TransactionOptions
-	raw := noMethod(*s)
+	type NoMethod TransactionOptions
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3323,8 +3005,8 @@ type TransactionSelector struct {
 }
 
 func (s *TransactionSelector) MarshalJSON() ([]byte, error) {
-	type noMethod TransactionSelector
-	raw := noMethod(*s)
+	type NoMethod TransactionSelector
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3384,8 +3066,8 @@ type Type struct {
 }
 
 func (s *Type) MarshalJSON() ([]byte, error) {
-	type noMethod Type
-	raw := noMethod(*s)
+	type NoMethod Type
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3427,8 +3109,8 @@ type UpdateDatabaseDdlMetadata struct {
 }
 
 func (s *UpdateDatabaseDdlMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateDatabaseDdlMetadata
-	raw := noMethod(*s)
+	type NoMethod UpdateDatabaseDdlMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3503,8 +3185,8 @@ type UpdateDatabaseDdlRequest struct {
 }
 
 func (s *UpdateDatabaseDdlRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateDatabaseDdlRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateDatabaseDdlRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3548,8 +3230,8 @@ type UpdateInstanceMetadata struct {
 }
 
 func (s *UpdateInstanceMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateInstanceMetadata
-	raw := noMethod(*s)
+	type NoMethod UpdateInstanceMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3590,8 +3272,8 @@ type UpdateInstanceRequest struct {
 }
 
 func (s *UpdateInstanceRequest) MarshalJSON() ([]byte, error) {
-	type noMethod UpdateInstanceRequest
-	raw := noMethod(*s)
+	type NoMethod UpdateInstanceRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3639,8 +3321,8 @@ type Write struct {
 }
 
 func (s *Write) MarshalJSON() ([]byte, error) {
-	type noMethod Write
-	raw := noMethod(*s)
+	type NoMethod Write
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3751,7 +3433,7 @@ func (c *ProjectsInstanceConfigsGetCall) Do(opts ...googleapi.CallOption) (*Inst
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3777,7 +3459,8 @@ func (c *ProjectsInstanceConfigsGetCall) Do(opts ...googleapi.CallOption) (*Inst
 	//     "$ref": "InstanceConfig"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -3908,7 +3591,7 @@ func (c *ProjectsInstanceConfigsListCall) Do(opts ...googleapi.CallOption) (*Lis
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3945,7 +3628,8 @@ func (c *ProjectsInstanceConfigsListCall) Do(opts ...googleapi.CallOption) (*Lis
 	//     "$ref": "ListInstanceConfigsResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -4112,7 +3796,7 @@ func (c *ProjectsInstancesCreateCall) Do(opts ...googleapi.CallOption) (*Operati
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4141,7 +3825,8 @@ func (c *ProjectsInstancesCreateCall) Do(opts ...googleapi.CallOption) (*Operati
 	//     "$ref": "Operation"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -4251,7 +3936,7 @@ func (c *ProjectsInstancesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4277,7 +3962,8 @@ func (c *ProjectsInstancesDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, 
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -4390,7 +4076,7 @@ func (c *ProjectsInstancesGetCall) Do(opts ...googleapi.CallOption) (*Instance, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4416,7 +4102,8 @@ func (c *ProjectsInstancesGetCall) Do(opts ...googleapi.CallOption) (*Instance, 
 	//     "$ref": "Instance"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -4528,7 +4215,7 @@ func (c *ProjectsInstancesGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4557,7 +4244,8 @@ func (c *ProjectsInstancesGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*P
 	//     "$ref": "Policy"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -4585,22 +4273,22 @@ func (r *ProjectsInstancesService) List(parent string) *ProjectsInstancesListCal
 // filtering the results of the request. Filter rules are
 // case insensitive. The fields eligible for filtering are:
 //
-//   * name
-//   * display_name
-//   * labels.key where key is the name of a label
+//   * `name`
+//   * `display_name`
+//   * `labels.key` where key is the name of a label
 //
 // Some examples of using filters are:
 //
-//   * name:* --> The instance has a name.
-//   * name:Howl --> The instance's name contains the string "howl".
-//   * name:HOWL --> Equivalent to above.
-//   * NAME:howl --> Equivalent to above.
-//   * labels.env:* --> The instance has the label "env".
-//   * labels.env:dev --> The instance has the label "env" and the value
-// of
+//   * `name:*` --> The instance has a name.
+//   * `name:Howl` --> The instance's name contains the string "howl".
+//   * `name:HOWL` --> Equivalent to above.
+//   * `NAME:howl` --> Equivalent to above.
+//   * `labels.env:*` --> The instance has the label "env".
+//   * `labels.env:dev` --> The instance has the label "env" and the
+// value of
 //                        the label contains the string "dev".
-//   * name:howl labels.env:dev --> The instance's name contains "howl"
-// and
+//   * `name:howl labels.env:dev` --> The instance's name contains
+// "howl" and
 //                                  it has the label "env" with its
 // value
 //                                  containing "dev".
@@ -4715,7 +4403,7 @@ func (c *ProjectsInstancesListCall) Do(opts ...googleapi.CallOption) (*ListInsta
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4729,7 +4417,7 @@ func (c *ProjectsInstancesListCall) Do(opts ...googleapi.CallOption) (*ListInsta
 	//   ],
 	//   "parameters": {
 	//     "filter": {
-	//       "description": "An expression for filtering the results of the request. Filter rules are\ncase insensitive. The fields eligible for filtering are:\n\n  * name\n  * display_name\n  * labels.key where key is the name of a label\n\nSome examples of using filters are:\n\n  * name:* --\u003e The instance has a name.\n  * name:Howl --\u003e The instance's name contains the string \"howl\".\n  * name:HOWL --\u003e Equivalent to above.\n  * NAME:howl --\u003e Equivalent to above.\n  * labels.env:* --\u003e The instance has the label \"env\".\n  * labels.env:dev --\u003e The instance has the label \"env\" and the value of\n                       the label contains the string \"dev\".\n  * name:howl labels.env:dev --\u003e The instance's name contains \"howl\" and\n                                 it has the label \"env\" with its value\n                                 containing \"dev\".",
+	//       "description": "An expression for filtering the results of the request. Filter rules are\ncase insensitive. The fields eligible for filtering are:\n\n  * `name`\n  * `display_name`\n  * `labels.key` where key is the name of a label\n\nSome examples of using filters are:\n\n  * `name:*` --\u003e The instance has a name.\n  * `name:Howl` --\u003e The instance's name contains the string \"howl\".\n  * `name:HOWL` --\u003e Equivalent to above.\n  * `NAME:howl` --\u003e Equivalent to above.\n  * `labels.env:*` --\u003e The instance has the label \"env\".\n  * `labels.env:dev` --\u003e The instance has the label \"env\" and the value of\n                       the label contains the string \"dev\".\n  * `name:howl labels.env:dev` --\u003e The instance's name contains \"howl\" and\n                                 it has the label \"env\" with its value\n                                 containing \"dev\".",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -4757,7 +4445,8 @@ func (c *ProjectsInstancesListCall) Do(opts ...googleapi.CallOption) (*ListInsta
 	//     "$ref": "ListInstancesResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -4932,7 +4621,7 @@ func (c *ProjectsInstancesPatchCall) Do(opts ...googleapi.CallOption) (*Operatio
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4961,7 +4650,8 @@ func (c *ProjectsInstancesPatchCall) Do(opts ...googleapi.CallOption) (*Operatio
 	//     "$ref": "Operation"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -5072,7 +4762,7 @@ func (c *ProjectsInstancesSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*P
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5101,7 +4791,8 @@ func (c *ProjectsInstancesSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*P
 	//     "$ref": "Policy"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -5216,7 +4907,7 @@ func (c *ProjectsInstancesTestIamPermissionsCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5245,7 +4936,8 @@ func (c *ProjectsInstancesTestIamPermissionsCall) Do(opts ...googleapi.CallOptio
 	//     "$ref": "TestIamPermissionsResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -5360,7 +5052,7 @@ func (c *ProjectsInstancesDatabasesCreateCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5389,7 +5081,8 @@ func (c *ProjectsInstancesDatabasesCreateCall) Do(opts ...googleapi.CallOption) 
 	//     "$ref": "Operation"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -5488,7 +5181,7 @@ func (c *ProjectsInstancesDatabasesDropDatabaseCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5514,7 +5207,8 @@ func (c *ProjectsInstancesDatabasesDropDatabaseCall) Do(opts ...googleapi.CallOp
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -5627,7 +5321,7 @@ func (c *ProjectsInstancesDatabasesGetCall) Do(opts ...googleapi.CallOption) (*D
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5653,7 +5347,8 @@ func (c *ProjectsInstancesDatabasesGetCall) Do(opts ...googleapi.CallOption) (*D
 	//     "$ref": "Database"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -5770,7 +5465,7 @@ func (c *ProjectsInstancesDatabasesGetDdlCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5796,7 +5491,8 @@ func (c *ProjectsInstancesDatabasesGetDdlCall) Do(opts ...googleapi.CallOption) 
 	//     "$ref": "GetDatabaseDdlResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -5909,7 +5605,7 @@ func (c *ProjectsInstancesDatabasesGetIamPolicyCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5938,7 +5634,8 @@ func (c *ProjectsInstancesDatabasesGetIamPolicyCall) Do(opts ...googleapi.CallOp
 	//     "$ref": "Policy"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -6068,7 +5765,7 @@ func (c *ProjectsInstancesDatabasesListCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6105,7 +5802,8 @@ func (c *ProjectsInstancesDatabasesListCall) Do(opts ...googleapi.CallOption) (*
 	//     "$ref": "ListDatabasesResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -6238,7 +5936,7 @@ func (c *ProjectsInstancesDatabasesSetIamPolicyCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6267,7 +5965,8 @@ func (c *ProjectsInstancesDatabasesSetIamPolicyCall) Do(opts ...googleapi.CallOp
 	//     "$ref": "Policy"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -6382,7 +6081,7 @@ func (c *ProjectsInstancesDatabasesTestIamPermissionsCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6411,7 +6110,8 @@ func (c *ProjectsInstancesDatabasesTestIamPermissionsCall) Do(opts ...googleapi.
 	//     "$ref": "TestIamPermissionsResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -6526,7 +6226,7 @@ func (c *ProjectsInstancesDatabasesUpdateDdlCall) Do(opts ...googleapi.CallOptio
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6555,7 +6255,8 @@ func (c *ProjectsInstancesDatabasesUpdateDdlCall) Do(opts ...googleapi.CallOptio
 	//     "$ref": "Operation"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -6671,7 +6372,7 @@ func (c *ProjectsInstancesDatabasesOperationsCancelCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6697,7 +6398,8 @@ func (c *ProjectsInstancesDatabasesOperationsCancelCall) Do(opts ...googleapi.Ca
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -6802,7 +6504,7 @@ func (c *ProjectsInstancesDatabasesOperationsDeleteCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6828,7 +6530,8 @@ func (c *ProjectsInstancesDatabasesOperationsDeleteCall) Do(opts ...googleapi.Ca
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -6945,7 +6648,7 @@ func (c *ProjectsInstancesDatabasesOperationsGetCall) Do(opts ...googleapi.CallO
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6971,7 +6674,8 @@ func (c *ProjectsInstancesDatabasesOperationsGetCall) Do(opts ...googleapi.CallO
 	//     "$ref": "Operation"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -6993,9 +6697,18 @@ type ProjectsInstancesDatabasesOperationsListCall struct {
 // server doesn't support this method, it returns
 // `UNIMPLEMENTED`.
 //
-// NOTE: the `name` binding below allows API services to override the
+// NOTE: the `name` binding allows API services to override the
 // binding
 // to use different resource name schemes, such as `users/*/operations`.
+// To
+// override the binding, API services can add a binding such
+// as
+// "/v1/{name=users/*}/operations" to their service configuration.
+// For backwards compatibility, the default name includes the
+// operations
+// collection id, however overriding users must ensure the name
+// binding
+// is the parent resource, without the operations collection id.
 func (r *ProjectsInstancesDatabasesOperationsService) List(name string) *ProjectsInstancesDatabasesOperationsListCall {
 	c := &ProjectsInstancesDatabasesOperationsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -7112,12 +6825,12 @@ func (c *ProjectsInstancesDatabasesOperationsListCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding below allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`.",
+	//   "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`. To\noverride the binding, API services can add a binding such as\n`\"/v1/{name=users/*}/operations\"` to their service configuration.\nFor backwards compatibility, the default name includes the operations\ncollection id, however overriding users must ensure the name binding\nis the parent resource, without the operations collection id.",
 	//   "flatPath": "v1/projects/{projectsId}/instances/{instancesId}/databases/{databasesId}/operations",
 	//   "httpMethod": "GET",
 	//   "id": "spanner.projects.instances.databases.operations.list",
@@ -7131,7 +6844,7 @@ func (c *ProjectsInstancesDatabasesOperationsListCall) Do(opts ...googleapi.Call
 	//       "type": "string"
 	//     },
 	//     "name": {
-	//       "description": "The name of the operation collection.",
+	//       "description": "The name of the operation's parent resource.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/instances/[^/]+/databases/[^/]+/operations$",
 	//       "required": true,
@@ -7154,7 +6867,8 @@ func (c *ProjectsInstancesDatabasesOperationsListCall) Do(opts ...googleapi.Call
 	//     "$ref": "ListOperationsResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -7285,7 +6999,7 @@ func (c *ProjectsInstancesDatabasesSessionsBeginTransactionCall) Do(opts ...goog
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7314,7 +7028,8 @@ func (c *ProjectsInstancesDatabasesSessionsBeginTransactionCall) Do(opts ...goog
 	//     "$ref": "Transaction"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -7431,7 +7146,7 @@ func (c *ProjectsInstancesDatabasesSessionsCommitCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7460,7 +7175,8 @@ func (c *ProjectsInstancesDatabasesSessionsCommitCall) Do(opts ...googleapi.Call
 	//     "$ref": "CommitResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -7469,11 +7185,12 @@ func (c *ProjectsInstancesDatabasesSessionsCommitCall) Do(opts ...googleapi.Call
 // method id "spanner.projects.instances.databases.sessions.create":
 
 type ProjectsInstancesDatabasesSessionsCreateCall struct {
-	s          *Service
-	database   string
-	urlParams_ gensupport.URLParams
-	ctx_       context.Context
-	header_    http.Header
+	s                    *Service
+	database             string
+	createsessionrequest *CreateSessionRequest
+	urlParams_           gensupport.URLParams
+	ctx_                 context.Context
+	header_              http.Header
 }
 
 // Create: Creates a new session. A session can be used to
@@ -7507,9 +7224,10 @@ type ProjectsInstancesDatabasesSessionsCreateCall struct {
 // Idle sessions can be kept alive by sending a trivial SQL
 // query
 // periodically, e.g., "SELECT 1".
-func (r *ProjectsInstancesDatabasesSessionsService) Create(database string) *ProjectsInstancesDatabasesSessionsCreateCall {
+func (r *ProjectsInstancesDatabasesSessionsService) Create(database string, createsessionrequest *CreateSessionRequest) *ProjectsInstancesDatabasesSessionsCreateCall {
 	c := &ProjectsInstancesDatabasesSessionsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.database = database
+	c.createsessionrequest = createsessionrequest
 	return c
 }
 
@@ -7545,6 +7263,11 @@ func (c *ProjectsInstancesDatabasesSessionsCreateCall) doRequest(alt string) (*h
 	}
 	reqHeaders.Set("User-Agent", c.s.userAgent())
 	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.createsessionrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
 	c.urlParams_.Set("alt", alt)
 	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+database}/sessions")
 	urls += "?" + c.urlParams_.Encode()
@@ -7589,7 +7312,7 @@ func (c *ProjectsInstancesDatabasesSessionsCreateCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7611,11 +7334,15 @@ func (c *ProjectsInstancesDatabasesSessionsCreateCall) Do(opts ...googleapi.Call
 	//     }
 	//   },
 	//   "path": "v1/{+database}/sessions",
+	//   "request": {
+	//     "$ref": "CreateSessionRequest"
+	//   },
 	//   "response": {
 	//     "$ref": "Session"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -7715,7 +7442,7 @@ func (c *ProjectsInstancesDatabasesSessionsDeleteCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7741,7 +7468,8 @@ func (c *ProjectsInstancesDatabasesSessionsDeleteCall) Do(opts ...googleapi.Call
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -7860,7 +7588,7 @@ func (c *ProjectsInstancesDatabasesSessionsExecuteSqlCall) Do(opts ...googleapi.
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7889,7 +7617,8 @@ func (c *ProjectsInstancesDatabasesSessionsExecuteSqlCall) Do(opts ...googleapi.
 	//     "$ref": "ResultSet"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -8000,7 +7729,7 @@ func (c *ProjectsInstancesDatabasesSessionsExecuteStreamingSqlCall) Do(opts ...g
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8029,7 +7758,8 @@ func (c *ProjectsInstancesDatabasesSessionsExecuteStreamingSqlCall) Do(opts ...g
 	//     "$ref": "PartialResultSet"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -8146,7 +7876,7 @@ func (c *ProjectsInstancesDatabasesSessionsGetCall) Do(opts ...googleapi.CallOpt
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8172,10 +7902,222 @@ func (c *ProjectsInstancesDatabasesSessionsGetCall) Do(opts ...googleapi.CallOpt
 	//     "$ref": "Session"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
+}
+
+// method id "spanner.projects.instances.databases.sessions.list":
+
+type ProjectsInstancesDatabasesSessionsListCall struct {
+	s            *Service
+	database     string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// List: Lists all sessions in a given database.
+func (r *ProjectsInstancesDatabasesSessionsService) List(database string) *ProjectsInstancesDatabasesSessionsListCall {
+	c := &ProjectsInstancesDatabasesSessionsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.database = database
+	return c
+}
+
+// Filter sets the optional parameter "filter": An expression for
+// filtering the results of the request. Filter rules are
+// case insensitive. The fields eligible for filtering are:
+//
+//   * `labels.key` where key is the name of a label
+//
+// Some examples of using filters are:
+//
+//   * `labels.env:*` --> The session has the label "env".
+//   * `labels.env:dev` --> The session has the label "env" and the
+// value of
+//                        the label contains the string "dev".
+func (c *ProjectsInstancesDatabasesSessionsListCall) Filter(filter string) *ProjectsInstancesDatabasesSessionsListCall {
+	c.urlParams_.Set("filter", filter)
+	return c
+}
+
+// PageSize sets the optional parameter "pageSize": Number of sessions
+// to be returned in the response. If 0 or less, defaults
+// to the server's maximum allowed page size.
+func (c *ProjectsInstancesDatabasesSessionsListCall) PageSize(pageSize int64) *ProjectsInstancesDatabasesSessionsListCall {
+	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
+	return c
+}
+
+// PageToken sets the optional parameter "pageToken": If non-empty,
+// `page_token` should contain a
+// next_page_token from a previous
+// ListSessionsResponse.
+func (c *ProjectsInstancesDatabasesSessionsListCall) PageToken(pageToken string) *ProjectsInstancesDatabasesSessionsListCall {
+	c.urlParams_.Set("pageToken", pageToken)
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *ProjectsInstancesDatabasesSessionsListCall) Fields(s ...googleapi.Field) *ProjectsInstancesDatabasesSessionsListCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *ProjectsInstancesDatabasesSessionsListCall) IfNoneMatch(entityTag string) *ProjectsInstancesDatabasesSessionsListCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *ProjectsInstancesDatabasesSessionsListCall) Context(ctx context.Context) *ProjectsInstancesDatabasesSessionsListCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *ProjectsInstancesDatabasesSessionsListCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesDatabasesSessionsListCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+database}/sessions")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("GET", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"database": c.database,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "spanner.projects.instances.databases.sessions.list" call.
+// Exactly one of *ListSessionsResponse or error will be non-nil. Any
+// non-2xx status code is an error. Response headers are in either
+// *ListSessionsResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *ProjectsInstancesDatabasesSessionsListCall) Do(opts ...googleapi.CallOption) (*ListSessionsResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &ListSessionsResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Lists all sessions in a given database.",
+	//   "flatPath": "v1/projects/{projectsId}/instances/{instancesId}/databases/{databasesId}/sessions",
+	//   "httpMethod": "GET",
+	//   "id": "spanner.projects.instances.databases.sessions.list",
+	//   "parameterOrder": [
+	//     "database"
+	//   ],
+	//   "parameters": {
+	//     "database": {
+	//       "description": "Required. The database in which to list sessions.",
+	//       "location": "path",
+	//       "pattern": "^projects/[^/]+/instances/[^/]+/databases/[^/]+$",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "filter": {
+	//       "description": "An expression for filtering the results of the request. Filter rules are\ncase insensitive. The fields eligible for filtering are:\n\n  * `labels.key` where key is the name of a label\n\nSome examples of using filters are:\n\n  * `labels.env:*` --\u003e The session has the label \"env\".\n  * `labels.env:dev` --\u003e The session has the label \"env\" and the value of\n                       the label contains the string \"dev\".",
+	//       "location": "query",
+	//       "type": "string"
+	//     },
+	//     "pageSize": {
+	//       "description": "Number of sessions to be returned in the response. If 0 or less, defaults\nto the server's maximum allowed page size.",
+	//       "format": "int32",
+	//       "location": "query",
+	//       "type": "integer"
+	//     },
+	//     "pageToken": {
+	//       "description": "If non-empty, `page_token` should contain a\nnext_page_token from a previous\nListSessionsResponse.",
+	//       "location": "query",
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/{+database}/sessions",
+	//   "response": {
+	//     "$ref": "ListSessionsResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
+	//   ]
+	// }
+
+}
+
+// Pages invokes f for each page of results.
+// A non-nil error returned from f will halt the iteration.
+// The provided context supersedes any context provided to the Context method.
+func (c *ProjectsInstancesDatabasesSessionsListCall) Pages(ctx context.Context, f func(*ListSessionsResponse) error) error {
+	c.ctx_ = ctx
+	defer c.PageToken(c.urlParams_.Get("pageToken")) // reset paging to original point
+	for {
+		x, err := c.Do()
+		if err != nil {
+			return err
+		}
+		if err := f(x); err != nil {
+			return err
+		}
+		if x.NextPageToken == "" {
+			return nil
+		}
+		c.PageToken(x.NextPageToken)
+	}
 }
 
 // method id "spanner.projects.instances.databases.sessions.read":
@@ -8293,7 +8235,7 @@ func (c *ProjectsInstancesDatabasesSessionsReadCall) Do(opts ...googleapi.CallOp
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8322,7 +8264,8 @@ func (c *ProjectsInstancesDatabasesSessionsReadCall) Do(opts ...googleapi.CallOp
 	//     "$ref": "ResultSet"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -8437,7 +8380,7 @@ func (c *ProjectsInstancesDatabasesSessionsRollbackCall) Do(opts ...googleapi.Ca
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8466,7 +8409,8 @@ func (c *ProjectsInstancesDatabasesSessionsRollbackCall) Do(opts ...googleapi.Ca
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -8576,7 +8520,7 @@ func (c *ProjectsInstancesDatabasesSessionsStreamingReadCall) Do(opts ...googlea
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8605,7 +8549,8 @@ func (c *ProjectsInstancesDatabasesSessionsStreamingReadCall) Do(opts ...googlea
 	//     "$ref": "PartialResultSet"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
 	//   ]
 	// }
 
@@ -8721,7 +8666,7 @@ func (c *ProjectsInstancesOperationsCancelCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8747,7 +8692,8 @@ func (c *ProjectsInstancesOperationsCancelCall) Do(opts ...googleapi.CallOption)
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -8852,7 +8798,7 @@ func (c *ProjectsInstancesOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8878,7 +8824,8 @@ func (c *ProjectsInstancesOperationsDeleteCall) Do(opts ...googleapi.CallOption)
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -8995,7 +8942,7 @@ func (c *ProjectsInstancesOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9021,7 +8968,8 @@ func (c *ProjectsInstancesOperationsGetCall) Do(opts ...googleapi.CallOption) (*
 	//     "$ref": "Operation"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 
@@ -9043,9 +8991,18 @@ type ProjectsInstancesOperationsListCall struct {
 // server doesn't support this method, it returns
 // `UNIMPLEMENTED`.
 //
-// NOTE: the `name` binding below allows API services to override the
+// NOTE: the `name` binding allows API services to override the
 // binding
 // to use different resource name schemes, such as `users/*/operations`.
+// To
+// override the binding, API services can add a binding such
+// as
+// "/v1/{name=users/*}/operations" to their service configuration.
+// For backwards compatibility, the default name includes the
+// operations
+// collection id, however overriding users must ensure the name
+// binding
+// is the parent resource, without the operations collection id.
 func (r *ProjectsInstancesOperationsService) List(name string) *ProjectsInstancesOperationsListCall {
 	c := &ProjectsInstancesOperationsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -9162,12 +9119,12 @@ func (c *ProjectsInstancesOperationsListCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding below allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`.",
+	//   "description": "Lists operations that match the specified filter in the request. If the\nserver doesn't support this method, it returns `UNIMPLEMENTED`.\n\nNOTE: the `name` binding allows API services to override the binding\nto use different resource name schemes, such as `users/*/operations`. To\noverride the binding, API services can add a binding such as\n`\"/v1/{name=users/*}/operations\"` to their service configuration.\nFor backwards compatibility, the default name includes the operations\ncollection id, however overriding users must ensure the name binding\nis the parent resource, without the operations collection id.",
 	//   "flatPath": "v1/projects/{projectsId}/instances/{instancesId}/operations",
 	//   "httpMethod": "GET",
 	//   "id": "spanner.projects.instances.operations.list",
@@ -9181,7 +9138,7 @@ func (c *ProjectsInstancesOperationsListCall) Do(opts ...googleapi.CallOption) (
 	//       "type": "string"
 	//     },
 	//     "name": {
-	//       "description": "The name of the operation collection.",
+	//       "description": "The name of the operation's parent resource.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/instances/[^/]+/operations$",
 	//       "required": true,
@@ -9204,7 +9161,8 @@ func (c *ProjectsInstancesOperationsListCall) Do(opts ...googleapi.CallOption) (
 	//     "$ref": "ListOperationsResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform"
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.admin"
 	//   ]
 	// }
 

@@ -15,8 +15,13 @@
 package datastore
 
 import (
+	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
+	"log"
+	"net"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -25,25 +30,141 @@ import (
 	"time"
 
 	"cloud.google.com/go/internal/testutil"
+	"cloud.google.com/go/rpcreplay"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc"
 )
 
 // TODO(djd): Make test entity clean up more robust: some test entities may
 // be left behind if tests are aborted, the transport fails, etc.
 
+var timeNow = time.Now()
+
 // suffix is a timestamp-based suffix which is appended to key names,
 // particularly for the root keys of entity groups. This reduces flakiness
 // when the tests are run in parallel.
-var suffix = fmt.Sprintf("-t%d", time.Now().UnixNano())
+var suffix string
 
-func newClient(ctx context.Context, t *testing.T) *Client {
+const replayFilename = "datastore.replay"
+
+type replayInfo struct {
+	ProjectID string
+	Time      time.Time
+}
+
+var (
+	record = flag.Bool("record", false, "record RPCs")
+
+	newTestClient = func(ctx context.Context, t *testing.T) *Client {
+		return newClient(ctx, t, nil)
+	}
+)
+
+func TestMain(m *testing.M) {
+	os.Exit(testMain(m))
+}
+
+func testMain(m *testing.M) int {
+	flag.Parse()
+	if testing.Short() {
+		if *record {
+			log.Fatal("cannot combine -short and -record")
+		}
+		if _, err := os.Stat(replayFilename); err == nil {
+			initReplay()
+		}
+	} else if *record {
+		if testutil.ProjID() == "" {
+			log.Fatal("must record with a project ID")
+		}
+		b, err := json.Marshal(replayInfo{
+			ProjectID: testutil.ProjID(),
+			Time:      timeNow,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		rec, err := rpcreplay.NewRecorder(replayFilename, b)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer func() {
+			if err := rec.Close(); err != nil {
+				log.Fatalf("closing recorder: %v", err)
+			}
+		}()
+		newTestClient = func(ctx context.Context, t *testing.T) *Client {
+			return newClient(ctx, t, rec.DialOptions())
+		}
+		log.Printf("recording to %s", replayFilename)
+	}
+	suffix = fmt.Sprintf("-t%d", timeNow.UnixNano())
+	return m.Run()
+}
+
+func initReplay() {
+	rep, err := rpcreplay.NewReplayer(replayFilename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rep.Close()
+
+	var ri replayInfo
+	if err := json.Unmarshal(rep.Initial(), &ri); err != nil {
+		log.Fatalf("unmarshaling initial replay info: %v", err)
+	}
+	timeNow = ri.Time.In(time.Local)
+
+	conn, err := replayConn(rep)
+	if err != nil {
+		log.Fatal(err)
+	}
+	newTestClient = func(ctx context.Context, t *testing.T) *Client {
+		client, err := NewClient(ctx, ri.ProjectID, option.WithGRPCConn(conn))
+		if err != nil {
+			t.Fatalf("NewClient: %v", err)
+		}
+		return client
+	}
+	log.Printf("replaying from %s", replayFilename)
+}
+
+func replayConn(rep *rpcreplay.Replayer) (*grpc.ClientConn, error) {
+	// If we make a real connection we need creds from somewhere, and they
+	// might not be available, for instance on Travis.
+	// Replaying doesn't require a connection live at all, but we need
+	// something to attach gRPC interceptors to.
+	// So we start a local listener and connect to it, then close them down.
+	// TODO(jba): build something like this into the replayer?
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, err
+	}
+	conn, err := grpc.Dial(l.Addr().String(),
+		append([]grpc.DialOption{grpc.WithInsecure()}, rep.DialOptions()...)...)
+	if err != nil {
+		return nil, err
+	}
+	conn.Close()
+	l.Close()
+	return conn, nil
+}
+
+func newClient(ctx context.Context, t *testing.T, dialOpts []grpc.DialOption) *Client {
+	if testing.Short() {
+		t.Skip("Integration tests skipped in short mode")
+	}
 	ts := testutil.TokenSource(ctx, ScopeDatastore)
 	if ts == nil {
 		t.Skip("Integration tests skipped. See CONTRIBUTING.md for details")
 	}
-	client, err := NewClient(ctx, testutil.ProjID(), option.WithTokenSource(ts))
+	opts := []option.ClientOption{option.WithTokenSource(ts)}
+	for _, opt := range dialOpts {
+		opts = append(opts, option.WithGRPCDialOption(opt))
+	}
+	client, err := NewClient(ctx, testutil.ProjID(), opts...)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
@@ -51,11 +172,8 @@ func newClient(ctx context.Context, t *testing.T) *Client {
 }
 
 func TestBasics(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*20)
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	type X struct {
@@ -64,7 +182,7 @@ func TestBasics(t *testing.T) {
 		T time.Time
 	}
 
-	x0 := X{66, "99", time.Now().Truncate(time.Millisecond)}
+	x0 := X{66, "99", timeNow.Truncate(time.Millisecond)}
 	k, err := client.Put(ctx, IncompleteKey("BasicsX", nil), &x0)
 	if err != nil {
 		t.Fatalf("client.Put: %v", err)
@@ -78,18 +196,14 @@ func TestBasics(t *testing.T) {
 	if err != nil {
 		t.Errorf("client.Delete: %v", err)
 	}
-	if !reflect.DeepEqual(x0, x1) {
+	if !testutil.Equal(x0, x1) {
 		t.Errorf("compare: x0=%v, x1=%v", x0, x1)
 	}
 }
 
 func TestTopLevelKeyLoaded(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
-
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*20)
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	completeKey := NameKey("EntityWithKey", "myent", nil)
@@ -117,18 +231,15 @@ func TestTopLevelKeyLoaded(t *testing.T) {
 	}
 
 	// The two keys should be absolutely identical.
-	if !reflect.DeepEqual(e.K, k) {
+	if !testutil.Equal(e.K, k) {
 		t.Fatalf("e.K not equal to k; got %#v, want %#v", e.K, k)
 	}
 
 }
 
 func TestListValues(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	p0 := PropertyList{
@@ -142,7 +253,7 @@ func TestListValues(t *testing.T) {
 	if err := client.Get(ctx, k, &p1); err != nil {
 		t.Errorf("client.Get: %v", err)
 	}
-	if !reflect.DeepEqual(p0, p1) {
+	if !testutil.Equal(p0, p1) {
 		t.Errorf("compare:\np0=%v\np1=%#v", p0, p1)
 	}
 	if err = client.Delete(ctx, k); err != nil {
@@ -151,11 +262,8 @@ func TestListValues(t *testing.T) {
 }
 
 func TestGetMulti(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	type X struct {
@@ -169,6 +277,7 @@ func TestGetMulti(t *testing.T) {
 	}{
 		{key: NameKey("X", "item1", p), put: true},
 		{key: NameKey("X", "item2", p), put: false},
+		{key: NameKey("X", "item3", p), put: false},
 		{key: NameKey("X", "item3", p), put: false},
 		{key: NameKey("X", "item4", p), put: true},
 	}
@@ -224,11 +333,8 @@ func (z Z) String() string {
 }
 
 func TestUnindexableValues(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	x1500 := strings.Repeat("x", 1500)
@@ -255,11 +361,8 @@ func TestUnindexableValues(t *testing.T) {
 }
 
 func TestNilKey(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	testCases := []struct {
@@ -340,15 +443,12 @@ func testSmallQueries(t *testing.T, ctx context.Context, client *Client, parent 
 }
 
 func TestFilters(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	parent := NameKey("SQParent", "TestFilters"+suffix, nil)
-	now := time.Now().Truncate(time.Millisecond).Unix()
+	now := timeNow.Truncate(time.Millisecond).Unix()
 	children := []*SQChild{
 		{I: 0, T: now, U: now},
 		{I: 1, T: now, U: now},
@@ -401,7 +501,7 @@ func TestFilters(t *testing.T) {
 		if err != nil {
 			t.Errorf("client.GetAll: %v", err)
 		}
-		if !reflect.DeepEqual(got, want) {
+		if !testutil.Equal(got, want) {
 			t.Errorf("compare: got=%v, want=%v", got, want)
 		}
 	}, func() {
@@ -420,22 +520,21 @@ func TestFilters(t *testing.T) {
 		if err != nil {
 			t.Errorf("client.GetAll: %v", err)
 		}
-		if !reflect.DeepEqual(got, want) {
+		if !testutil.Equal(got, want) {
 			t.Errorf("compare: got=%v, want=%v", got, want)
 		}
 	})
 }
 
+type ckey struct{}
+
 func TestLargeQuery(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	parent := NameKey("LQParent", "TestFilters"+suffix, nil)
-	now := time.Now().Truncate(time.Millisecond).Unix()
+	now := timeNow.Truncate(time.Millisecond).Unix()
 
 	// Make a large number of children entities.
 	const n = 800
@@ -551,6 +650,7 @@ func TestLargeQuery(t *testing.T) {
 		go func(count, limit, offset, want int) {
 			defer wg.Done()
 
+			ctx := context.WithValue(ctx, ckey{}, fmt.Sprintf("c=%d,l=%d,o=%d", count, limit, offset))
 			// Run iterator through count calls to Next.
 			it := client.Run(ctx, q.Limit(limit).Offset(offset).KeysOnly())
 			for i := 0; i < count; i++ {
@@ -587,7 +687,6 @@ func TestLargeQuery(t *testing.T) {
 			}
 		}(tt.count, tt.limit, tt.offset, tt.want)
 	}
-
 	wg.Wait()
 }
 
@@ -595,15 +694,12 @@ func TestEventualConsistency(t *testing.T) {
 	// TODO(jba): either make this actually test eventual consistency, or
 	// delete it. Currently it behaves the same with or without the
 	// EventualConsistency call.
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	parent := NameKey("SQParent", "TestEventualConsistency"+suffix, nil)
-	now := time.Now().Truncate(time.Millisecond).Unix()
+	now := timeNow.Truncate(time.Millisecond).Unix()
 	children := []*SQChild{
 		{I: 0, T: now, U: now},
 		{I: 1, T: now, U: now},
@@ -622,15 +718,12 @@ func TestEventualConsistency(t *testing.T) {
 }
 
 func TestProjection(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	parent := NameKey("SQParent", "TestProjection"+suffix, nil)
-	now := time.Now().Truncate(time.Millisecond).Unix()
+	now := timeNow.Truncate(time.Millisecond).Unix()
 	children := []*SQChild{
 		{I: 1 << 0, J: 100, T: now, U: now},
 		{I: 1 << 1, J: 100, T: now, U: now},
@@ -668,11 +761,8 @@ func TestProjection(t *testing.T) {
 }
 
 func TestAllocateIDs(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	keys := make([]*Key, 5)
@@ -694,11 +784,8 @@ func TestAllocateIDs(t *testing.T) {
 }
 
 func TestGetAllWithFieldMismatch(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	type Fat struct {
@@ -729,10 +816,10 @@ func TestGetAllWithFieldMismatch(t *testing.T) {
 		{X: 22},
 	}
 	getKeys, err := client.GetAll(ctx, NewQuery("GetAllThing").Ancestor(parent), &got)
-	if len(getKeys) != 3 && !reflect.DeepEqual(getKeys, putKeys) {
+	if len(getKeys) != 3 && !testutil.Equal(getKeys, putKeys) {
 		t.Errorf("client.GetAll: keys differ\ngetKeys=%v\nputKeys=%v", getKeys, putKeys)
 	}
-	if !reflect.DeepEqual(got, want) {
+	if !testutil.Equal(got, want) {
 		t.Errorf("client.GetAll: entities differ\ngot =%v\nwant=%v", got, want)
 	}
 	if _, ok := err.(*ErrFieldMismatch); !ok {
@@ -741,11 +828,8 @@ func TestGetAllWithFieldMismatch(t *testing.T) {
 }
 
 func TestKindlessQueries(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	type Dee struct {
@@ -857,7 +941,7 @@ loop:
 			got = append(got, dst.I)
 		}
 		sort.Ints(got)
-		if !reflect.DeepEqual(got, tc.want) {
+		if !testutil.Equal(got, tc.want) {
 			t.Errorf("elems %q: got %+v want %+v", tc.desc, got, tc.want)
 			continue
 		}
@@ -865,11 +949,8 @@ loop:
 }
 
 func TestTransaction(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	type Counter struct {
@@ -913,7 +994,7 @@ func TestTransaction(t *testing.T) {
 
 	for i, tt := range tests {
 		// Put a new counter.
-		c := &Counter{N: 10, T: time.Now()}
+		c := &Counter{N: 10, T: timeNow}
 		key, err := client.Put(ctx, IncompleteKey("TransCounter", nil), c)
 		if err != nil {
 			t.Errorf("%s: client.Put: %v", tt.desc, err)
@@ -971,11 +1052,8 @@ func TestTransaction(t *testing.T) {
 }
 
 func TestNilPointers(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	type X struct {
@@ -993,7 +1071,7 @@ func TestNilPointers(t *testing.T) {
 	xs := make([]*X, 2)
 	if err := client.GetMulti(ctx, keys, xs); err != nil {
 		t.Errorf("GetMulti: %v", err)
-	} else if !reflect.DeepEqual(xs, src) {
+	} else if !testutil.Equal(xs, src) {
 		t.Errorf("GetMulti fetched %v, want %v", xs, src)
 	}
 
@@ -1003,17 +1081,16 @@ func TestNilPointers(t *testing.T) {
 		t.Errorf("Get: err %v; want %v", err, want)
 	}
 
+	// Test that deleting with duplicate keys work.
+	keys = append(keys, keys...)
 	if err := client.DeleteMulti(ctx, keys); err != nil {
 		t.Errorf("Delete: %v", err)
 	}
 }
 
 func TestNestedRepeatedElementNoIndex(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Integration tests skipped in short mode")
-	}
 	ctx := context.Background()
-	client := newClient(ctx, t)
+	client := newTestClient(ctx, t)
 	defer client.Close()
 
 	type Inner struct {

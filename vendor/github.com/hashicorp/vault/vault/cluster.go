@@ -2,6 +2,7 @@ package vault
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -17,13 +18,8 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/mgutz/logxi/v1"
-
-	"golang.org/x/net/http2"
-
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/vault/helper/forwarding"
 	"github.com/hashicorp/vault/helper/jsonutil"
 )
 
@@ -50,11 +46,6 @@ type clusterKeyParams struct {
 	D    *big.Int `json:"d" structs:"d" mapstructure:"d"`
 }
 
-type activeConnection struct {
-	transport   *http2.Transport
-	clusterAddr string
-}
-
 // Structure representing the storage entry that holds cluster information
 type Cluster struct {
 	// Name of the cluster
@@ -66,11 +57,11 @@ type Cluster struct {
 
 // Cluster fetches the details of the local cluster. This method errors out
 // when Vault is sealed.
-func (c *Core) Cluster() (*Cluster, error) {
+func (c *Core) Cluster(ctx context.Context) (*Cluster, error) {
 	var cluster Cluster
 
 	// Fetch the storage entry. This call fails when Vault is sealed.
-	entry, err := c.barrier.Get(coreLocalClusterInfoPath)
+	entry, err := c.barrier.Get(ctx, coreLocalClusterInfoPath)
 	if err != nil {
 		return nil, err
 	}
@@ -160,13 +151,13 @@ func (c *Core) loadLocalClusterTLS(adv activeAdvertisement) (retErr error) {
 // setupCluster creates storage entries for holding Vault cluster information.
 // Entries will be created only if they are not already present. If clusterName
 // is not supplied, this method will auto-generate it.
-func (c *Core) setupCluster() error {
+func (c *Core) setupCluster(ctx context.Context) error {
 	// Prevent data races with the TLS parameters
 	c.clusterParamsLock.Lock()
 	defer c.clusterParamsLock.Unlock()
 
 	// Check if storage index is already present or not
-	cluster, err := c.Cluster()
+	cluster, err := c.Cluster(ctx)
 	if err != nil {
 		c.logger.Error("core: failed to get cluster details", "error", err)
 		return err
@@ -279,7 +270,7 @@ func (c *Core) setupCluster() error {
 		}
 
 		// Store it
-		err = c.barrier.Put(&Entry{
+		err = c.barrier.Put(ctx, &Entry{
 			Key:   coreLocalClusterInfoPath,
 			Value: rawCluster,
 		})
@@ -292,21 +283,11 @@ func (c *Core) setupCluster() error {
 	return nil
 }
 
-// SetClusterSetupFuncs sets the handler setup func
-func (c *Core) SetClusterSetupFuncs(handler func() (http.Handler, http.Handler)) {
-	c.clusterHandlerSetupFunc = handler
-}
-
 // startClusterListener starts cluster request listeners during postunseal. It
 // is assumed that the state lock is held while this is run. Right now this
 // only starts forwarding listeners; it's TBD whether other request types will
 // be built in the same mechanism or started independently.
-func (c *Core) startClusterListener() error {
-	if c.clusterHandlerSetupFunc == nil {
-		c.logger.Error("core: cluster handler setup function has not been set when trying to start listeners")
-		return fmt.Errorf("cluster handler setup function has not been set")
-	}
-
+func (c *Core) startClusterListener(ctx context.Context) error {
 	if c.clusterAddr == "" {
 		c.logger.Info("core: clustering disabled, not starting listeners")
 		return nil
@@ -319,7 +300,7 @@ func (c *Core) startClusterListener() error {
 
 	c.logger.Trace("core: starting cluster listeners")
 
-	err := c.startForwarding()
+	err := c.startForwarding(ctx)
 	if err != nil {
 		return err
 	}
@@ -357,7 +338,7 @@ func (c *Core) stopClusterListener() {
 
 // ClusterTLSConfig generates a TLS configuration based on the local/replicated
 // cluster key and cert.
-func (c *Core) ClusterTLSConfig() (*tls.Config, error) {
+func (c *Core) ClusterTLSConfig(ctx context.Context) (*tls.Config, error) {
 	// Using lookup functions allows just-in-time lookup of the current state
 	// of clustering as connections come and go
 
@@ -418,7 +399,7 @@ func (c *Core) ClusterTLSConfig() (*tls.Config, error) {
 		//c.logger.Trace("core: performing server config lookup")
 		for _, v := range clientHello.SupportedProtos {
 			switch v {
-			case "h2", "req_fw_sb-act_v1":
+			case "h2", requestForwardingALPN:
 			default:
 				return nil, fmt.Errorf("unknown ALPN proto %s", v)
 			}
@@ -434,6 +415,7 @@ func (c *Core) ClusterTLSConfig() (*tls.Config, error) {
 			RootCAs:              caPool,
 			ClientCAs:            caPool,
 			NextProtos:           clientHello.SupportedProtos,
+			CipherSuites:         c.clusterCipherSuites,
 		}
 
 		switch {
@@ -458,6 +440,7 @@ func (c *Core) ClusterTLSConfig() (*tls.Config, error) {
 		GetClientCertificate: clientLookup,
 		GetConfigForClient:   serverConfigLookup,
 		MinVersion:           tls.VersionTLS12,
+		CipherSuites:         c.clusterCipherSuites,
 	}
 
 	var localCert bytes.Buffer
@@ -480,52 +463,11 @@ func (c *Core) ClusterTLSConfig() (*tls.Config, error) {
 
 func (c *Core) SetClusterListenerAddrs(addrs []*net.TCPAddr) {
 	c.clusterListenerAddrs = addrs
+	if c.clusterAddr == "" && len(addrs) == 1 {
+		c.clusterAddr = fmt.Sprintf("https://%s", addrs[0].String())
+	}
 }
 
-// WrapHandlerForClustering takes in Vault's HTTP handler and returns a setup
-// function that returns both the original handler and one wrapped with cluster
-// methods
-func WrapHandlerForClustering(handler http.Handler, logger log.Logger) func() (http.Handler, http.Handler) {
-	return func() (http.Handler, http.Handler) {
-		// This mux handles cluster functions (right now, only forwarded requests)
-		mux := http.NewServeMux()
-		mux.HandleFunc("/cluster/local/forwarded-request", func(w http.ResponseWriter, req *http.Request) {
-			//logger.Trace("forwarding: serving h2 forwarded request")
-			freq, err := forwarding.ParseForwardedHTTPRequest(req)
-			if err != nil {
-				if logger != nil {
-					logger.Error("http/forwarded-request-server: error parsing forwarded request", "error", err)
-				}
-
-				w.Header().Add("Content-Type", "application/json")
-
-				// The response writer here is different from
-				// the one set in Vault's HTTP handler.
-				// Hence, set the Cache-Control explicitly.
-				w.Header().Set("Cache-Control", "no-store")
-
-				w.WriteHeader(http.StatusInternalServerError)
-
-				type errorResponse struct {
-					Errors []string
-				}
-				resp := &errorResponse{
-					Errors: []string{
-						err.Error(),
-					},
-				}
-
-				enc := json.NewEncoder(w)
-				enc.Encode(resp)
-				return
-			}
-
-			// To avoid the risk of a forward loop in some pathological condition,
-			// set the no-forward header
-			freq.Header.Set(IntNoForwardingHeaderName, "true")
-			handler.ServeHTTP(w, freq)
-		})
-
-		return handler, mux
-	}
+func (c *Core) SetClusterHandler(handler http.Handler) {
+	c.clusterHandler = handler
 }

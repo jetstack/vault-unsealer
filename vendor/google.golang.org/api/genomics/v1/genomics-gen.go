@@ -357,8 +357,8 @@ type Annotation struct {
 }
 
 func (s *Annotation) MarshalJSON() ([]byte, error) {
-	type noMethod Annotation
-	raw := noMethod(*s)
+	type NoMethod Annotation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -438,8 +438,8 @@ type AnnotationSet struct {
 }
 
 func (s *AnnotationSet) MarshalJSON() ([]byte, error) {
-	type noMethod AnnotationSet
-	raw := noMethod(*s)
+	type NoMethod AnnotationSet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -483,8 +483,8 @@ type BatchCreateAnnotationsRequest struct {
 }
 
 func (s *BatchCreateAnnotationsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod BatchCreateAnnotationsRequest
-	raw := noMethod(*s)
+	type NoMethod BatchCreateAnnotationsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -516,8 +516,8 @@ type BatchCreateAnnotationsResponse struct {
 }
 
 func (s *BatchCreateAnnotationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod BatchCreateAnnotationsResponse
-	raw := noMethod(*s)
+	type NoMethod BatchCreateAnnotationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -582,8 +582,8 @@ type Binding struct {
 }
 
 func (s *Binding) MarshalJSON() ([]byte, error) {
-	type noMethod Binding
-	raw := noMethod(*s)
+	type NoMethod Binding
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -648,8 +648,8 @@ type CallSet struct {
 }
 
 func (s *CallSet) MarshalJSON() ([]byte, error) {
-	type noMethod CallSet
-	raw := noMethod(*s)
+	type NoMethod CallSet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -752,8 +752,8 @@ type CigarUnit struct {
 }
 
 func (s *CigarUnit) MarshalJSON() ([]byte, error) {
-	type noMethod CigarUnit
-	raw := noMethod(*s)
+	type NoMethod CigarUnit
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -790,8 +790,8 @@ type ClinicalCondition struct {
 }
 
 func (s *ClinicalCondition) MarshalJSON() ([]byte, error) {
-	type noMethod ClinicalCondition
-	raw := noMethod(*s)
+	type NoMethod ClinicalCondition
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -828,8 +828,8 @@ type CodingSequence struct {
 }
 
 func (s *CodingSequence) MarshalJSON() ([]byte, error) {
-	type noMethod CodingSequence
-	raw := noMethod(*s)
+	type NoMethod CodingSequence
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -868,8 +868,8 @@ type ComputeEngine struct {
 }
 
 func (s *ComputeEngine) MarshalJSON() ([]byte, error) {
-	type noMethod ComputeEngine
-	raw := noMethod(*s)
+	type NoMethod ComputeEngine
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -903,18 +903,18 @@ type CoverageBucket struct {
 }
 
 func (s *CoverageBucket) MarshalJSON() ([]byte, error) {
-	type noMethod CoverageBucket
-	raw := noMethod(*s)
+	type NoMethod CoverageBucket
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *CoverageBucket) UnmarshalJSON(data []byte) error {
-	type noMethod CoverageBucket
+	type NoMethod CoverageBucket
 	var s1 struct {
 		MeanCoverage gensupport.JSONFloat64 `json:"meanCoverage"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -964,8 +964,8 @@ type Dataset struct {
 }
 
 func (s *Dataset) MarshalJSON() ([]byte, error) {
-	type noMethod Dataset
-	raw := noMethod(*s)
+	type NoMethod Dataset
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1012,8 +1012,8 @@ type Entry struct {
 }
 
 func (s *Entry) MarshalJSON() ([]byte, error) {
-	type noMethod Entry
-	raw := noMethod(*s)
+	type NoMethod Entry
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1071,8 +1071,8 @@ type Exon struct {
 }
 
 func (s *Exon) MarshalJSON() ([]byte, error) {
-	type noMethod Exon
-	raw := noMethod(*s)
+	type NoMethod Exon
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1121,8 +1121,8 @@ type Experiment struct {
 }
 
 func (s *Experiment) MarshalJSON() ([]byte, error) {
-	type noMethod Experiment
-	raw := noMethod(*s)
+	type NoMethod Experiment
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1164,8 +1164,8 @@ type ExportReadGroupSetRequest struct {
 }
 
 func (s *ExportReadGroupSetRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ExportReadGroupSetRequest
-	raw := noMethod(*s)
+	type NoMethod ExportReadGroupSetRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1221,8 +1221,8 @@ type ExportVariantSetRequest struct {
 }
 
 func (s *ExportVariantSetRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ExportVariantSetRequest
-	raw := noMethod(*s)
+	type NoMethod ExportVariantSetRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1251,8 +1251,8 @@ type ExternalId struct {
 }
 
 func (s *ExternalId) MarshalJSON() ([]byte, error) {
-	type noMethod ExternalId
-	raw := noMethod(*s)
+	type NoMethod ExternalId
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1336,8 +1336,8 @@ type ImportReadGroupSetsRequest struct {
 }
 
 func (s *ImportReadGroupSetsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ImportReadGroupSetsRequest
-	raw := noMethod(*s)
+	type NoMethod ImportReadGroupSetsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1365,8 +1365,8 @@ type ImportReadGroupSetsResponse struct {
 }
 
 func (s *ImportReadGroupSetsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ImportReadGroupSetsResponse
-	raw := noMethod(*s)
+	type NoMethod ImportReadGroupSetsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1442,8 +1442,8 @@ type ImportVariantsRequest struct {
 }
 
 func (s *ImportVariantsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ImportVariantsRequest
-	raw := noMethod(*s)
+	type NoMethod ImportVariantsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1470,8 +1470,8 @@ type ImportVariantsResponse struct {
 }
 
 func (s *ImportVariantsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ImportVariantsResponse
-	raw := noMethod(*s)
+	type NoMethod ImportVariantsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1515,8 +1515,8 @@ type LinearAlignment struct {
 }
 
 func (s *LinearAlignment) MarshalJSON() ([]byte, error) {
-	type noMethod LinearAlignment
-	raw := noMethod(*s)
+	type NoMethod LinearAlignment
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1560,8 +1560,8 @@ type ListBasesResponse struct {
 }
 
 func (s *ListBasesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListBasesResponse
-	raw := noMethod(*s)
+	type NoMethod ListBasesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1613,8 +1613,8 @@ type ListCoverageBucketsResponse struct {
 }
 
 func (s *ListCoverageBucketsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListCoverageBucketsResponse
-	raw := noMethod(*s)
+	type NoMethod ListCoverageBucketsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1653,8 +1653,8 @@ type ListDatasetsResponse struct {
 }
 
 func (s *ListDatasetsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListDatasetsResponse
-	raw := noMethod(*s)
+	type NoMethod ListDatasetsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1690,8 +1690,8 @@ type ListOperationsResponse struct {
 }
 
 func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListOperationsResponse
-	raw := noMethod(*s)
+	type NoMethod ListOperationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1726,8 +1726,8 @@ type MergeVariantsRequest struct {
 }
 
 func (s *MergeVariantsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod MergeVariantsRequest
-	raw := noMethod(*s)
+	type NoMethod MergeVariantsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1737,8 +1737,8 @@ func (s *MergeVariantsRequest) MarshalJSON() ([]byte, error) {
 type Operation struct {
 	// Done: If the value is `false`, it means the operation is still in
 	// progress.
-	// If true, the operation is completed, and either `error` or `response`
-	// is
+	// If `true`, the operation is completed, and either `error` or
+	// `response` is
 	// available.
 	Done bool `json:"done,omitempty"`
 
@@ -1757,7 +1757,7 @@ type Operation struct {
 
 	// Response: If importing ReadGroupSets, an ImportReadGroupSetsResponse
 	// is returned. If importing Variants, an ImportVariantsResponse is
-	// returned. For pipelines and exports, an empty response is returned.
+	// returned. For pipelines and exports, an Empty response is returned.
 	Response googleapi.RawMessage `json:"response,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -1782,8 +1782,8 @@ type Operation struct {
 }
 
 func (s *Operation) MarshalJSON() ([]byte, error) {
-	type noMethod Operation
-	raw := noMethod(*s)
+	type NoMethod Operation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1819,8 +1819,8 @@ type OperationEvent struct {
 }
 
 func (s *OperationEvent) MarshalJSON() ([]byte, error) {
-	type noMethod OperationEvent
-	raw := noMethod(*s)
+	type NoMethod OperationEvent
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1884,8 +1884,8 @@ type OperationMetadata struct {
 }
 
 func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod OperationMetadata
-	raw := noMethod(*s)
+	type NoMethod OperationMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1924,11 +1924,9 @@ func (s *OperationMetadata) MarshalJSON() ([]byte, error) {
 //     }
 //
 // For a description of IAM and its features, see the
-// [IAM developer's guide](https://cloud.google.com/iam).
+// [IAM developer's guide](https://cloud.google.com/iam/docs).
 type Policy struct {
 	// Bindings: Associates a list of `members` to a `role`.
-	// Multiple `bindings` must not be specified for the same
-	// `role`.
 	// `bindings` with no members will result in an error.
 	Bindings []*Binding `json:"bindings,omitempty"`
 
@@ -1952,7 +1950,7 @@ type Policy struct {
 	// policy is overwritten blindly.
 	Etag string `json:"etag,omitempty"`
 
-	// Version: Version of the `Policy`. The default version is 0.
+	// Version: Deprecated.
 	Version int64 `json:"version,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -1977,8 +1975,8 @@ type Policy struct {
 }
 
 func (s *Policy) MarshalJSON() ([]byte, error) {
-	type noMethod Policy
-	raw := noMethod(*s)
+	type NoMethod Policy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2021,8 +2019,8 @@ type Position struct {
 }
 
 func (s *Position) MarshalJSON() ([]byte, error) {
-	type noMethod Position
-	raw := noMethod(*s)
+	type NoMethod Position
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2064,8 +2062,8 @@ type Program struct {
 }
 
 func (s *Program) MarshalJSON() ([]byte, error) {
-	type noMethod Program
-	raw := noMethod(*s)
+	type NoMethod Program
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2102,8 +2100,8 @@ type Range struct {
 }
 
 func (s *Range) MarshalJSON() ([]byte, error) {
-	type noMethod Range
-	raw := noMethod(*s)
+	type NoMethod Range
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2358,8 +2356,8 @@ type Read struct {
 }
 
 func (s *Read) MarshalJSON() ([]byte, error) {
-	type noMethod Read
-	raw := noMethod(*s)
+	type NoMethod Read
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2433,8 +2431,8 @@ type ReadGroup struct {
 }
 
 func (s *ReadGroup) MarshalJSON() ([]byte, error) {
-	type noMethod ReadGroup
-	raw := noMethod(*s)
+	type NoMethod ReadGroup
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2505,8 +2503,8 @@ type ReadGroupSet struct {
 }
 
 func (s *ReadGroupSet) MarshalJSON() ([]byte, error) {
-	type noMethod ReadGroupSet
-	raw := noMethod(*s)
+	type NoMethod ReadGroupSet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2575,8 +2573,8 @@ type Reference struct {
 }
 
 func (s *Reference) MarshalJSON() ([]byte, error) {
-	type noMethod Reference
-	raw := noMethod(*s)
+	type NoMethod Reference
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2611,8 +2609,8 @@ type ReferenceBound struct {
 }
 
 func (s *ReferenceBound) MarshalJSON() ([]byte, error) {
-	type noMethod ReferenceBound
-	raw := noMethod(*s)
+	type NoMethod ReferenceBound
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2697,8 +2695,8 @@ type ReferenceSet struct {
 }
 
 func (s *ReferenceSet) MarshalJSON() ([]byte, error) {
-	type noMethod ReferenceSet
-	raw := noMethod(*s)
+	type NoMethod ReferenceSet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2729,8 +2727,8 @@ type RuntimeMetadata struct {
 }
 
 func (s *RuntimeMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod RuntimeMetadata
-	raw := noMethod(*s)
+	type NoMethod RuntimeMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2804,8 +2802,8 @@ type SearchAnnotationSetsRequest struct {
 }
 
 func (s *SearchAnnotationSetsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchAnnotationSetsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchAnnotationSetsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2844,8 +2842,8 @@ type SearchAnnotationSetsResponse struct {
 }
 
 func (s *SearchAnnotationSetsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchAnnotationSetsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchAnnotationSetsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2910,8 +2908,8 @@ type SearchAnnotationsRequest struct {
 }
 
 func (s *SearchAnnotationsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchAnnotationsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchAnnotationsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2949,8 +2947,8 @@ type SearchAnnotationsResponse struct {
 }
 
 func (s *SearchAnnotationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchAnnotationsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchAnnotationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2996,8 +2994,8 @@ type SearchCallSetsRequest struct {
 }
 
 func (s *SearchCallSetsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchCallSetsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchCallSetsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3036,8 +3034,8 @@ type SearchCallSetsResponse struct {
 }
 
 func (s *SearchCallSetsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchCallSetsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchCallSetsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3083,8 +3081,8 @@ type SearchReadGroupSetsRequest struct {
 }
 
 func (s *SearchReadGroupSetsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchReadGroupSetsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchReadGroupSetsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3123,8 +3121,8 @@ type SearchReadGroupSetsResponse struct {
 }
 
 func (s *SearchReadGroupSetsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchReadGroupSetsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchReadGroupSetsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3193,8 +3191,8 @@ type SearchReadsRequest struct {
 }
 
 func (s *SearchReadsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchReadsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchReadsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3239,8 +3237,8 @@ type SearchReadsResponse struct {
 }
 
 func (s *SearchReadsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchReadsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchReadsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3293,8 +3291,8 @@ type SearchReferenceSetsRequest struct {
 }
 
 func (s *SearchReferenceSetsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchReferenceSetsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchReferenceSetsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3332,8 +3330,8 @@ type SearchReferenceSetsResponse struct {
 }
 
 func (s *SearchReferenceSetsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchReferenceSetsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchReferenceSetsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3384,8 +3382,8 @@ type SearchReferencesRequest struct {
 }
 
 func (s *SearchReferencesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchReferencesRequest
-	raw := noMethod(*s)
+	type NoMethod SearchReferencesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3423,8 +3421,8 @@ type SearchReferencesResponse struct {
 }
 
 func (s *SearchReferencesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchReferencesResponse
-	raw := noMethod(*s)
+	type NoMethod SearchReferencesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3465,8 +3463,8 @@ type SearchVariantSetsRequest struct {
 }
 
 func (s *SearchVariantSetsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchVariantSetsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchVariantSetsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3505,8 +3503,8 @@ type SearchVariantSetsResponse struct {
 }
 
 func (s *SearchVariantSetsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchVariantSetsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchVariantSetsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3584,8 +3582,8 @@ type SearchVariantsRequest struct {
 }
 
 func (s *SearchVariantsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchVariantsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchVariantsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3624,8 +3622,8 @@ type SearchVariantsResponse struct {
 }
 
 func (s *SearchVariantsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchVariantsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchVariantsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3657,8 +3655,8 @@ type SetIamPolicyRequest struct {
 }
 
 func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SetIamPolicyRequest
-	raw := noMethod(*s)
+	type NoMethod SetIamPolicyRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3746,9 +3744,9 @@ type Status struct {
 	// google.rpc.Code.
 	Code int64 `json:"code,omitempty"`
 
-	// Details: A list of messages that carry the error details.  There will
-	// be a
-	// common set of message types for APIs to use.
+	// Details: A list of messages that carry the error details.  There is a
+	// common set of
+	// message types for APIs to use.
 	Details []googleapi.RawMessage `json:"details,omitempty"`
 
 	// Message: A developer-facing error message, which should be in
@@ -3776,8 +3774,8 @@ type Status struct {
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
-	type noMethod Status
-	raw := noMethod(*s)
+	type NoMethod Status
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3817,8 +3815,8 @@ type TestIamPermissionsRequest struct {
 }
 
 func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod TestIamPermissionsRequest
-	raw := noMethod(*s)
+	type NoMethod TestIamPermissionsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3852,8 +3850,8 @@ type TestIamPermissionsResponse struct {
 }
 
 func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod TestIamPermissionsResponse
-	raw := noMethod(*s)
+	type NoMethod TestIamPermissionsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -3928,8 +3926,8 @@ type Transcript struct {
 }
 
 func (s *Transcript) MarshalJSON() ([]byte, error) {
-	type noMethod Transcript
-	raw := noMethod(*s)
+	type NoMethod Transcript
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4039,18 +4037,18 @@ type Variant struct {
 }
 
 func (s *Variant) MarshalJSON() ([]byte, error) {
-	type noMethod Variant
-	raw := noMethod(*s)
+	type NoMethod Variant
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 func (s *Variant) UnmarshalJSON(data []byte) error {
-	type noMethod Variant
+	type NoMethod Variant
 	var s1 struct {
 		Quality gensupport.JSONFloat64 `json:"quality"`
-		*noMethod
+		*NoMethod
 	}
-	s1.noMethod = (*noMethod)(s)
+	s1.NoMethod = (*NoMethod)(s)
 	if err := json.Unmarshal(data, &s1); err != nil {
 		return err
 	}
@@ -4186,8 +4184,8 @@ type VariantAnnotation struct {
 }
 
 func (s *VariantAnnotation) MarshalJSON() ([]byte, error) {
-	type noMethod VariantAnnotation
-	raw := noMethod(*s)
+	type NoMethod VariantAnnotation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4267,8 +4265,8 @@ type VariantCall struct {
 }
 
 func (s *VariantCall) MarshalJSON() ([]byte, error) {
-	type noMethod VariantCall
-	raw := noMethod(*s)
+	type NoMethod VariantCall
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4344,8 +4342,8 @@ type VariantSet struct {
 }
 
 func (s *VariantSet) MarshalJSON() ([]byte, error) {
-	type noMethod VariantSet
-	raw := noMethod(*s)
+	type NoMethod VariantSet
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4411,8 +4409,8 @@ type VariantSetMetadata struct {
 }
 
 func (s *VariantSetMetadata) MarshalJSON() ([]byte, error) {
-	type noMethod VariantSetMetadata
-	raw := noMethod(*s)
+	type NoMethod VariantSetMetadata
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -4531,7 +4529,7 @@ func (c *AnnotationsBatchCreateCall) Do(opts ...googleapi.CallOption) (*BatchCre
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4677,7 +4675,7 @@ func (c *AnnotationsCreateCall) Do(opts ...googleapi.CallOption) (*Annotation, e
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4798,7 +4796,7 @@ func (c *AnnotationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4938,7 +4936,7 @@ func (c *AnnotationsGetCall) Do(opts ...googleapi.CallOption) (*Annotation, erro
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5078,7 +5076,7 @@ func (c *AnnotationsSearchCall) Do(opts ...googleapi.CallOption) (*SearchAnnotat
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5240,7 +5238,7 @@ func (c *AnnotationsUpdateCall) Do(opts ...googleapi.CallOption) (*Annotation, e
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5387,7 +5385,7 @@ func (c *AnnotationsetsCreateCall) Do(opts ...googleapi.CallOption) (*Annotation
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5508,7 +5506,7 @@ func (c *AnnotationsetsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, err
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5648,7 +5646,7 @@ func (c *AnnotationsetsGetCall) Do(opts ...googleapi.CallOption) (*AnnotationSet
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5784,7 +5782,7 @@ func (c *AnnotationsetsSearchCall) Do(opts ...googleapi.CallOption) (*SearchAnno
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5948,7 +5946,7 @@ func (c *AnnotationsetsUpdateCall) Do(opts ...googleapi.CallOption) (*Annotation
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6091,7 +6089,7 @@ func (c *CallsetsCreateCall) Do(opts ...googleapi.CallOption) (*CallSet, error) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6217,7 +6215,7 @@ func (c *CallsetsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6363,7 +6361,7 @@ func (c *CallsetsGetCall) Do(opts ...googleapi.CallOption) (*CallSet, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6516,7 +6514,7 @@ func (c *CallsetsPatchCall) Do(opts ...googleapi.CallOption) (*CallSet, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6664,7 +6662,7 @@ func (c *CallsetsSearchCall) Do(opts ...googleapi.CallOption) (*SearchCallSetsRe
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6814,7 +6812,7 @@ func (c *DatasetsCreateCall) Do(opts ...googleapi.CallOption) (*Dataset, error) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6947,7 +6945,7 @@ func (c *DatasetsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7093,7 +7091,7 @@ func (c *DatasetsGetCall) Do(opts ...googleapi.CallOption) (*Dataset, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7239,7 +7237,7 @@ func (c *DatasetsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7409,7 +7407,7 @@ func (c *DatasetsListCall) Do(opts ...googleapi.CallOption) (*ListDatasetsRespon
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7591,7 +7589,7 @@ func (c *DatasetsPatchCall) Do(opts ...googleapi.CallOption) (*Dataset, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7745,7 +7743,7 @@ func (c *DatasetsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7893,7 +7891,7 @@ func (c *DatasetsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*Test
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8040,7 +8038,7 @@ func (c *DatasetsUndeleteCall) Do(opts ...googleapi.CallOption) (*Dataset, error
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8179,7 +8177,7 @@ func (c *OperationsCancelCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8326,7 +8324,7 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8509,7 +8507,7 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*ListOperationsRe
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8528,7 +8526,7 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*ListOperationsRe
 	//       "type": "string"
 	//     },
 	//     "name": {
-	//       "description": "The name of the operation collection.",
+	//       "description": "The name of the operation's parent resource.",
 	//       "location": "path",
 	//       "pattern": "^operations$",
 	//       "required": true,
@@ -8679,7 +8677,7 @@ func (c *ReadgroupsetsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, erro
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8826,7 +8824,7 @@ func (c *ReadgroupsetsExportCall) Do(opts ...googleapi.CallOption) (*Operation, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -8976,7 +8974,7 @@ func (c *ReadgroupsetsGetCall) Do(opts ...googleapi.CallOption) (*ReadGroupSet, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9129,7 +9127,7 @@ func (c *ReadgroupsetsImportCall) Do(opts ...googleapi.CallOption) (*Operation, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9279,7 +9277,7 @@ func (c *ReadgroupsetsPatchCall) Do(opts ...googleapi.CallOption) (*ReadGroupSet
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9427,7 +9425,7 @@ func (c *ReadgroupsetsSearchCall) Do(opts ...googleapi.CallOption) (*SearchReadG
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9665,7 +9663,7 @@ func (c *ReadgroupsetsCoveragebucketsListCall) Do(opts ...googleapi.CallOption) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -9887,7 +9885,7 @@ func (c *ReadsSearchCall) Do(opts ...googleapi.CallOption) (*SearchReadsResponse
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -10054,7 +10052,7 @@ func (c *ReferencesGetCall) Do(opts ...googleapi.CallOption) (*Reference, error)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -10194,7 +10192,7 @@ func (c *ReferencesSearchCall) Do(opts ...googleapi.CallOption) (*SearchReferenc
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -10397,7 +10395,7 @@ func (c *ReferencesBasesListCall) Do(opts ...googleapi.CallOption) (*ListBasesRe
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -10593,7 +10591,7 @@ func (c *ReferencesetsGetCall) Do(opts ...googleapi.CallOption) (*ReferenceSet, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -10734,7 +10732,7 @@ func (c *ReferencesetsSearchCall) Do(opts ...googleapi.CallOption) (*SearchRefer
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -10884,7 +10882,7 @@ func (c *VariantsCreateCall) Do(opts ...googleapi.CallOption) (*Variant, error) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -11010,7 +11008,7 @@ func (c *VariantsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -11156,7 +11154,7 @@ func (c *VariantsGetCall) Do(opts ...googleapi.CallOption) (*Variant, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -11313,7 +11311,7 @@ func (c *VariantsImportCall) Do(opts ...googleapi.CallOption) (*Operation, error
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -11538,7 +11536,7 @@ func (c *VariantsMergeCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -11685,7 +11683,7 @@ func (c *VariantsPatchCall) Do(opts ...googleapi.CallOption) (*Variant, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -11833,7 +11831,7 @@ func (c *VariantsSearchCall) Do(opts ...googleapi.CallOption) (*SearchVariantsRe
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -11989,7 +11987,7 @@ func (c *VariantsetsCreateCall) Do(opts ...googleapi.CallOption) (*VariantSet, e
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -12117,7 +12115,7 @@ func (c *VariantsetsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -12256,7 +12254,7 @@ func (c *VariantsetsExportCall) Do(opts ...googleapi.CallOption) (*Operation, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -12406,7 +12404,7 @@ func (c *VariantsetsGetCall) Do(opts ...googleapi.CallOption) (*VariantSet, erro
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -12561,7 +12559,7 @@ func (c *VariantsetsPatchCall) Do(opts ...googleapi.CallOption) (*VariantSet, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -12710,7 +12708,7 @@ func (c *VariantsetsSearchCall) Do(opts ...googleapi.CallOption) (*SearchVariant
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil

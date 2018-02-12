@@ -28,7 +28,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
-	"google.golang.org/api/transport"
+	gtransport "google.golang.org/api/transport/grpc"
 	btpb "google.golang.org/genproto/googleapis/bigtable/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -44,18 +44,42 @@ type Client struct {
 	conn              *grpc.ClientConn
 	client            btpb.BigtableClient
 	project, instance string
+	// App Profiles are part of the private alpha release of Cloud Bigtable replication.
+	// This feature
+	// is not currently available to most Cloud Bigtable customers. This feature
+	// might be changed in backward-incompatible ways and is not recommended for
+	// production use. It is not subject to any SLA or deprecation policy.
+	appProfile string
+}
+
+// ClientConfig has configurations for the client.
+type ClientConfig struct {
+	// The id of the app profile to associate with all data operations sent from this client.
+	// If unspecified, the default app profile for the instance will be used.
+	AppProfile string
 }
 
 // NewClient creates a new Client for a given project and instance.
+// The default ClientConfig will be used.
 func NewClient(ctx context.Context, project, instance string, opts ...option.ClientOption) (*Client, error) {
+	return NewClientWithConfig(ctx, project, instance, ClientConfig{}, opts...)
+}
+
+func NewClientWithConfig(ctx context.Context, project, instance string, config ClientConfig, opts ...option.ClientOption) (*Client, error) {
 	o, err := btopt.DefaultClientOptions(prodAddr, Scope, clientUserAgent)
 	if err != nil {
 		return nil, err
 	}
 	// Default to a small connection pool that can be overridden.
-	o = append(o, option.WithGRPCConnectionPool(4))
+	o = append(o,
+		option.WithGRPCConnectionPool(4),
+		// Set the max size to correspond to server-side limits.
+		option.WithGRPCDialOption(grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(100<<20), grpc.MaxCallRecvMsgSize(100<<20))),
+		// TODO(grpc/grpc-go#1388) using connection pool without WithBlock
+		// can cause RPCs to fail randomly. We can delete this after the issue is fixed.
+		option.WithGRPCDialOption(grpc.WithBlock()))
 	o = append(o, opts...)
-	conn, err := transport.DialGRPC(ctx, o...)
+	conn, err := gtransport.Dial(ctx, o...)
 	if err != nil {
 		return nil, fmt.Errorf("dialing: %v", err)
 	}
@@ -73,7 +97,7 @@ func (c *Client) Close() error {
 }
 
 var (
-	idempotentRetryCodes  = []codes.Code{codes.DeadlineExceeded, codes.Unavailable, codes.Aborted,codes.Internal}
+	idempotentRetryCodes  = []codes.Code{codes.DeadlineExceeded, codes.Unavailable, codes.Aborted}
 	isIdempotentRetryCode = make(map[codes.Code]bool)
 	retryOptions          = []gax.CallOption{
 		gax.WithDelayTimeoutSettings(100*time.Millisecond, 2000*time.Millisecond, 1.2),
@@ -120,13 +144,20 @@ func (c *Client) Open(table string) *Table {
 // By default, the yielded rows will contain all values in all cells.
 // Use RowFilter to limit the cells returned.
 func (t *Table) ReadRows(ctx context.Context, arg RowSet, f func(Row) bool, opts ...ReadOption) error {
-	ctx = mergeMetadata(ctx, t.md)
+	ctx = mergeOutgoingMetadata(ctx, t.md)
 
 	var prevRowKey string
 	err := gax.Invoke(ctx, func(ctx context.Context) error {
+		if !arg.valid() {
+			// Empty row set, no need to make an API call.
+			// NOTE: we must return early if arg == RowList{} because reading
+			// an empty RowList from bigtable returns all rows from that table.
+			return nil
+		}
 		req := &btpb.ReadRowsRequest{
-			TableName: t.c.fullTableName(t.table),
-			Rows:      arg.proto(),
+			TableName:    t.c.fullTableName(t.table),
+			AppProfileId: t.c.appProfile,
+			Rows:         arg.proto(),
 		}
 		for _, opt := range opts {
 			opt.set(req)
@@ -210,13 +241,17 @@ func decodeFamilyProto(r Row, row string, f *btpb.Family) {
 	}
 }
 
-// RowSet is a set of rows to be read. It is satisfied by RowList and RowRange.
+// RowSet is a set of rows to be read. It is satisfied by RowList, RowRange and RowRangeList.
+// The serialized size of the RowSet must be no larger than 1MiB.
 type RowSet interface {
 	proto() *btpb.RowSet
 
 	// retainRowsAfter returns a new RowSet that does not include the
 	// given row key or any row key lexicographically less than it.
 	retainRowsAfter(lastRowKey string) RowSet
+
+	// Valid reports whether this set can cover at least one row.
+	valid() bool
 }
 
 // RowList is a sequence of row keys.
@@ -238,6 +273,10 @@ func (r RowList) retainRowsAfter(lastRowKey string) RowSet {
 		}
 	}
 	return retryKeys
+}
+
+func (r RowList) valid() bool {
+	return len(r) > 0
 }
 
 // A RowRange is a half-open interval [Start, Limit) encompassing
@@ -287,7 +326,7 @@ func (r RowRange) proto() *btpb.RowSet {
 }
 
 func (r RowRange) retainRowsAfter(lastRowKey string) RowSet {
-	if lastRowKey == "" {
+	if lastRowKey == "" || lastRowKey < r.start {
 		return r
 	}
 	// Set the beginning of the range to the row after the last scanned.
@@ -296,6 +335,46 @@ func (r RowRange) retainRowsAfter(lastRowKey string) RowSet {
 		return InfiniteRange(start)
 	}
 	return NewRange(start, r.limit)
+}
+
+func (r RowRange) valid() bool {
+	return r.Unbounded() || r.start < r.limit
+}
+
+// RowRangeList is a sequence of RowRanges representing the union of the ranges.
+type RowRangeList []RowRange
+
+func (r RowRangeList) proto() *btpb.RowSet {
+	ranges := make([]*btpb.RowRange, len(r))
+	for i, rr := range r {
+		// RowRange.proto() returns a RowSet with a single element RowRange array
+		ranges[i] = rr.proto().RowRanges[0]
+	}
+	return &btpb.RowSet{RowRanges: ranges}
+}
+
+func (r RowRangeList) retainRowsAfter(lastRowKey string) RowSet {
+	if lastRowKey == "" {
+		return r
+	}
+	// Return a list of any range that has not yet been completely processed
+	var ranges RowRangeList
+	for _, rr := range r {
+		retained := rr.retainRowsAfter(lastRowKey)
+		if retained.valid() {
+			ranges = append(ranges, retained.(RowRange))
+		}
+	}
+	return ranges
+}
+
+func (r RowRangeList) valid() bool {
+	for _, rr := range r {
+		if rr.valid() {
+			return true
+		}
+	}
+	return false
 }
 
 // SingleRow returns a RowSet for reading a single row.
@@ -344,6 +423,9 @@ type ReadOption interface {
 }
 
 // RowFilter returns a ReadOption that applies f to the contents of read rows.
+//
+// If multiple RowFilters are provided, only the last is used. To combine filters,
+// use ChainFilters or InterleaveFilters instead.
 func RowFilter(f Filter) ReadOption { return rowFilter{f} }
 
 type rowFilter struct{ f Filter }
@@ -373,7 +455,7 @@ func mutationsAreRetryable(muts []*btpb.Mutation) bool {
 
 // Apply applies a Mutation to a specific row.
 func (t *Table) Apply(ctx context.Context, row string, m *Mutation, opts ...ApplyOption) error {
-	ctx = mergeMetadata(ctx, t.md)
+	ctx = mergeOutgoingMetadata(ctx, t.md)
 	after := func(res proto.Message) {
 		for _, o := range opts {
 			o.after(res)
@@ -383,9 +465,10 @@ func (t *Table) Apply(ctx context.Context, row string, m *Mutation, opts ...Appl
 	var callOptions []gax.CallOption
 	if m.cond == nil {
 		req := &btpb.MutateRowRequest{
-			TableName: t.c.fullTableName(t.table),
-			RowKey:    []byte(row),
-			Mutations: m.ops,
+			TableName:    t.c.fullTableName(t.table),
+			AppProfileId: t.c.appProfile,
+			RowKey:       []byte(row),
+			Mutations:    m.ops,
 		}
 		if mutationsAreRetryable(m.ops) {
 			callOptions = retryOptions
@@ -404,13 +487,20 @@ func (t *Table) Apply(ctx context.Context, row string, m *Mutation, opts ...Appl
 
 	req := &btpb.CheckAndMutateRowRequest{
 		TableName:       t.c.fullTableName(t.table),
+		AppProfileId:    t.c.appProfile,
 		RowKey:          []byte(row),
 		PredicateFilter: m.cond.proto(),
 	}
 	if m.mtrue != nil {
+		if m.mtrue.cond != nil {
+			return errors.New("bigtable: conditional mutations cannot be nested")
+		}
 		req.TrueMutations = m.mtrue.ops
 	}
 	if m.mfalse != nil {
+		if m.mfalse.cond != nil {
+			return errors.New("bigtable: conditional mutations cannot be nested")
+		}
 		req.FalseMutations = m.mfalse.ops
 	}
 	if mutationsAreRetryable(req.TrueMutations) && mutationsAreRetryable(req.FalseMutations) {
@@ -524,7 +614,7 @@ type entryErr struct {
 	Err   error
 }
 
-// ApplyBulk applies multiple Mutations.
+// ApplyBulk applies multiple Mutations, up to a maximum of 100,000.
 // Each mutation is individually applied atomically,
 // but the set of mutations may be applied in any order.
 //
@@ -535,7 +625,7 @@ type entryErr struct {
 //
 // Conditional mutations cannot be applied in bulk and providing one will result in an error.
 func (t *Table) ApplyBulk(ctx context.Context, rowKeys []string, muts []*Mutation, opts ...ApplyOption) ([]error, error) {
-	ctx = mergeMetadata(ctx, t.md)
+	ctx = mergeOutgoingMetadata(ctx, t.md)
 	if len(rowKeys) != len(muts) {
 		return nil, fmt.Errorf("mismatched rowKeys and mutation array lengths: %d, %d", len(rowKeys), len(muts))
 	}
@@ -613,8 +703,9 @@ func (t *Table) doApplyBulk(ctx context.Context, entryErrs []*entryErr, opts ...
 		entries[i] = entryErr.Entry
 	}
 	req := &btpb.MutateRowsRequest{
-		TableName: t.c.fullTableName(t.table),
-		Entries:   entries,
+		TableName:    t.c.fullTableName(t.table),
+		AppProfileId: t.c.appProfile,
+		Entries:      entries,
 	}
 	stream, err := t.c.client.MutateRows(ctx, req)
 	if err != nil {
@@ -664,17 +755,18 @@ func (ts Timestamp) TruncateToMilliseconds() Timestamp {
 	if ts == ServerTime {
 		return ts
 	}
-	return ts - ts % 1000
+	return ts - ts%1000
 }
 
 // ApplyReadModifyWrite applies a ReadModifyWrite to a specific row.
 // It returns the newly written cells.
 func (t *Table) ApplyReadModifyWrite(ctx context.Context, row string, m *ReadModifyWrite) (Row, error) {
-	ctx = mergeMetadata(ctx, t.md)
+	ctx = mergeOutgoingMetadata(ctx, t.md)
 	req := &btpb.ReadModifyWriteRowRequest{
-		TableName: t.c.fullTableName(t.table),
-		RowKey:    []byte(row),
-		Rules:     m.ops,
+		TableName:    t.c.fullTableName(t.table),
+		AppProfileId: t.c.appProfile,
+		RowKey:       []byte(row),
+		Rules:        m.ops,
 	}
 	res, err := t.c.client.ReadModifyWriteRow(ctx, req)
 	if err != nil {
@@ -727,9 +819,9 @@ func (m *ReadModifyWrite) Increment(family, column string, delta int64) {
 	})
 }
 
-// mergeMetadata returns a context populated by the existing metadata, if any,
-// joined with internal metadata.
-func mergeMetadata(ctx context.Context, md metadata.MD) context.Context {
-	mdCopy, _ := metadata.FromContext(ctx)
-	return metadata.NewContext(ctx, metadata.Join(mdCopy, md))
+// mergeOutgoingMetadata returns a context populated by the existing outgoing metadata,
+// if any, joined with internal metadata.
+func mergeOutgoingMetadata(ctx context.Context, md metadata.MD) context.Context {
+	mdCopy, _ := metadata.FromOutgoingContext(ctx)
+	return metadata.NewOutgoingContext(ctx, metadata.Join(mdCopy, md))
 }

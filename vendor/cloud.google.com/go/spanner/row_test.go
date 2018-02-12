@@ -242,7 +242,7 @@ func TestColumnValues(t *testing.T) {
 			if err != nil {
 				t.Errorf("\t row.Column(%v, %T) returns error: %v, want nil", i, gotp.Interface(), err)
 			}
-			if got := reflect.Indirect(gotp).Interface(); !reflect.DeepEqual(got, want) {
+			if got := reflect.Indirect(gotp).Interface(); !testEqual(got, want) {
 				t.Errorf("\t row.Column(%v, %T) retrives %v, want %v", i, gotp.Interface(), got, want)
 			}
 			// ColumnByName
@@ -251,7 +251,7 @@ func TestColumnValues(t *testing.T) {
 			if err != nil {
 				t.Errorf("\t row.ColumnByName(%v, %T) returns error: %v, want nil", row.fields[i].Name, gotp.Interface(), err)
 			}
-			if got := reflect.Indirect(gotp).Interface(); !reflect.DeepEqual(got, want) {
+			if got := reflect.Indirect(gotp).Interface(); !testEqual(got, want) {
 				t.Errorf("\t row.ColumnByName(%v, %T) retrives %v, want %v", row.fields[i].Name, gotp.Interface(), got, want)
 			}
 		}
@@ -261,7 +261,7 @@ func TestColumnValues(t *testing.T) {
 		t.Errorf("row.Columns() returns error: %v, want nil", err)
 	}
 	for i, want := range wantVals {
-		if got := reflect.Indirect(reflect.ValueOf(vals[i])).Interface(); !reflect.DeepEqual(got, want) {
+		if got := reflect.Indirect(reflect.ValueOf(vals[i])).Interface(); !testEqual(got, want) {
 			t.Errorf("\t got %v(%T) for column[%v], want %v(%T)", got, got, row.fields[i].Name, want, want)
 		}
 	}
@@ -339,10 +339,10 @@ func TestNilDst(t *testing.T) {
 			})(nil)),
 		},
 	} {
-		if gotErr := test.r.Column(0, test.dst); !reflect.DeepEqual(gotErr, test.wantErr) {
+		if gotErr := test.r.Column(0, test.dst); !testEqual(gotErr, test.wantErr) {
 			t.Errorf("%v: test.r.Column() returns error %v, want %v", i, gotErr, test.wantErr)
 		}
-		if gotErr := test.r.ColumnByName("Col0", test.dst); !reflect.DeepEqual(gotErr, test.wantErr) {
+		if gotErr := test.r.ColumnByName("Col0", test.dst); !testEqual(gotErr, test.wantErr) {
 			t.Errorf("%v: test.r.ColumnByName() returns error %v, want %v", i, gotErr, test.wantErr)
 		}
 		// Row.Columns(T) should return nil on T == nil, otherwise, it should return test.wantErr.
@@ -350,10 +350,10 @@ func TestNilDst(t *testing.T) {
 		if test.dst == nil {
 			wantColumnsErr = nil
 		}
-		if gotErr := test.r.Columns(test.dst); !reflect.DeepEqual(gotErr, wantColumnsErr) {
+		if gotErr := test.r.Columns(test.dst); !testEqual(gotErr, wantColumnsErr) {
 			t.Errorf("%v: test.r.Columns() returns error %v, want %v", i, gotErr, wantColumnsErr)
 		}
-		if gotErr := test.r.ToStruct(test.structDst); !reflect.DeepEqual(gotErr, test.wantToStructErr) {
+		if gotErr := test.r.ToStruct(test.structDst); !testEqual(gotErr, test.wantToStructErr) {
 			t.Errorf("%v: test.r.ToStruct() returns error %v, want %v", i, gotErr, test.wantToStructErr)
 		}
 	}
@@ -401,7 +401,7 @@ func TestNullTypeErr(t *testing.T) {
 		},
 	} {
 		wantErr := errDecodeColumn(ntoi(test.colName), errDstNotForNull(test.dst))
-		if gotErr := row.ColumnByName(test.colName, test.dst); !reflect.DeepEqual(gotErr, wantErr) {
+		if gotErr := row.ColumnByName(test.colName, test.dst); !testEqual(gotErr, wantErr) {
 			t.Errorf("row.ColumnByName(%v) returns error %v, want %v", test.colName, gotErr, wantErr)
 		}
 	}
@@ -413,28 +413,28 @@ func TestColumnTypeErr(t *testing.T) {
 	badDst := &struct{}{}
 	for i, f := range row.fields { // For each of the columns, try to decode it into badDst.
 		tc := f.Type.Code
-		isArray := strings.Contains(f.Name, "ARRAY")
-		if isArray {
-			tc = f.Type.ArrayElementType.Code
+		var etc sppb.TypeCode
+		if strings.Contains(f.Name, "ARRAY") {
+			etc = f.Type.ArrayElementType.Code
 		}
-		wantErr := errDecodeColumn(i, errTypeMismatch(tc, isArray, badDst))
-		if gotErr := row.Column(i, badDst); !reflect.DeepEqual(gotErr, wantErr) {
+		wantErr := errDecodeColumn(i, errTypeMismatch(tc, etc, badDst))
+		if gotErr := row.Column(i, badDst); !testEqual(gotErr, wantErr) {
 			t.Errorf("Column(%v): decoding into destination with wrong type %T returns error %v, want %v",
 				i, badDst, gotErr, wantErr)
 		}
-		if gotErr := row.ColumnByName(f.Name, badDst); !reflect.DeepEqual(gotErr, wantErr) {
+		if gotErr := row.ColumnByName(f.Name, badDst); !testEqual(gotErr, wantErr) {
 			t.Errorf("ColumnByName(%v): decoding into destination with wrong type %T returns error %v, want %v",
 				f.Name, badDst, gotErr, wantErr)
 		}
 	}
-	wantErr := errDecodeColumn(1, errTypeMismatch(sppb.TypeCode_STRING, false, badDst))
+	wantErr := errDecodeColumn(1, errTypeMismatch(sppb.TypeCode_STRING, sppb.TypeCode_TYPE_CODE_UNSPECIFIED, badDst))
 	// badDst is used to receive column 1.
 	vals := []interface{}{nil, badDst} // Row.Column() is expected to fail at column 1.
 	// Skip decoding the rest columns by providing nils as the destinations.
 	for i := 2; i < len(row.fields); i++ {
 		vals = append(vals, nil)
 	}
-	if gotErr := row.Columns(vals...); !reflect.DeepEqual(gotErr, wantErr) {
+	if gotErr := row.Columns(vals...); !testEqual(gotErr, wantErr) {
 		t.Errorf("Columns(): decoding column 1 with wrong type %T returns error %v, want %v",
 			badDst, gotErr, wantErr)
 	}
@@ -522,7 +522,7 @@ func TestInvalidColumnRequest(t *testing.T) {
 			errUnnamedField(&sppb.StructType{Fields: []*sppb.StructType_Field{{"", stringType()}}}, 0),
 		},
 	} {
-		if gotErr := test.f(); !reflect.DeepEqual(gotErr, test.wantErr) {
+		if gotErr := test.f(); !testEqual(gotErr, test.wantErr) {
 			t.Errorf("%v: test.f() returns error %v, want %v", test.desc, gotErr, test.wantErr)
 		}
 	}
@@ -571,10 +571,10 @@ func TestToStructInvalidDst(t *testing.T) {
 				PK1 int64 `spanner:"STRING"`
 			}{},
 			errDecodeStructField(&sppb.StructType{Fields: row.fields}, "STRING",
-				errTypeMismatch(sppb.TypeCode_STRING, false, proto.Int64(0))),
+				errTypeMismatch(sppb.TypeCode_STRING, sppb.TypeCode_TYPE_CODE_UNSPECIFIED, proto.Int64(0))),
 		},
 	} {
-		if gotErr := row.ToStruct(test.dst); !reflect.DeepEqual(gotErr, test.wantErr) {
+		if gotErr := row.ToStruct(test.dst); !testEqual(gotErr, test.wantErr) {
 			t.Errorf("%v: decoding:\ngot  %v\nwant %v", test.desc, gotErr, test.wantErr)
 		}
 	}
@@ -1560,13 +1560,13 @@ func TestBrokenRow(t *testing.T) {
 			),
 		},
 	} {
-		if gotErr := test.row.Column(0, test.dst); !reflect.DeepEqual(gotErr, test.wantErr) {
+		if gotErr := test.row.Column(0, test.dst); !testEqual(gotErr, test.wantErr) {
 			t.Errorf("%v: test.row.Column(0) got error %v, want %v", i, gotErr, test.wantErr)
 		}
-		if gotErr := test.row.ColumnByName("Col0", test.dst); !reflect.DeepEqual(gotErr, test.wantErr) {
+		if gotErr := test.row.ColumnByName("Col0", test.dst); !testEqual(gotErr, test.wantErr) {
 			t.Errorf("%v: test.row.ColumnByName(%q) got error %v, want %v", i, "Col0", gotErr, test.wantErr)
 		}
-		if gotErr := test.row.Columns(test.dst); !reflect.DeepEqual(gotErr, test.wantErr) {
+		if gotErr := test.row.Columns(test.dst); !testEqual(gotErr, test.wantErr) {
 			t.Errorf("%v: test.row.Columns(%T) got error %v, want %v", i, test.dst, gotErr, test.wantErr)
 		}
 	}
@@ -1684,9 +1684,36 @@ func TestToStruct(t *testing.T) {
 	err := row.ToStruct(&s[0])
 	if err != nil {
 		t.Errorf("row.ToStruct() returns error: %v, want nil", err)
-	}
-	if !reflect.DeepEqual(s[0], s[1]) {
+	} else if !testEqual(s[0], s[1]) {
 		t.Errorf("row.ToStruct() fetches struct %v, want %v", s[0], s[1])
+	}
+}
+
+func TestToStructEmbedded(t *testing.T) {
+	type (
+		S1 struct{ F1 string }
+		S2 struct {
+			S1
+			F2 string
+		}
+	)
+	r := Row{
+		[]*sppb.StructType_Field{
+			{"F1", stringType()},
+			{"F2", stringType()},
+		},
+		[]*proto3.Value{
+			stringProto("v1"),
+			stringProto("v2"),
+		},
+	}
+	var got S2
+	if err := r.ToStruct(&got); err != nil {
+		t.Fatal(err)
+	}
+	want := S2{S1: S1{F1: "v1"}, F2: "v2"}
+	if !testEqual(got, want) {
+		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
 
@@ -1763,13 +1790,22 @@ func TestNewRow(t *testing.T) {
 		},
 	} {
 		got, err := NewRow(test.names, test.values)
-		if !reflect.DeepEqual(err, test.wantErr) {
+		if !testEqual(err, test.wantErr) {
 			t.Errorf("NewRow(%v,%v).err = %s, want %s", test.names, test.values, err, test.wantErr)
 			continue
 		}
-		if !reflect.DeepEqual(got, test.want) {
+		if !testEqual(got, test.want) {
 			t.Errorf("NewRow(%v,%v) = %s, want %s", test.names, test.values, got, test.want)
 			continue
+		}
+	}
+}
+
+func BenchmarkColumn(b *testing.B) {
+	var s string
+	for i := 0; i < b.N; i++ {
+		if err := row.Column(0, &s); err != nil {
+			b.Fatal(err)
 		}
 	}
 }

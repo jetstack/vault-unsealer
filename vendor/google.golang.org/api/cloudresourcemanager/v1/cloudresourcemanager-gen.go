@@ -158,8 +158,8 @@ type Ancestor struct {
 }
 
 func (s *Ancestor) MarshalJSON() ([]byte, error) {
-	type noMethod Ancestor
-	raw := noMethod(*s)
+	type NoMethod Ancestor
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -175,7 +175,7 @@ func (s *Ancestor) MarshalJSON() ([]byte, error) {
 // log_types
 // specified in each AuditConfig are enabled, and the exempted_members
 // in each
-// AuditConfig are exempted.
+// AuditLogConfig are exempted.
 //
 // Example Policy with multiple AuditConfigs:
 //
@@ -252,8 +252,8 @@ type AuditConfig struct {
 }
 
 func (s *AuditConfig) MarshalJSON() ([]byte, error) {
-	type noMethod AuditConfig
-	raw := noMethod(*s)
+	type NoMethod AuditConfig
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -313,8 +313,8 @@ type AuditLogConfig struct {
 }
 
 func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
-	type noMethod AuditLogConfig
-	raw := noMethod(*s)
+	type NoMethod AuditLogConfig
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -345,6 +345,7 @@ type Binding struct {
 	// * `group:{emailid}`: An email address that represents a Google
 	// group.
 	//    For example, `admins@example.com`.
+	//
 	//
 	// * `domain:{domain}`: A Google Apps domain name that represents all
 	// the
@@ -378,8 +379,8 @@ type Binding struct {
 }
 
 func (s *Binding) MarshalJSON() ([]byte, error) {
-	type noMethod Binding
-	raw := noMethod(*s)
+	type NoMethod Binding
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -473,8 +474,8 @@ type BooleanPolicy struct {
 }
 
 func (s *BooleanPolicy) MarshalJSON() ([]byte, error) {
-	type noMethod BooleanPolicy
-	raw := noMethod(*s)
+	type NoMethod BooleanPolicy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -506,8 +507,8 @@ type ClearOrgPolicyRequest struct {
 }
 
 func (s *ClearOrgPolicyRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ClearOrgPolicyRequest
-	raw := noMethod(*s)
+	type NoMethod ClearOrgPolicyRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -597,8 +598,8 @@ type Constraint struct {
 }
 
 func (s *Constraint) MarshalJSON() ([]byte, error) {
-	type noMethod Constraint
-	raw := noMethod(*s)
+	type NoMethod Constraint
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -661,8 +662,8 @@ type FolderOperation struct {
 }
 
 func (s *FolderOperation) MarshalJSON() ([]byte, error) {
-	type noMethod FolderOperation
-	raw := noMethod(*s)
+	type NoMethod FolderOperation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -673,22 +674,23 @@ type FolderOperationError struct {
 	// Possible values:
 	//   "ERROR_TYPE_UNSPECIFIED" - The error type was unrecognized or
 	// unspecified.
-	//   "FOLDER_HEIGHT_VIOLATION" - The attempted action would violate the
-	// max folder depth constraint.
+	//   "ACTIVE_FOLDER_HEIGHT_VIOLATION" - The attempted action would
+	// violate the max folder depth constraint.
 	//   "MAX_CHILD_FOLDERS_VIOLATION" - The attempted action would violate
 	// the max child folders constraint.
 	//   "FOLDER_NAME_UNIQUENESS_VIOLATION" - The attempted action would
 	// violate the locally-unique folder
 	// display_name constraint.
-	//   "RESOURCE_DELETED" - The resource being moved has been deleted.
-	//   "PARENT_DELETED" - The resource a folder was being added to has
-	// been deleted.
-	//   "CYCLE_INTRODUCED_ERROR" - The attempted action would introduce
+	//   "RESOURCE_DELETED_VIOLATION" - The resource being moved has been
+	// deleted.
+	//   "PARENT_DELETED_VIOLATION" - The resource a folder was being added
+	// to has been deleted.
+	//   "CYCLE_INTRODUCED_VIOLATION" - The attempted action would introduce
 	// cycle in resource path.
-	//   "FOLDER_BEING_MOVED" - The attempted action would move a folder
-	// that is already being moved.
-	//   "FOLDER_TO_DELETE_NON_EMPTY" - The folder the caller is trying to
-	// delete contains active resources.
+	//   "FOLDER_BEING_MOVED_VIOLATION" - The attempted action would move a
+	// folder that is already being moved.
+	//   "FOLDER_TO_DELETE_NON_EMPTY_VIOLATION" - The folder the caller is
+	// trying to delete contains active resources.
 	//   "DELETED_FOLDER_HEIGHT_VIOLATION" - The attempted action would
 	// violate the max deleted folder depth
 	// constraint.
@@ -713,8 +715,8 @@ type FolderOperationError struct {
 }
 
 func (s *FolderOperationError) MarshalJSON() ([]byte, error) {
-	type noMethod FolderOperationError
-	raw := noMethod(*s)
+	type NoMethod FolderOperationError
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -755,8 +757,8 @@ type GetAncestryResponse struct {
 }
 
 func (s *GetAncestryResponse) MarshalJSON() ([]byte, error) {
-	type noMethod GetAncestryResponse
-	raw := noMethod(*s)
+	type NoMethod GetAncestryResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -785,8 +787,8 @@ type GetEffectiveOrgPolicyRequest struct {
 }
 
 func (s *GetEffectiveOrgPolicyRequest) MarshalJSON() ([]byte, error) {
-	type noMethod GetEffectiveOrgPolicyRequest
-	raw := noMethod(*s)
+	type NoMethod GetEffectiveOrgPolicyRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -817,8 +819,8 @@ type GetOrgPolicyRequest struct {
 }
 
 func (s *GetOrgPolicyRequest) MarshalJSON() ([]byte, error) {
-	type noMethod GetOrgPolicyRequest
-	raw := noMethod(*s)
+	type NoMethod GetOrgPolicyRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -892,8 +894,8 @@ type Lien struct {
 }
 
 func (s *Lien) MarshalJSON() ([]byte, error) {
-	type noMethod Lien
-	raw := noMethod(*s)
+	type NoMethod Lien
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -933,8 +935,8 @@ type ListAvailableOrgPolicyConstraintsRequest struct {
 }
 
 func (s *ListAvailableOrgPolicyConstraintsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ListAvailableOrgPolicyConstraintsRequest
-	raw := noMethod(*s)
+	type NoMethod ListAvailableOrgPolicyConstraintsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -976,8 +978,8 @@ type ListAvailableOrgPolicyConstraintsResponse struct {
 }
 
 func (s *ListAvailableOrgPolicyConstraintsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListAvailableOrgPolicyConstraintsResponse
-	raw := noMethod(*s)
+	type NoMethod ListAvailableOrgPolicyConstraintsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1009,8 +1011,8 @@ type ListConstraint struct {
 }
 
 func (s *ListConstraint) MarshalJSON() ([]byte, error) {
-	type noMethod ListConstraint
-	raw := noMethod(*s)
+	type NoMethod ListConstraint
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1046,8 +1048,8 @@ type ListLiensResponse struct {
 }
 
 func (s *ListLiensResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListLiensResponse
-	raw := noMethod(*s)
+	type NoMethod ListLiensResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1085,8 +1087,8 @@ type ListOrgPoliciesRequest struct {
 }
 
 func (s *ListOrgPoliciesRequest) MarshalJSON() ([]byte, error) {
-	type noMethod ListOrgPoliciesRequest
-	raw := noMethod(*s)
+	type NoMethod ListOrgPoliciesRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1126,8 +1128,8 @@ type ListOrgPoliciesResponse struct {
 }
 
 func (s *ListOrgPoliciesResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListOrgPoliciesResponse
-	raw := noMethod(*s)
+	type NoMethod ListOrgPoliciesResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1158,9 +1160,9 @@ type ListPolicy struct {
 	//   "DENY" - A policy with this set denies all values.
 	AllValues string `json:"allValues,omitempty"`
 
-	// AllowedValues: List of values allowed  at this resource. an only be
-	// set if no values are
-	// set for `denied_values` and `all_values` is set
+	// AllowedValues: List of values allowed  at this resource. Can only be
+	// set if no values
+	// are set for `denied_values` and `all_values` is set
 	// to
 	// `ALL_VALUES_UNSPECIFIED`.
 	AllowedValues []string `json:"allowedValues,omitempty"`
@@ -1304,8 +1306,8 @@ type ListPolicy struct {
 }
 
 func (s *ListPolicy) MarshalJSON() ([]byte, error) {
-	type noMethod ListPolicy
-	raw := noMethod(*s)
+	type NoMethod ListPolicy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1364,8 +1366,8 @@ type ListProjectsResponse struct {
 }
 
 func (s *ListProjectsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod ListProjectsResponse
-	raw := noMethod(*s)
+	type NoMethod ListProjectsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1375,8 +1377,8 @@ func (s *ListProjectsResponse) MarshalJSON() ([]byte, error) {
 type Operation struct {
 	// Done: If the value is `false`, it means the operation is still in
 	// progress.
-	// If true, the operation is completed, and either `error` or `response`
-	// is
+	// If `true`, the operation is completed, and either `error` or
+	// `response` is
 	// available.
 	Done bool `json:"done,omitempty"`
 
@@ -1439,8 +1441,8 @@ type Operation struct {
 }
 
 func (s *Operation) MarshalJSON() ([]byte, error) {
-	type noMethod Operation
-	raw := noMethod(*s)
+	type NoMethod Operation
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1526,8 +1528,8 @@ type OrgPolicy struct {
 }
 
 func (s *OrgPolicy) MarshalJSON() ([]byte, error) {
-	type noMethod OrgPolicy
-	raw := noMethod(*s)
+	type NoMethod OrgPolicy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1595,8 +1597,8 @@ type Organization struct {
 }
 
 func (s *Organization) MarshalJSON() ([]byte, error) {
-	type noMethod Organization
-	raw := noMethod(*s)
+	type NoMethod Organization
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1631,8 +1633,8 @@ type OrganizationOwner struct {
 }
 
 func (s *OrganizationOwner) MarshalJSON() ([]byte, error) {
-	type noMethod OrganizationOwner
-	raw := noMethod(*s)
+	type NoMethod OrganizationOwner
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1671,15 +1673,13 @@ func (s *OrganizationOwner) MarshalJSON() ([]byte, error) {
 //     }
 //
 // For a description of IAM and its features, see the
-// [IAM developer's guide](https://cloud.google.com/iam).
+// [IAM developer's guide](https://cloud.google.com/iam/docs).
 type Policy struct {
 	// AuditConfigs: Specifies cloud audit logging configuration for this
 	// policy.
 	AuditConfigs []*AuditConfig `json:"auditConfigs,omitempty"`
 
 	// Bindings: Associates a list of `members` to a `role`.
-	// Multiple `bindings` must not be specified for the same
-	// `role`.
 	// `bindings` with no members will result in an error.
 	Bindings []*Binding `json:"bindings,omitempty"`
 
@@ -1703,7 +1703,7 @@ type Policy struct {
 	// policy is overwritten blindly.
 	Etag string `json:"etag,omitempty"`
 
-	// Version: Version of the `Policy`. The default version is 0.
+	// Version: Deprecated.
 	Version int64 `json:"version,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -1728,8 +1728,8 @@ type Policy struct {
 }
 
 func (s *Policy) MarshalJSON() ([]byte, error) {
-	type noMethod Policy
-	raw := noMethod(*s)
+	type NoMethod Policy
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1797,10 +1797,10 @@ type Project struct {
 
 	// Parent: An optional reference to a parent Resource.
 	//
-	// The only supported parent type is "organization". Once set, the
-	// parent
-	// cannot be modified. The `parent` can be set on creation or using
+	// Supported parent types include "organization" and "folder". Once set,
 	// the
+	// parent cannot be cleared. The `parent` can be set on creation or
+	// using the
 	// `UpdateProject` method; the end user must have
 	// the
 	// `resourcemanager.projects.create` permission on the
@@ -1846,8 +1846,8 @@ type Project struct {
 }
 
 func (s *Project) MarshalJSON() ([]byte, error) {
-	type noMethod Project
-	raw := noMethod(*s)
+	type NoMethod Project
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1888,8 +1888,8 @@ type ProjectCreationStatus struct {
 }
 
 func (s *ProjectCreationStatus) MarshalJSON() ([]byte, error) {
-	type noMethod ProjectCreationStatus
-	raw := noMethod(*s)
+	type NoMethod ProjectCreationStatus
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -1929,8 +1929,8 @@ type ResourceId struct {
 }
 
 func (s *ResourceId) MarshalJSON() ([]byte, error) {
-	type noMethod ResourceId
-	raw := noMethod(*s)
+	type NoMethod ResourceId
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2012,8 +2012,8 @@ type SearchOrganizationsRequest struct {
 }
 
 func (s *SearchOrganizationsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SearchOrganizationsRequest
-	raw := noMethod(*s)
+	type NoMethod SearchOrganizationsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2058,8 +2058,8 @@ type SearchOrganizationsResponse struct {
 }
 
 func (s *SearchOrganizationsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod SearchOrganizationsResponse
-	raw := noMethod(*s)
+	type NoMethod SearchOrganizationsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2100,8 +2100,8 @@ type SetIamPolicyRequest struct {
 }
 
 func (s *SetIamPolicyRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SetIamPolicyRequest
-	raw := noMethod(*s)
+	type NoMethod SetIamPolicyRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2129,8 +2129,8 @@ type SetOrgPolicyRequest struct {
 }
 
 func (s *SetOrgPolicyRequest) MarshalJSON() ([]byte, error) {
-	type noMethod SetOrgPolicyRequest
-	raw := noMethod(*s)
+	type NoMethod SetOrgPolicyRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2162,7 +2162,7 @@ func (s *SetOrgPolicyRequest) MarshalJSON() ([]byte, error) {
 // arbitrary
 // information about the error. There is a predefined set of error
 // detail types
-// in the package `google.rpc` which can be used for common error
+// in the package `google.rpc` that can be used for common error
 // conditions.
 //
 // # Language mapping
@@ -2195,7 +2195,7 @@ func (s *SetOrgPolicyRequest) MarshalJSON() ([]byte, error) {
 //
 // - Workflow errors. A typical workflow has multiple steps. Each step
 // may
-//     have a `Status` message for error reporting purpose.
+//     have a `Status` message for error reporting.
 //
 // - Batch operations. If a client uses batch request and batch
 // response, the
@@ -2218,9 +2218,9 @@ type Status struct {
 	// google.rpc.Code.
 	Code int64 `json:"code,omitempty"`
 
-	// Details: A list of messages that carry the error details.  There will
-	// be a
-	// common set of message types for APIs to use.
+	// Details: A list of messages that carry the error details.  There is a
+	// common set of
+	// message types for APIs to use.
 	Details []googleapi.RawMessage `json:"details,omitempty"`
 
 	// Message: A developer-facing error message, which should be in
@@ -2248,8 +2248,8 @@ type Status struct {
 }
 
 func (s *Status) MarshalJSON() ([]byte, error) {
-	type noMethod Status
-	raw := noMethod(*s)
+	type NoMethod Status
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2283,8 +2283,8 @@ type TestIamPermissionsRequest struct {
 }
 
 func (s *TestIamPermissionsRequest) MarshalJSON() ([]byte, error) {
-	type noMethod TestIamPermissionsRequest
-	raw := noMethod(*s)
+	type NoMethod TestIamPermissionsRequest
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2318,8 +2318,8 @@ type TestIamPermissionsResponse struct {
 }
 
 func (s *TestIamPermissionsResponse) MarshalJSON() ([]byte, error) {
-	type noMethod TestIamPermissionsResponse
-	raw := noMethod(*s)
+	type NoMethod TestIamPermissionsResponse
+	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
@@ -2429,7 +2429,7 @@ func (c *FoldersClearOrgPolicyCall) Do(opts ...googleapi.CallOption) (*Empty, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2569,7 +2569,7 @@ func (c *FoldersGetEffectiveOrgPolicyCall) Do(opts ...googleapi.CallOption) (*Or
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2713,7 +2713,7 @@ func (c *FoldersGetOrgPolicyCall) Do(opts ...googleapi.CallOption) (*OrgPolicy, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -2852,7 +2852,7 @@ func (c *FoldersListAvailableOrgPolicyConstraintsCall) Do(opts ...googleapi.Call
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3010,7 +3010,7 @@ func (c *FoldersListOrgPoliciesCall) Do(opts ...googleapi.CallOption) (*ListOrgP
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3173,7 +3173,7 @@ func (c *FoldersSetOrgPolicyCall) Do(opts ...googleapi.CallOption) (*OrgPolicy, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3313,7 +3313,7 @@ func (c *LiensCreateCall) Do(opts ...googleapi.CallOption) (*Lien, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3438,7 +3438,7 @@ func (c *LiensDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3602,7 +3602,7 @@ func (c *LiensListCall) Do(opts ...googleapi.CallOption) (*ListLiensResponse, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3774,7 +3774,7 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -3907,7 +3907,7 @@ func (c *OrganizationsClearOrgPolicyCall) Do(opts ...googleapi.CallOption) (*Emp
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4050,7 +4050,7 @@ func (c *OrganizationsGetCall) Do(opts ...googleapi.CallOption) (*Organization, 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4188,7 +4188,7 @@ func (c *OrganizationsGetEffectiveOrgPolicyCall) Do(opts ...googleapi.CallOption
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4239,7 +4239,13 @@ type OrganizationsGetIamPolicyCall struct {
 // resource. May be empty
 // if no such policy or resource exists. The `resource` field should be
 // the
-// organization's resource name, e.g. "organizations/123".
+// organization's resource name, e.g.
+// "organizations/123".
+//
+// Authorization requires the Google IAM
+// permission
+// `resourcemanager.organizations.getIamPolicy` on the specified
+// organization
 func (r *OrganizationsService) GetIamPolicy(resource string, getiampolicyrequest *GetIamPolicyRequest) *OrganizationsGetIamPolicyCall {
 	c := &OrganizationsGetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.resource = resource
@@ -4328,12 +4334,12 @@ func (c *OrganizationsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Polic
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets the access control policy for an Organization resource. May be empty\nif no such policy or resource exists. The `resource` field should be the\norganization's resource name, e.g. \"organizations/123\".",
+	//   "description": "Gets the access control policy for an Organization resource. May be empty\nif no such policy or resource exists. The `resource` field should be the\norganization's resource name, e.g. \"organizations/123\".\n\nAuthorization requires the Google IAM permission\n`resourcemanager.organizations.getIamPolicy` on the specified organization",
 	//   "flatPath": "v1/organizations/{organizationsId}:getIamPolicy",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.organizations.getIamPolicy",
@@ -4472,7 +4478,7 @@ func (c *OrganizationsGetOrgPolicyCall) Do(opts ...googleapi.CallOption) (*OrgPo
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4611,7 +4617,7 @@ func (c *OrganizationsListAvailableOrgPolicyConstraintsCall) Do(opts ...googleap
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4769,7 +4775,7 @@ func (c *OrganizationsListOrgPoliciesCall) Do(opts ...googleapi.CallOption) (*Li
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -4843,6 +4849,10 @@ type OrganizationsSearchCall struct {
 // order. New Organizations do not necessarily appear at the end of
 // the
 // results.
+//
+// Search will only return organizations on which the user has the
+// permission
+// `resourcemanager.organizations.get`
 func (r *OrganizationsService) Search(searchorganizationsrequest *SearchOrganizationsRequest) *OrganizationsSearchCall {
 	c := &OrganizationsSearchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.searchorganizationsrequest = searchorganizationsrequest
@@ -4927,12 +4937,12 @@ func (c *OrganizationsSearchCall) Do(opts ...googleapi.CallOption) (*SearchOrgan
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Searches Organization resources that are visible to the user and satisfy\nthe specified filter. This method returns Organizations in an unspecified\norder. New Organizations do not necessarily appear at the end of the\nresults.",
+	//   "description": "Searches Organization resources that are visible to the user and satisfy\nthe specified filter. This method returns Organizations in an unspecified\norder. New Organizations do not necessarily appear at the end of the\nresults.\n\nSearch will only return organizations on which the user has the permission\n`resourcemanager.organizations.get`",
 	//   "flatPath": "v1/organizations:search",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.organizations.search",
@@ -4990,6 +5000,11 @@ type OrganizationsSetIamPolicyCall struct {
 // existing policy. The `resource` field should be the organization's
 // resource
 // name, e.g. "organizations/123".
+//
+// Authorization requires the Google IAM
+// permission
+// `resourcemanager.organizations.setIamPolicy` on the specified
+// organization
 func (r *OrganizationsService) SetIamPolicy(resource string, setiampolicyrequest *SetIamPolicyRequest) *OrganizationsSetIamPolicyCall {
 	c := &OrganizationsSetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.resource = resource
@@ -5078,12 +5093,12 @@ func (c *OrganizationsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Polic
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Sets the access control policy on an Organization resource. Replaces any\nexisting policy. The `resource` field should be the organization's resource\nname, e.g. \"organizations/123\".",
+	//   "description": "Sets the access control policy on an Organization resource. Replaces any\nexisting policy. The `resource` field should be the organization's resource\nname, e.g. \"organizations/123\".\n\nAuthorization requires the Google IAM permission\n`resourcemanager.organizations.setIamPolicy` on the specified organization",
 	//   "flatPath": "v1/organizations/{organizationsId}:setIamPolicy",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.organizations.setIamPolicy",
@@ -5219,7 +5234,7 @@ func (c *OrganizationsSetOrgPolicyCall) Do(opts ...googleapi.CallOption) (*OrgPo
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5269,6 +5284,8 @@ type OrganizationsTestIamPermissionsCall struct {
 // specified Organization.
 // The `resource` field should be the organization's resource name,
 // e.g. "organizations/123".
+//
+// There are no permissions required for making this API call.
 func (r *OrganizationsService) TestIamPermissions(resource string, testiampermissionsrequest *TestIamPermissionsRequest) *OrganizationsTestIamPermissionsCall {
 	c := &OrganizationsTestIamPermissionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.resource = resource
@@ -5357,12 +5374,12 @@ func (c *OrganizationsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Returns permissions that a caller has on the specified Organization.\nThe `resource` field should be the organization's resource name,\ne.g. \"organizations/123\".",
+	//   "description": "Returns permissions that a caller has on the specified Organization.\nThe `resource` field should be the organization's resource name,\ne.g. \"organizations/123\".\n\nThere are no permissions required for making this API call.",
 	//   "flatPath": "v1/organizations/{organizationsId}:testIamPermissions",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.organizations.testIamPermissions",
@@ -5493,7 +5510,7 @@ func (c *ProjectsClearOrgPolicyCall) Do(opts ...googleapi.CallOption) (*Empty, e
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5551,6 +5568,12 @@ type ProjectsCreateCall struct {
 // latency. 95th percentile latency is around 11 seconds. We
 // recommend
 // polling at the 5th second with an exponential backoff.
+//
+// Authorization requires the Google IAM
+// permission
+// `resourcemanager.projects.create` on the specified parent for the
+// new
+// project.
 func (r *ProjectsService) Create(project *Project) *ProjectsCreateCall {
 	c := &ProjectsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.project = project
@@ -5635,12 +5658,12 @@ func (c *ProjectsCreateCall) Do(opts ...googleapi.CallOption) (*Operation, error
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Request that a new Project be created. The result is an Operation which\ncan be used to track the creation process. It is automatically deleted\nafter a few hours, so there is no need to call DeleteOperation.\n\nOur SLO permits Project creation to take up to 30 seconds at the 90th\npercentile. As of 2016-08-29, we are observing 6 seconds 50th percentile\nlatency. 95th percentile latency is around 11 seconds. We recommend\npolling at the 5th second with an exponential backoff.",
+	//   "description": "Request that a new Project be created. The result is an Operation which\ncan be used to track the creation process. It is automatically deleted\nafter a few hours, so there is no need to call DeleteOperation.\n\nOur SLO permits Project creation to take up to 30 seconds at the 90th\npercentile. As of 2016-08-29, we are observing 6 seconds 50th percentile\nlatency. 95th percentile latency is around 11 seconds. We recommend\npolling at the 5th second with an exponential backoff.\n\nAuthorization requires the Google IAM permission\n`resourcemanager.projects.create` on the specified parent for the new\nproject.",
 	//   "flatPath": "v1/projects",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.projects.create",
@@ -5778,7 +5801,7 @@ func (c *ProjectsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -5919,7 +5942,7 @@ func (c *ProjectsGetCall) Do(opts ...googleapi.CallOption) (*Project, error) {
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6056,7 +6079,7 @@ func (c *ProjectsGetAncestryCall) Do(opts ...googleapi.CallOption) (*GetAncestry
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6196,7 +6219,7 @@ func (c *ProjectsGetEffectiveOrgPolicyCall) Do(opts ...googleapi.CallOption) (*O
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6245,7 +6268,16 @@ type ProjectsGetIamPolicyCall struct {
 
 // GetIamPolicy: Returns the IAM access control policy for the specified
 // Project.
-// Permission is denied if the policy or the resource does not exist.
+// Permission is denied if the policy or the resource does not
+// exist.
+//
+// Authorization requires the Google IAM
+// permission
+// `resourcemanager.projects.getIamPolicy` on the project.
+//
+// For additional information about resource structure and
+// identification,
+// see [Resource Names](/apis/design/resource_names).
 func (r *ProjectsService) GetIamPolicy(resource string, getiampolicyrequest *GetIamPolicyRequest) *ProjectsGetIamPolicyCall {
 	c := &ProjectsGetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.resource = resource
@@ -6334,12 +6366,12 @@ func (c *ProjectsGetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Returns the IAM access control policy for the specified Project.\nPermission is denied if the policy or the resource does not exist.",
+	//   "description": "Returns the IAM access control policy for the specified Project.\nPermission is denied if the policy or the resource does not exist.\n\nAuthorization requires the Google IAM permission\n`resourcemanager.projects.getIamPolicy` on the project.\n\nFor additional information about resource structure and identification,\nsee [Resource Names](/apis/design/resource_names).",
 	//   "flatPath": "v1/projects/{resource}:getIamPolicy",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.projects.getIamPolicy",
@@ -6477,7 +6509,7 @@ func (c *ProjectsGetOrgPolicyCall) Do(opts ...googleapi.CallOption) (*OrgPolicy,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6527,7 +6559,14 @@ type ProjectsListCall struct {
 // the
 // specified filter. This method returns Projects in an unspecified
 // order.
-// New Projects do not necessarily appear at the end of the list.
+// This method is eventually consistent with project mutations; this
+// means
+// that a newly created project may not appear in the results or
+// recent
+// updates to an existing project may not be reflected in the results.
+// To
+// retrieve the latest state of a project, use the
+// GetProject method.
 func (r *ProjectsService) List() *ProjectsListCall {
 	c := &ProjectsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	return c
@@ -6557,8 +6596,24 @@ func (r *ProjectsService) List() *ProjectsListCall {
 // |labels.color:red|The project's label `color` has the value
 // `red`.|
 // |labels.color:red&nbsp;labels.size:big|The project's label `color`
-// has the
-// value `red` and its label `size` has the value `big`.
+// has the value `red` and its label `size` has the value `big`.
+//
+// If you specify a filter that has both `parent.type` and `parent.id`,
+// then
+// the `resourcemanager.projects.list` permission is checked on the
+// parent.
+// If the user has this permission, all projects under the parent will
+// be
+// returned after remaining filters have been applied. If the user lacks
+// this
+// permission, then all projects for which the user has
+// the
+// `resourcemanager.projects.get` permission will be returned after
+// remaining
+// filters have been applied. If no filter is specified, the call will
+// return
+// projects for which the user has `resourcemanager.projects.get`
+// permissions.
 func (c *ProjectsListCall) Filter(filter string) *ProjectsListCall {
 	c.urlParams_.Set("filter", filter)
 	return c
@@ -6667,19 +6722,19 @@ func (c *ProjectsListCall) Do(opts ...googleapi.CallOption) (*ListProjectsRespon
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists Projects that are visible to the user and satisfy the\nspecified filter. This method returns Projects in an unspecified order.\nNew Projects do not necessarily appear at the end of the list.",
+	//   "description": "Lists Projects that are visible to the user and satisfy the\nspecified filter. This method returns Projects in an unspecified order.\nThis method is eventually consistent with project mutations; this means\nthat a newly created project may not appear in the results or recent\nupdates to an existing project may not be reflected in the results. To\nretrieve the latest state of a project, use the\nGetProject method.",
 	//   "flatPath": "v1/projects",
 	//   "httpMethod": "GET",
 	//   "id": "cloudresourcemanager.projects.list",
 	//   "parameterOrder": [],
 	//   "parameters": {
 	//     "filter": {
-	//       "description": "An expression for filtering the results of the request.  Filter rules are\ncase insensitive. The fields eligible for filtering are:\n\n+ `name`\n+ `id`\n+ \u003ccode\u003elabels.\u003cem\u003ekey\u003c/em\u003e\u003c/code\u003e where *key* is the name of a label\n\nSome examples of using labels as filters:\n\n|Filter|Description|\n|------|-----------|\n|name:how*|The project's name starts with \"how\".|\n|name:Howl|The project's name is `Howl` or `howl`.|\n|name:HOWL|Equivalent to above.|\n|NAME:howl|Equivalent to above.|\n|labels.color:*|The project has the label `color`.|\n|labels.color:red|The project's label `color` has the value `red`.|\n|labels.color:red\u0026nbsp;labels.size:big|The project's label `color` has the\nvalue `red` and its label `size` has the value `big`.\n\nOptional.",
+	//       "description": "An expression for filtering the results of the request.  Filter rules are\ncase insensitive. The fields eligible for filtering are:\n\n+ `name`\n+ `id`\n+ \u003ccode\u003elabels.\u003cem\u003ekey\u003c/em\u003e\u003c/code\u003e where *key* is the name of a label\n\nSome examples of using labels as filters:\n\n|Filter|Description|\n|------|-----------|\n|name:how*|The project's name starts with \"how\".|\n|name:Howl|The project's name is `Howl` or `howl`.|\n|name:HOWL|Equivalent to above.|\n|NAME:howl|Equivalent to above.|\n|labels.color:*|The project has the label `color`.|\n|labels.color:red|The project's label `color` has the value `red`.|\n|labels.color:red\u0026nbsp;labels.size:big|The project's label `color` has the value `red` and its label `size` has the value `big`.\n\nIf you specify a filter that has both `parent.type` and `parent.id`, then\nthe `resourcemanager.projects.list` permission is checked on the parent.\nIf the user has this permission, all projects under the parent will be\nreturned after remaining filters have been applied. If the user lacks this\npermission, then all projects for which the user has the\n`resourcemanager.projects.get` permission will be returned after remaining\nfilters have been applied. If no filter is specified, the call will return\nprojects for which the user has `resourcemanager.projects.get` permissions.\n\nOptional.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -6831,7 +6886,7 @@ func (c *ProjectsListAvailableOrgPolicyConstraintsCall) Do(opts ...googleapi.Cal
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -6989,7 +7044,7 @@ func (c *ProjectsListOrgPoliciesCall) Do(opts ...googleapi.CallOption) (*ListOrg
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7058,7 +7113,7 @@ type ProjectsSetIamPolicyCall struct {
 }
 
 // SetIamPolicy: Sets the IAM access control policy for the specified
-// Project. Replaces
+// Project. Overwrites
 // any existing policy.
 //
 // The following constraints apply when using `setIamPolicy()`:
@@ -7090,20 +7145,23 @@ type ProjectsSetIamPolicyCall struct {
 // have
 // accepted the Terms of Service (ToS) will be rejected.
 //
-// + There must be at least one owner who has accepted the Terms
-// of
-// Service (ToS) agreement in the policy. Calling `setIamPolicy()`
+// + If the project is not part of an organization, there must be at
+// least
+// one owner who has accepted the Terms of Service (ToS) agreement in
+// the
+// policy. Calling `setIamPolicy()` to remove the last ToS-accepted
+// owner
+// from the policy will fail. This restriction also applies to
+// legacy
+// projects that no longer have owners who have accepted the ToS. Edits
 // to
-// remove the last ToS-accepted owner from the policy will fail.
-// This
-// restriction also applies to legacy projects that no longer have
-// owners
-// who have accepted the ToS. Edits to IAM policies will be rejected
-// until
-// the lack of a ToS-accepting owner is rectified.
+// IAM policies will be rejected until the lack of a ToS-accepting owner
+// is
+// rectified.
 //
-// + Calling this method requires enabling the App Engine Admin
-// API.
+// + This method will replace the existing policy, and cannot be used
+// to
+// append additional IAM settings.
 //
 // Note: Removing service accounts from policies or changing their
 // roles
@@ -7112,6 +7170,10 @@ type ProjectsSetIamPolicyCall struct {
 // how the service account is being used before removing or updating
 // its
 // roles.
+//
+// Authorization requires the Google IAM
+// permission
+// `resourcemanager.projects.setIamPolicy` on the project
 func (r *ProjectsService) SetIamPolicy(resource string, setiampolicyrequest *SetIamPolicyRequest) *ProjectsSetIamPolicyCall {
 	c := &ProjectsSetIamPolicyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.resource = resource
@@ -7200,12 +7262,12 @@ func (c *ProjectsSetIamPolicyCall) Do(opts ...googleapi.CallOption) (*Policy, er
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Sets the IAM access control policy for the specified Project. Replaces\nany existing policy.\n\nThe following constraints apply when using `setIamPolicy()`:\n\n+ Project does not support `allUsers` and `allAuthenticatedUsers` as\n`members` in a `Binding` of a `Policy`.\n\n+ The owner role can be granted only to `user` and `serviceAccount`.\n\n+ Service accounts can be made owners of a project directly\nwithout any restrictions. However, to be added as an owner, a user must be\ninvited via Cloud Platform console and must accept the invitation.\n\n+ A user cannot be granted the owner role using `setIamPolicy()`. The user\nmust be granted the owner role using the Cloud Platform Console and must\nexplicitly accept the invitation.\n\n+ Invitations to grant the owner role cannot be sent using\n`setIamPolicy()`;\nthey must be sent only using the Cloud Platform Console.\n\n+ Membership changes that leave the project without any owners that have\naccepted the Terms of Service (ToS) will be rejected.\n\n+ There must be at least one owner who has accepted the Terms of\nService (ToS) agreement in the policy. Calling `setIamPolicy()` to\nremove the last ToS-accepted owner from the policy will fail. This\nrestriction also applies to legacy projects that no longer have owners\nwho have accepted the ToS. Edits to IAM policies will be rejected until\nthe lack of a ToS-accepting owner is rectified.\n\n+ Calling this method requires enabling the App Engine Admin API.\n\nNote: Removing service accounts from policies or changing their roles\ncan render services completely inoperable. It is important to understand\nhow the service account is being used before removing or updating its\nroles.",
+	//   "description": "Sets the IAM access control policy for the specified Project. Overwrites\nany existing policy.\n\nThe following constraints apply when using `setIamPolicy()`:\n\n+ Project does not support `allUsers` and `allAuthenticatedUsers` as\n`members` in a `Binding` of a `Policy`.\n\n+ The owner role can be granted only to `user` and `serviceAccount`.\n\n+ Service accounts can be made owners of a project directly\nwithout any restrictions. However, to be added as an owner, a user must be\ninvited via Cloud Platform console and must accept the invitation.\n\n+ A user cannot be granted the owner role using `setIamPolicy()`. The user\nmust be granted the owner role using the Cloud Platform Console and must\nexplicitly accept the invitation.\n\n+ Invitations to grant the owner role cannot be sent using\n`setIamPolicy()`;\nthey must be sent only using the Cloud Platform Console.\n\n+ Membership changes that leave the project without any owners that have\naccepted the Terms of Service (ToS) will be rejected.\n\n+ If the project is not part of an organization, there must be at least\none owner who has accepted the Terms of Service (ToS) agreement in the\npolicy. Calling `setIamPolicy()` to remove the last ToS-accepted owner\nfrom the policy will fail. This restriction also applies to legacy\nprojects that no longer have owners who have accepted the ToS. Edits to\nIAM policies will be rejected until the lack of a ToS-accepting owner is\nrectified.\n\n+ This method will replace the existing policy, and cannot be used to\nappend additional IAM settings.\n\nNote: Removing service accounts from policies or changing their roles\ncan render services completely inoperable. It is important to understand\nhow the service account is being used before removing or updating its\nroles.\n\nAuthorization requires the Google IAM permission\n`resourcemanager.projects.setIamPolicy` on the project",
 	//   "flatPath": "v1/projects/{resource}:setIamPolicy",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.projects.setIamPolicy",
@@ -7340,7 +7402,7 @@ func (c *ProjectsSetOrgPolicyCall) Do(opts ...googleapi.CallOption) (*OrgPolicy,
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7388,6 +7450,8 @@ type ProjectsTestIamPermissionsCall struct {
 
 // TestIamPermissions: Returns permissions that a caller has on the
 // specified Project.
+//
+// There are no permissions required for making this API call.
 func (r *ProjectsService) TestIamPermissions(resource string, testiampermissionsrequest *TestIamPermissionsRequest) *ProjectsTestIamPermissionsCall {
 	c := &ProjectsTestIamPermissionsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.resource = resource
@@ -7476,12 +7540,12 @@ func (c *ProjectsTestIamPermissionsCall) Do(opts ...googleapi.CallOption) (*Test
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
 	// {
-	//   "description": "Returns permissions that a caller has on the specified Project.",
+	//   "description": "Returns permissions that a caller has on the specified Project.\n\nThere are no permissions required for making this API call.",
 	//   "flatPath": "v1/projects/{resource}:testIamPermissions",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.projects.testIamPermissions",
@@ -7619,7 +7683,7 @@ func (c *ProjectsUndeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
@@ -7757,7 +7821,7 @@ func (c *ProjectsUpdateCall) Do(opts ...googleapi.CallOption) (*Project, error) 
 		},
 	}
 	target := &ret
-	if err := json.NewDecoder(res.Body).Decode(target); err != nil {
+	if err := gensupport.DecodeResponse(target, res); err != nil {
 		return nil, err
 	}
 	return ret, nil
