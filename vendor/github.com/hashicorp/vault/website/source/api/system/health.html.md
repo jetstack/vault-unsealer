@@ -42,6 +42,9 @@ The default status codes are:
 - `standbycode` `(int: 429)` – Specifies the status code that should be returned
   for a standby node.
 
+- `drsecondarycode` `(int: 472)` – Specifies the status code that should be
+  returned for a DR secondary node.
+
 - `sealedcode` `(int: 503)` – Specifies the status code that should be returned
   for a sealed node.
 
@@ -52,7 +55,7 @@ The default status codes are:
 
 ```
 $ curl \
-    https://vault.rocks/v1/sys/health
+    http://127.0.0.1:8200/v1/sys/health
 ```
 
 ### Sample Response
@@ -63,6 +66,7 @@ Note: `replication_perf_mode` and `replication_dr_mode` reflect the state of
 the active node in the cluster; if you are querying it for a standby that has
 just come up, it can take a small time for the active node to inform the
 standby of its status.
+
 ```json
 {
   "initialized": true,

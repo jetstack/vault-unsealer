@@ -35,8 +35,10 @@ more information about setting up the database secrets engine.
     ```text
     $ vault write database/config/my-mssql-database \
         plugin_name=mssql-database-plugin \
-        connection_url='sqlserver://sa:yourStrong(!)Password@localhost:1433' \
-        allowed_roles="my-role"
+        connection_url='sqlserver://{{username}}:{{password}}@localhost:1433' \
+        allowed_roles="my-role" \
+        username="sa" \
+        password="yourStrong(!)Password"
     ```
 
     In this case, we've configured Vault with the user "sa" and password
@@ -86,7 +88,7 @@ of the role:
 
 Here is a complete example using Azure SQL Database. Note that databases in Azure SQL Database are [contained databases](https://docs.microsoft.com/en-us/sql/relational-databases/databases/contained-databases) and that we do not create a login for the user; instead, we associate the password directly with the user itself. Also note that you will need a separate connection and role for each Azure SQL database for which you want to generate dynamic credentials. You can use a single database backend mount for all these databases or use a separate mount for of them. In this example, we use a custom path for the database backend.
 
-First, we mount a database backend at the azuresql path with `vault mount -path=azuresql database`. Then we configure a connection called "testvault" to connect to a database called "test-vault", using "azuresql" at the beginning of our path:
+First, we mount a database backend at the azuresql path with `vault secrets enable -path=azuresql database`. Then we configure a connection called "testvault" to connect to a database called "test-vault", using "azuresql" at the beginning of our path:
 
 ```
 $ vault write azuresql/config/testvault \

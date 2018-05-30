@@ -29,14 +29,17 @@ func (c *PoliciesDeprecatedCommand) Run(args []string) int {
 		c.UI.Error(err.Error())
 		return 1
 	}
+
 	args = f.Args()
 
 	// Got an arg, this is trying to read a policy
 	if len(args) > 0 {
 		return (&PolicyReadCommand{
 			BaseCommand: &BaseCommand{
-				UI:     c.UI,
-				client: c.client,
+				UI:          c.UI,
+				client:      c.client,
+				tokenHelper: c.tokenHelper,
+				flagAddress: c.flagAddress,
 			},
 		}).Run(oargs)
 	}
@@ -45,8 +48,10 @@ func (c *PoliciesDeprecatedCommand) Run(args []string) int {
 	// "vault policy list"
 	return (&PolicyListCommand{
 		BaseCommand: &BaseCommand{
-			UI:     c.UI,
-			client: c.client,
+			UI:          c.UI,
+			client:      c.client,
+			tokenHelper: c.tokenHelper,
+			flagAddress: c.flagAddress,
 		},
 	}).Run(oargs)
 }

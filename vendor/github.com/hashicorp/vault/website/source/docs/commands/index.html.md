@@ -83,7 +83,7 @@ primary interface for reading and writing data to Vault is the same.
 To write data to Vault, use the `vault write` command:
 
 ```text
-$ vault write secret/password value=itsasecret
+$ vault kv put secret/password value=itsasecret
 ```
 
 For some secrets engines, the key/value pairs are arbitrary. For others, they
@@ -96,14 +96,14 @@ Some commands in Vault can read data from stdin using `-` as the value. If `-`
 is the entire argument, Vault expects to read a JSON object from stdin:
 
 ```text
-$ echo -n '{"value":"itsasecret"}' | vault write secret/password -
+$ echo -n '{"value":"itsasecret"}' | vault kv put secret/password -
 ```
 
 In addition to reading full JSON objects, Vault can read just a  value from
 stdin:
 
 ```text
-$ echo -n "itsasecret" | vault write secret/password value=-
+$ echo -n "itsasecret" | vault kv put secret/password value=-
 ```
 
 #### Files
@@ -113,13 +113,13 @@ stdin as documented above. If an argument starts with `@`, Vault will read it as
 a file:
 
 ```text
-$ vault write secret/password @data.json
+$ vault kv put secret/password @data.json
 ```
 
 Or specify the contents of a file as a value:
 
 ```text
-$ vault write secret/password value=@data.txt
+$ vault kv put secret/password value=@data.txt
 ```
 
 ### Reading Data
@@ -127,7 +127,7 @@ $ vault write secret/password value=@data.txt
 After data is persisted, read it back using `vault read`:
 
 ```
-$ vault read secret/password
+$ vault kv get  secret/password
 Key                 Value
 ---                 -----
 refresh_interval    768h0m0s
@@ -160,7 +160,7 @@ concepts](/docs/concepts/tokens.html) page.
 ### `VAULT_ADDR`
 
 Address of the Vault server expressed as a URL and port, for example:
-`https://vault.rocks:8200/`.
+`https://127.0.0.1:8200/`.
 
 ### `VAULT_CACERT`
 
@@ -211,6 +211,26 @@ model](/docs/internals/security.html).
 ### `VAULT_TLS_SERVER_NAME`
 
 Name to use as the SNI host when connecting via TLS.
+
+### `VAULT_CLI_NO_COLOR`
+
+If provided, Vault output will not include ANSI color escape sequence characters.
+
+### `VAULT_RATE_LIMIT`
+
+This enviroment variable will limit the rate at which the `vault` command
+sends requests to Vault.
+
+This enviroment variable has the format `rate[:burst]` (where items in `[]` are
+optional). If not specified, the burst value defaults to rate. Both rate and 
+burst are specified in "operations per second". If the environment variable is
+not specified, then the rate and burst will be unlimited *i.e.* rate 
+limiting is off by default.
+
+*Note:* The rate is limited for each invocation of the `vault` CLI. Since
+each invocation of the `vault` CLI typically only makes a few requests,
+this enviroment variable is most useful when using the Go 
+[Vault client API](https://www.vaultproject.io/api/libraries.html#go).
 
 ### `VAULT_MFA`
 

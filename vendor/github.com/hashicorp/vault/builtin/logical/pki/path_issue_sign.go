@@ -88,7 +88,11 @@ func (b *backend) pathIssue(ctx context.Context, req *logical.Request, data *fra
 		return nil, err
 	}
 	if role == nil {
-		return logical.ErrorResponse(fmt.Sprintf("Unknown role: %s", roleName)), nil
+		return logical.ErrorResponse(fmt.Sprintf("unknown role: %s", roleName)), nil
+	}
+
+	if role.KeyType == "any" {
+		return logical.ErrorResponse("role key type \"any\" not allowed for issuing certificates, only signing"), nil
 	}
 
 	return b.pathIssueSignCert(ctx, req, data, role, false, false)
@@ -105,7 +109,7 @@ func (b *backend) pathSign(ctx context.Context, req *logical.Request, data *fram
 		return nil, err
 	}
 	if role == nil {
-		return logical.ErrorResponse(fmt.Sprintf("Unknown role: %s", roleName)), nil
+		return logical.ErrorResponse(fmt.Sprintf("unknown role: %s", roleName)), nil
 	}
 
 	return b.pathIssueSignCert(ctx, req, data, role, true, false)
@@ -123,12 +127,9 @@ func (b *backend) pathSignVerbatim(ctx context.Context, req *logical.Request, da
 		return nil, err
 	}
 
-	ttl := b.System().DefaultLeaseTTL()
-	maxTTL := b.System().MaxLeaseTTL()
-
 	entry := &roleEntry{
-		TTL:              ttl.String(),
-		MaxTTL:           maxTTL.String(),
+		TTL:              b.System().DefaultLeaseTTL(),
+		MaxTTL:           b.System().MaxLeaseTTL(),
 		AllowLocalhost:   true,
 		AllowAnyName:     true,
 		AllowIPSANs:      true,
@@ -139,19 +140,23 @@ func (b *backend) pathSignVerbatim(ctx context.Context, req *logical.Request, da
 		GenerateLease:    new(bool),
 	}
 
+	*entry.GenerateLease = false
+
 	if role != nil {
-		if role.TTL != "" {
+		if role.TTL > 0 {
 			entry.TTL = role.TTL
 		}
-		if role.MaxTTL != "" {
+		if role.MaxTTL > 0 {
 			entry.MaxTTL = role.MaxTTL
+		}
+		if role.GenerateLease != nil {
+			*entry.GenerateLease = *role.GenerateLease
 		}
 		entry.NoStore = role.NoStore
 	}
 
-	*entry.GenerateLease = false
-	if role != nil && role.GenerateLease != nil {
-		*entry.GenerateLease = *role.GenerateLease
+	if entry.MaxTTL > 0 && entry.TTL > entry.MaxTTL {
+		return logical.ErrorResponse(fmt.Sprintf("requested ttl of %s is greater than max ttl of %s", entry.TTL, entry.MaxTTL)), nil
 	}
 
 	return b.pathIssueSignCert(ctx, req, data, entry, true, true)
@@ -175,12 +180,18 @@ func (b *backend) pathIssueSignCert(ctx context.Context, req *logical.Request, d
 			"error fetching CA certificate: %s", caErr)}
 	}
 
+	input := &dataBundle{
+		req:           req,
+		apiData:       data,
+		role:          role,
+		signingBundle: signingBundle,
+	}
 	var parsedBundle *certutil.ParsedCertBundle
 	var err error
 	if useCSR {
-		parsedBundle, err = signCert(b, role, signingBundle, false, useCSRValues, req, data)
+		parsedBundle, err = signCert(b, input, false, useCSRValues)
 	} else {
-		parsedBundle, err = generateCert(ctx, b, role, signingBundle, false, req, data)
+		parsedBundle, err = generateCert(ctx, b, input, false)
 	}
 	if err != nil {
 		switch err.(type) {
@@ -278,7 +289,7 @@ func (b *backend) pathIssueSignCert(ctx context.Context, req *logical.Request, d
 			Value: parsedBundle.CertificateBytes,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("unable to store certificate locally: %v", err)
+			return nil, errwrap.Wrapf("unable to store certificate locally: {{err}}", err)
 		}
 	}
 

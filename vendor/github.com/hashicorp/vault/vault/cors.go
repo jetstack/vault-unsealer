@@ -3,10 +3,10 @@ package vault
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"sync/atomic"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/logical"
 )
@@ -50,11 +50,11 @@ func (c *Core) saveCORSConfig(ctx context.Context) error {
 
 	entry, err := logical.StorageEntryJSON("cors", localConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create CORS config entry: %v", err)
+		return errwrap.Wrapf("failed to create CORS config entry: {{err}}", err)
 	}
 
 	if err := view.Put(ctx, entry); err != nil {
-		return fmt.Errorf("failed to save CORS config: %v", err)
+		return errwrap.Wrapf("failed to save CORS config: {{err}}", err)
 	}
 
 	return nil
@@ -67,7 +67,7 @@ func (c *Core) loadCORSConfig(ctx context.Context) error {
 	// Load the config in
 	out, err := view.Get(ctx, "cors")
 	if err != nil {
-		return fmt.Errorf("failed to read CORS config: %v", err)
+		return errwrap.Wrapf("failed to read CORS config: {{err}}", err)
 	}
 	if out == nil {
 		return nil
@@ -85,11 +85,11 @@ func (c *Core) loadCORSConfig(ctx context.Context) error {
 	return nil
 }
 
-// Enable takes either a '*' or a comma-seprated list of URLs that can make
+// Enable takes either a '*' or a comma-separated list of URLs that can make
 // cross-origin requests to Vault.
 func (c *CORSConfig) Enable(ctx context.Context, urls []string, headers []string) error {
 	if len(urls) == 0 {
-		return errors.New("at least one origin or the wildcard must be provided.")
+		return errors.New("at least one origin or the wildcard must be provided")
 	}
 
 	if strutil.StrListContains(urls, "*") && len(urls) > 1 {

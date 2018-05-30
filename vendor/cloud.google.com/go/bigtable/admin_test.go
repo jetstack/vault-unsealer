@@ -15,17 +15,17 @@
 package bigtable
 
 import (
+	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
 	"cloud.google.com/go/internal/testutil"
-
-	"fmt"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
-	"strings"
+	btapb "google.golang.org/genproto/googleapis/bigtable/admin/v2"
 )
 
 func TestAdminIntegration(t *testing.T) {
@@ -101,7 +101,7 @@ func TestAdminIntegration(t *testing.T) {
 		t.Errorf("adminClient.Tables returned %#v, want %#v", got, want)
 	}
 
-	adminClient.WaitForReplication(ctx, "mytable")
+	must(adminClient.WaitForReplication(ctx, "mytable"))
 
 	if err := adminClient.DeleteTable(ctx, "myothertable"); err != nil {
 		t.Fatalf("Deleting table: %v", err)
@@ -171,15 +171,76 @@ func TestAdminIntegration(t *testing.T) {
 	}
 
 	var gotRowCount int
-	tbl.ReadRows(ctx, RowRange{}, func(row Row) bool {
+	must(tbl.ReadRows(ctx, RowRange{}, func(row Row) bool {
 		gotRowCount += 1
 		if !strings.HasPrefix(row.Key(), "b") {
 			t.Errorf("Invalid row after dropping range: %v", row)
 		}
 		return true
-	})
+	}))
 	if gotRowCount != 5 {
 		t.Errorf("Invalid row count after dropping range: got %v, want %v", gotRowCount, 5)
+	}
+}
+
+func TestInstanceUpdate(t *testing.T) {
+	testEnv, err := NewIntegrationEnv()
+	if err != nil {
+		t.Fatalf("IntegrationEnv: %v", err)
+	}
+	defer testEnv.Close()
+
+	timeout := 2 * time.Second
+	if testEnv.Config().UseProd {
+		timeout = 5 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	adminClient, err := testEnv.NewAdminClient()
+	if err != nil {
+		t.Fatalf("NewAdminClient: %v", err)
+	}
+
+	defer adminClient.Close()
+
+	iAdminClient, err := testEnv.NewInstanceAdminClient()
+	if err != nil {
+		t.Fatalf("NewInstanceAdminClient: %v", err)
+	}
+
+	if iAdminClient == nil {
+		return
+	}
+
+	defer iAdminClient.Close()
+
+	iInfo, err := iAdminClient.InstanceInfo(ctx, adminClient.instance)
+	if err != nil {
+		t.Errorf("InstanceInfo: %v", err)
+	}
+
+	if iInfo.Name != adminClient.instance {
+		t.Errorf("InstanceInfo returned name %#v, want %#v", iInfo.Name, adminClient.instance)
+	}
+
+	if iInfo.DisplayName != adminClient.instance {
+		t.Errorf("InstanceInfo returned name %#v, want %#v", iInfo.Name, adminClient.instance)
+	}
+
+	const numNodes = 4
+	// update cluster nodes
+	if err := iAdminClient.UpdateCluster(ctx, adminClient.instance, testEnv.Config().Cluster, int32(numNodes)); err != nil {
+		t.Errorf("UpdateCluster: %v", err)
+	}
+
+	// get cluster after updating
+	cis, err := iAdminClient.GetCluster(ctx, adminClient.instance, testEnv.Config().Cluster)
+	if err != nil {
+		t.Errorf("GetCluster %v", err)
+	}
+	if cis.ServeNodes != int(numNodes) {
+		t.Errorf("ServeNodes returned %d, want %d", cis.ServeNodes, int(numNodes))
 	}
 }
 
@@ -212,7 +273,7 @@ func TestAdminSnapshotIntegration(t *testing.T) {
 	list := func(cluster string) ([]*SnapshotInfo, error) {
 		infos := []*SnapshotInfo(nil)
 
-		it := adminClient.ListSnapshots(ctx, cluster)
+		it := adminClient.Snapshots(ctx, cluster)
 		for {
 			s, err := it.Next()
 			if err == iterator.Done {
@@ -297,5 +358,75 @@ func TestAdminSnapshotIntegration(t *testing.T) {
 	}
 	if got, want := len(snapshots), 0; got != want {
 		t.Fatalf("List after delete len: %d, want: %d", got, want)
+	}
+}
+
+func TestGranularity(t *testing.T) {
+	testEnv, err := NewIntegrationEnv()
+	if err != nil {
+		t.Fatalf("IntegrationEnv: %v", err)
+	}
+	defer testEnv.Close()
+
+	timeout := 2 * time.Second
+	if testEnv.Config().UseProd {
+		timeout = 5 * time.Minute
+	}
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+
+	adminClient, err := testEnv.NewAdminClient()
+	if err != nil {
+		t.Fatalf("NewAdminClient: %v", err)
+	}
+	defer adminClient.Close()
+
+	list := func() []string {
+		tbls, err := adminClient.Tables(ctx)
+		if err != nil {
+			t.Fatalf("Fetching list of tables: %v", err)
+		}
+		sort.Strings(tbls)
+		return tbls
+	}
+	containsAll := func(got, want []string) bool {
+		gotSet := make(map[string]bool)
+
+		for _, s := range got {
+			gotSet[s] = true
+		}
+		for _, s := range want {
+			if !gotSet[s] {
+				return false
+			}
+		}
+		return true
+	}
+
+	defer adminClient.DeleteTable(ctx, "mytable")
+
+	if err := adminClient.CreateTable(ctx, "mytable"); err != nil {
+		t.Fatalf("Creating table: %v", err)
+	}
+
+	tables := list()
+	if got, want := tables, []string{"mytable"}; !containsAll(got, want) {
+		t.Errorf("adminClient.Tables returned %#v, want %#v", got, want)
+	}
+
+	// calling ModifyColumnFamilies to check the granularity of table
+	prefix := adminClient.instancePrefix()
+	req := &btapb.ModifyColumnFamiliesRequest{
+		Name: prefix + "/tables/" + "mytable",
+		Modifications: []*btapb.ModifyColumnFamiliesRequest_Modification{{
+			Id:  "cf",
+			Mod: &btapb.ModifyColumnFamiliesRequest_Modification_Create{&btapb.ColumnFamily{}},
+		}},
+	}
+	table, err := adminClient.tClient.ModifyColumnFamilies(ctx, req)
+	if err != nil {
+		t.Fatalf("Creating column family: %v", err)
+	}
+	if table.Granularity != btapb.Table_TimestampGranularity(btapb.Table_MILLIS) {
+		t.Errorf("ModifyColumnFamilies returned granularity %#v, want %#v", table.Granularity, btapb.Table_TimestampGranularity(btapb.Table_MILLIS))
 	}
 }

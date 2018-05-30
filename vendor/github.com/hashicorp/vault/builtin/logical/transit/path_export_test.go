@@ -12,9 +12,11 @@ import (
 
 func TestTransit_Export_KeyVersion_ExportsCorrectVersion(t *testing.T) {
 	verifyExportsCorrectVersion(t, "encryption-key", "aes256-gcm96")
+	verifyExportsCorrectVersion(t, "encryption-key", "chacha20-poly1305")
 	verifyExportsCorrectVersion(t, "signing-key", "ecdsa-p256")
 	verifyExportsCorrectVersion(t, "signing-key", "ed25519")
 	verifyExportsCorrectVersion(t, "hmac-key", "aes256-gcm96")
+	verifyExportsCorrectVersion(t, "hmac-key", "chacha20-poly1305")
 	verifyExportsCorrectVersion(t, "hmac-key", "ecdsa-p256")
 	verifyExportsCorrectVersion(t, "hmac-key", "ed25519")
 }
@@ -256,7 +258,7 @@ func TestTransit_Export_KeysNotMarkedExportable_ReturnsError(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !rsp.IsError() {
-		t.Fatal("Key not marked as exportble but was exported.")
+		t.Fatal("Key not marked as exportable but was exported.")
 	}
 }
 
@@ -405,7 +407,7 @@ func TestTransit_Export_EncryptionKey_DoesNotExportHMACKey(t *testing.T) {
 		t.Error("could not cast to keys object")
 	}
 	if len(hmacKeys) != len(encryptionKeys) {
-		t.Errorf("hmac (%d) and encyryption (%d) key count don't match",
+		t.Errorf("hmac (%d) and encryption (%d) key count don't match",
 			len(hmacKeys), len(encryptionKeys))
 	}
 

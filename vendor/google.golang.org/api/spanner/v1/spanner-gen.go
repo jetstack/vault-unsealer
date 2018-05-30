@@ -206,7 +206,7 @@ type Binding struct {
 	//
 	// * `user:{emailid}`: An email address that represents a specific
 	// Google
-	//    account. For example, `alice@gmail.com` or `joe@example.com`.
+	//    account. For example, `alice@gmail.com` .
 	//
 	//
 	// * `serviceAccount:{emailid}`: An email address that represents a
@@ -629,6 +629,9 @@ func (s *Database) MarshalJSON() ([]byte, error) {
 type Delete struct {
 	// KeySet: Required. The primary keys of the rows within table to
 	// delete.
+	// Delete is idempotent. The transaction will succeed even if some or
+	// all
+	// rows do not exist.
 	KeySet *KeySet `json:"keySet,omitempty"`
 
 	// Table: Required. The table whose rows will be deleted.
@@ -685,13 +688,13 @@ type ExecuteSqlRequest struct {
 	// of type `STRING` both appear in params as JSON strings.
 	//
 	// In these cases, `param_types` can be used to specify the exact
-	// SQL type for some or all of the SQL query parameters. See
+	// SQL type for some or all of the SQL statement parameters. See
 	// the
 	// definition of Type for more information
 	// about SQL types.
 	ParamTypes map[string]Type `json:"paramTypes,omitempty"`
 
-	// Params: The SQL query string can contain parameter placeholders. A
+	// Params: The SQL string can contain parameter placeholders. A
 	// parameter
 	// placeholder consists of `'@'` followed by the parameter
 	// name. Parameter names consist of any combination of letters,
@@ -702,7 +705,7 @@ type ExecuteSqlRequest struct {
 	// parameter name can be used more than once, for example:
 	//   "WHERE id > @msg_id AND id < @msg_id + 100"
 	//
-	// It is an error to execute an SQL query with unbound
+	// It is an error to execute an SQL statement with unbound
 	// parameters.
 	//
 	// Parameter values are specified using `params`, which is a JSON
@@ -711,35 +714,44 @@ type ExecuteSqlRequest struct {
 	// corresponding parameter values.
 	Params googleapi.RawMessage `json:"params,omitempty"`
 
+	// PartitionToken: If present, results will be restricted to the
+	// specified partition
+	// previously created using PartitionQuery().  There must be an
+	// exact
+	// match for the values of fields common to this message and
+	// the
+	// PartitionQueryRequest message used to create this partition_token.
+	PartitionToken string `json:"partitionToken,omitempty"`
+
 	// QueryMode: Used to control the amount of debugging information
 	// returned in
-	// ResultSetStats.
+	// ResultSetStats. If partition_token is set, query_mode can only
+	// be set to QueryMode.NORMAL.
 	//
 	// Possible values:
-	//   "NORMAL" - The default mode where only the query result, without
-	// any information
-	// about the query plan is returned.
-	//   "PLAN" - This mode returns only the query plan, without any result
-	// rows or
+	//   "NORMAL" - The default mode. Only the statement results are
+	// returned.
+	//   "PLAN" - This mode returns only the query plan, without any results
+	// or
 	// execution statistics information.
 	//   "PROFILE" - This mode returns both the query plan and the execution
 	// statistics along
-	// with the result rows.
+	// with the results.
 	QueryMode string `json:"queryMode,omitempty"`
 
 	// ResumeToken: If this request is resuming a previously interrupted SQL
-	// query
+	// statement
 	// execution, `resume_token` should be copied from the
 	// last
 	// PartialResultSet yielded before the interruption. Doing this
-	// enables the new SQL query execution to resume where the last one
+	// enables the new SQL statement execution to resume where the last one
 	// left
 	// off. The rest of the request parameters must exactly match
 	// the
 	// request that yielded this token.
 	ResumeToken string `json:"resumeToken,omitempty"`
 
-	// Sql: Required. The SQL query string.
+	// Sql: Required. The SQL string.
 	Sql string `json:"sql,omitempty"`
 
 	// Transaction: The transaction to use. If none is provided, the default
@@ -1548,7 +1560,7 @@ type PartialResultSet struct {
 	// same session invalidates the token.
 	ResumeToken string `json:"resumeToken,omitempty"`
 
-	// Stats: Query plan and execution statistics for the query that
+	// Stats: Query plan and execution statistics for the statement that
 	// produced this
 	// streaming result set. These can be requested by
 	// setting
@@ -1669,6 +1681,267 @@ func (s *PartialResultSet) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// Partition: Information returned for each partition returned in
+// a
+// PartitionResponse.
+type Partition struct {
+	// PartitionToken: This token can be passed to Read, StreamingRead,
+	// ExecuteSql, or
+	// ExecuteStreamingSql requests to restrict the results to those
+	// identified by
+	// this partition token.
+	PartitionToken string `json:"partitionToken,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "PartitionToken") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "PartitionToken") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Partition) MarshalJSON() ([]byte, error) {
+	type NoMethod Partition
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// PartitionOptions: Options for a PartitionQueryRequest
+// and
+// PartitionReadRequest.
+type PartitionOptions struct {
+	// MaxPartitions: **Note:** This hint is currently ignored by
+	// PartitionQuery and
+	// PartitionRead requests.
+	//
+	// The desired maximum number of partitions to return.  For example,
+	// this may
+	// be set to the number of workers available.  The default for this
+	// option
+	// is currently 10,000. The maximum value is currently 200,000.  This is
+	// only
+	// a hint.  The actual number of partitions returned may be smaller or
+	// larger
+	// than this maximum count request.
+	MaxPartitions int64 `json:"maxPartitions,omitempty,string"`
+
+	// PartitionSizeBytes: **Note:** This hint is currently ignored by
+	// PartitionQuery and
+	// PartitionRead requests.
+	//
+	// The desired data size for each partition generated.  The default for
+	// this
+	// option is currently 1 GiB.  This is only a hint. The actual size of
+	// each
+	// partition may be smaller or larger than this size request.
+	PartitionSizeBytes int64 `json:"partitionSizeBytes,omitempty,string"`
+
+	// ForceSendFields is a list of field names (e.g. "MaxPartitions") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "MaxPartitions") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PartitionOptions) MarshalJSON() ([]byte, error) {
+	type NoMethod PartitionOptions
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// PartitionQueryRequest: The request for PartitionQuery
+type PartitionQueryRequest struct {
+	// ParamTypes: It is not always possible for Cloud Spanner to infer the
+	// right SQL type
+	// from a JSON value.  For example, values of type `BYTES` and values
+	// of type `STRING` both appear in params as JSON strings.
+	//
+	// In these cases, `param_types` can be used to specify the exact
+	// SQL type for some or all of the SQL query parameters. See
+	// the
+	// definition of Type for more information
+	// about SQL types.
+	ParamTypes map[string]Type `json:"paramTypes,omitempty"`
+
+	// Params: The SQL query string can contain parameter placeholders. A
+	// parameter
+	// placeholder consists of `'@'` followed by the parameter
+	// name. Parameter names consist of any combination of letters,
+	// numbers, and underscores.
+	//
+	// Parameters can appear anywhere that a literal value is expected.  The
+	// same
+	// parameter name can be used more than once, for example:
+	//   "WHERE id > @msg_id AND id < @msg_id + 100"
+	//
+	// It is an error to execute an SQL query with unbound
+	// parameters.
+	//
+	// Parameter values are specified using `params`, which is a JSON
+	// object whose keys are parameter names, and whose values are
+	// the
+	// corresponding parameter values.
+	Params googleapi.RawMessage `json:"params,omitempty"`
+
+	// PartitionOptions: Additional options that affect how many partitions
+	// are created.
+	PartitionOptions *PartitionOptions `json:"partitionOptions,omitempty"`
+
+	// Sql: The query request to generate partitions for. The request will
+	// fail if
+	// the query is not root partitionable. The query plan of a
+	// root
+	// partitionable query has a single distributed union operator. A
+	// distributed
+	// union operator conceptually divides one or more tables into
+	// multiple
+	// splits, remotely evaluates a subquery independently on each split,
+	// and
+	// then unions all results.
+	Sql string `json:"sql,omitempty"`
+
+	// Transaction: Read only snapshot transactions are supported,
+	// read/write and single use
+	// transactions are not.
+	Transaction *TransactionSelector `json:"transaction,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ParamTypes") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ParamTypes") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PartitionQueryRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod PartitionQueryRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// PartitionReadRequest: The request for PartitionRead
+type PartitionReadRequest struct {
+	// Columns: The columns of table to be returned for each row
+	// matching
+	// this request.
+	Columns []string `json:"columns,omitempty"`
+
+	// Index: If non-empty, the name of an index on table. This index
+	// is
+	// used instead of the table primary key when interpreting key_set
+	// and sorting result rows. See key_set for further information.
+	Index string `json:"index,omitempty"`
+
+	// KeySet: Required. `key_set` identifies the rows to be yielded.
+	// `key_set` names the
+	// primary keys of the rows in table to be yielded, unless index
+	// is present. If index is present, then key_set instead names
+	// index keys in index.
+	//
+	// It is not an error for the `key_set` to name rows that do not
+	// exist in the database. Read yields nothing for nonexistent rows.
+	KeySet *KeySet `json:"keySet,omitempty"`
+
+	// PartitionOptions: Additional options that affect how many partitions
+	// are created.
+	PartitionOptions *PartitionOptions `json:"partitionOptions,omitempty"`
+
+	// Table: Required. The name of the table in the database to be read.
+	Table string `json:"table,omitempty"`
+
+	// Transaction: Read only snapshot transactions are supported,
+	// read/write and single use
+	// transactions are not.
+	Transaction *TransactionSelector `json:"transaction,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Columns") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Columns") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PartitionReadRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod PartitionReadRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// PartitionResponse: The response for PartitionQuery
+// or PartitionRead
+type PartitionResponse struct {
+	// Partitions: Partitions created by this request.
+	Partitions []*Partition `json:"partitions,omitempty"`
+
+	// Transaction: Transaction created by this request.
+	Transaction *Transaction `json:"transaction,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "Partitions") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Partitions") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *PartitionResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod PartitionResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // PlanNode: Node information for nodes appearing in a
 // QueryPlan.plan_nodes.
 type PlanNode struct {
@@ -1759,7 +2032,7 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 // specify access control policies for Cloud Platform resources.
 //
 //
-// A `Policy` consists of a list of `bindings`. A `Binding` binds a list
+// A `Policy` consists of a list of `bindings`. A `binding` binds a list
 // of
 // `members` to a `role`, where the members can be user accounts, Google
 // groups,
@@ -1767,7 +2040,7 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 // permissions
 // defined by IAM.
 //
-// **Example**
+// **JSON Example**
 //
 //     {
 //       "bindings": [
@@ -1778,7 +2051,7 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 //             "group:admins@example.com",
 //             "domain:google.com",
 //
-// "serviceAccount:my-other-app@appspot.gserviceaccount.com",
+// "serviceAccount:my-other-app@appspot.gserviceaccount.com"
 //           ]
 //         },
 //         {
@@ -1788,8 +2061,22 @@ func (s *PlanNode) MarshalJSON() ([]byte, error) {
 //       ]
 //     }
 //
+// **YAML Example**
+//
+//     bindings:
+//     - members:
+//       - user:mike@example.com
+//       - group:admins@example.com
+//       - domain:google.com
+//       - serviceAccount:my-other-app@appspot.gserviceaccount.com
+//       role: roles/owner
+//     - members:
+//       - user:sean@example.com
+//       role: roles/viewer
+//
+//
 // For a description of IAM and its features, see the
-// [IAM developer's guide](https://cloud.google.com/iam).
+// [IAM developer's guide](https://cloud.google.com/iam/docs).
 type Policy struct {
 	// Bindings: Associates a list of `members` to a `role`.
 	// `bindings` with no members will result in an error.
@@ -1815,7 +2102,7 @@ type Policy struct {
 	// policy is overwritten blindly.
 	Etag string `json:"etag,omitempty"`
 
-	// Version: Version of the `Policy`. The default version is 0.
+	// Version: Deprecated.
 	Version int64 `json:"version,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -2004,8 +2291,10 @@ type ReadRequest struct {
 	// is present. If index is present, then key_set instead names
 	// index keys in index.
 	//
-	// Rows are yielded in table primary key order (if index is empty)
-	// or index key order (if index is non-empty).
+	// If the partition_token field is empty, rows are yielded
+	// in table primary key order (if index is empty) or index key order
+	// (if index is non-empty).  If the partition_token field is not
+	// empty, rows will be yielded in an unspecified order.
 	//
 	// It is not an error for the `key_set` to name rows that do not
 	// exist in the database. Read yields nothing for nonexistent rows.
@@ -2013,8 +2302,19 @@ type ReadRequest struct {
 
 	// Limit: If greater than zero, only the first `limit` rows are yielded.
 	// If `limit`
-	// is zero, the default is no limit.
+	// is zero, the default is no limit. A limit cannot be specified
+	// if
+	// `partition_token` is set.
 	Limit int64 `json:"limit,omitempty,string"`
+
+	// PartitionToken: If present, results will be restricted to the
+	// specified partition
+	// previously created using PartitionRead().    There must be an
+	// exact
+	// match for the values of fields common to this message and
+	// the
+	// PartitionReadRequest message used to create this partition_token.
+	PartitionToken string `json:"partitionToken,omitempty"`
 
 	// ResumeToken: If this request is resuming a previously interrupted
 	// read,
@@ -2078,9 +2378,9 @@ type ResultSet struct {
 	// here.
 	Rows [][]interface{} `json:"rows,omitempty"`
 
-	// Stats: Query plan and execution statistics for the query that
-	// produced this
-	// result set. These can be requested by
+	// Stats: Query plan and execution statistics for the SQL statement
+	// that
+	// produced this result set. These can be requested by
 	// setting
 	// ExecuteSqlRequest.query_mode.
 	Stats *ResultSetStats `json:"stats,omitempty"`
@@ -2657,6 +2957,7 @@ func (s *Transaction) MarshalJSON() ([]byte, error) {
 //      read at timestamps in the past. Snapshot read-only
 //      transactions do not need to be committed.
 //
+//
 // For transactions that only read, snapshot read-only
 // transactions
 // provide simpler semantics and are almost always faster.
@@ -2922,7 +3223,10 @@ func (s *Transaction) MarshalJSON() ([]byte, error) {
 // whose
 // timestamp become too old while executing. Reads and SQL queries
 // with
-// too-old read timestamps fail with the error `FAILED_PRECONDITION`.
+// too-old read timestamps fail with the error
+// `FAILED_PRECONDITION`.
+//
+// ##
 type TransactionOptions struct {
 	// ReadOnly: Transaction will not write.
 	//
@@ -3030,6 +3334,14 @@ type Type struct {
 	//   "TIMESTAMP" - Encoded as `string` in RFC 3339 timestamp format. The
 	// time zone
 	// must be present, and must be "Z".
+	//
+	// If the schema has the column option
+	// `allow_commit_timestamp=true`, the placeholder
+	// string
+	// "spanner.commit_timestamp()" can be used to instruct the system
+	// to insert the commit timestamp associated with the
+	// transaction
+	// commit.
 	//   "DATE" - Encoded as `string` in RFC 3339 date format.
 	//   "STRING" - Encoded as `string`.
 	//   "BYTES" - Encoded as a base64-encoded `string`, as described in RFC
@@ -7486,13 +7798,13 @@ type ProjectsInstancesDatabasesSessionsExecuteSqlCall struct {
 	header_           http.Header
 }
 
-// ExecuteSql: Executes an SQL query, returning all rows in a single
-// reply. This
+// ExecuteSql: Executes an SQL statement, returning all results in a
+// single reply. This
 // method cannot be used to return a result set larger than 10 MiB;
 // if the query yields more data than that, the query fails with
 // a `FAILED_PRECONDITION` error.
 //
-// Queries inside read-write transactions might return `ABORTED`.
+// Operations inside read-write transactions might return `ABORTED`.
 // If
 // this occurs, the application should restart the transaction from
 // the beginning. See Transaction for more details.
@@ -7593,7 +7905,7 @@ func (c *ProjectsInstancesDatabasesSessionsExecuteSqlCall) Do(opts ...googleapi.
 	}
 	return ret, nil
 	// {
-	//   "description": "Executes an SQL query, returning all rows in a single reply. This\nmethod cannot be used to return a result set larger than 10 MiB;\nif the query yields more data than that, the query fails with\na `FAILED_PRECONDITION` error.\n\nQueries inside read-write transactions might return `ABORTED`. If\nthis occurs, the application should restart the transaction from\nthe beginning. See Transaction for more details.\n\nLarger result sets can be fetched in streaming fashion by calling\nExecuteStreamingSql instead.",
+	//   "description": "Executes an SQL statement, returning all results in a single reply. This\nmethod cannot be used to return a result set larger than 10 MiB;\nif the query yields more data than that, the query fails with\na `FAILED_PRECONDITION` error.\n\nOperations inside read-write transactions might return `ABORTED`. If\nthis occurs, the application should restart the transaction from\nthe beginning. See Transaction for more details.\n\nLarger result sets can be fetched in streaming fashion by calling\nExecuteStreamingSql instead.",
 	//   "flatPath": "v1/projects/{projectsId}/instances/{instancesId}/databases/{databasesId}/sessions/{sessionsId}:executeSql",
 	//   "httpMethod": "POST",
 	//   "id": "spanner.projects.instances.databases.sessions.executeSql",
@@ -8118,6 +8430,303 @@ func (c *ProjectsInstancesDatabasesSessionsListCall) Pages(ctx context.Context, 
 		}
 		c.PageToken(x.NextPageToken)
 	}
+}
+
+// method id "spanner.projects.instances.databases.sessions.partitionQuery":
+
+type ProjectsInstancesDatabasesSessionsPartitionQueryCall struct {
+	s                     *Service
+	session               string
+	partitionqueryrequest *PartitionQueryRequest
+	urlParams_            gensupport.URLParams
+	ctx_                  context.Context
+	header_               http.Header
+}
+
+// PartitionQuery: Creates a set of partition tokens that can be used to
+// execute a query
+// operation in parallel.  Each of the returned partition tokens can be
+// used
+// by ExecuteStreamingSql to specify a subset
+// of the query result to read.  The same session and read-only
+// transaction
+// must be used by the PartitionQueryRequest used to create
+// the
+// partition tokens and the ExecuteSqlRequests that use the partition
+// tokens.
+// Partition tokens become invalid when the session used to create
+// them
+// is deleted or begins a new transaction.
+func (r *ProjectsInstancesDatabasesSessionsService) PartitionQuery(session string, partitionqueryrequest *PartitionQueryRequest) *ProjectsInstancesDatabasesSessionsPartitionQueryCall {
+	c := &ProjectsInstancesDatabasesSessionsPartitionQueryCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.session = session
+	c.partitionqueryrequest = partitionqueryrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *ProjectsInstancesDatabasesSessionsPartitionQueryCall) Fields(s ...googleapi.Field) *ProjectsInstancesDatabasesSessionsPartitionQueryCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *ProjectsInstancesDatabasesSessionsPartitionQueryCall) Context(ctx context.Context) *ProjectsInstancesDatabasesSessionsPartitionQueryCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *ProjectsInstancesDatabasesSessionsPartitionQueryCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesDatabasesSessionsPartitionQueryCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.partitionqueryrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+session}:partitionQuery")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"session": c.session,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "spanner.projects.instances.databases.sessions.partitionQuery" call.
+// Exactly one of *PartitionResponse or error will be non-nil. Any
+// non-2xx status code is an error. Response headers are in either
+// *PartitionResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *ProjectsInstancesDatabasesSessionsPartitionQueryCall) Do(opts ...googleapi.CallOption) (*PartitionResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &PartitionResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Creates a set of partition tokens that can be used to execute a query\noperation in parallel.  Each of the returned partition tokens can be used\nby ExecuteStreamingSql to specify a subset\nof the query result to read.  The same session and read-only transaction\nmust be used by the PartitionQueryRequest used to create the\npartition tokens and the ExecuteSqlRequests that use the partition tokens.\nPartition tokens become invalid when the session used to create them\nis deleted or begins a new transaction.",
+	//   "flatPath": "v1/projects/{projectsId}/instances/{instancesId}/databases/{databasesId}/sessions/{sessionsId}:partitionQuery",
+	//   "httpMethod": "POST",
+	//   "id": "spanner.projects.instances.databases.sessions.partitionQuery",
+	//   "parameterOrder": [
+	//     "session"
+	//   ],
+	//   "parameters": {
+	//     "session": {
+	//       "description": "Required. The session used to create the partitions.",
+	//       "location": "path",
+	//       "pattern": "^projects/[^/]+/instances/[^/]+/databases/[^/]+/sessions/[^/]+$",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/{+session}:partitionQuery",
+	//   "request": {
+	//     "$ref": "PartitionQueryRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "PartitionResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
+	//   ]
+	// }
+
+}
+
+// method id "spanner.projects.instances.databases.sessions.partitionRead":
+
+type ProjectsInstancesDatabasesSessionsPartitionReadCall struct {
+	s                    *Service
+	session              string
+	partitionreadrequest *PartitionReadRequest
+	urlParams_           gensupport.URLParams
+	ctx_                 context.Context
+	header_              http.Header
+}
+
+// PartitionRead: Creates a set of partition tokens that can be used to
+// execute a read
+// operation in parallel.  Each of the returned partition tokens can be
+// used
+// by StreamingRead to specify a subset of the read
+// result to read.  The same session and read-only transaction must be
+// used by
+// the PartitionReadRequest used to create the partition tokens and
+// the
+// ReadRequests that use the partition tokens.
+// Partition tokens become invalid when the session used to create
+// them
+// is deleted or begins a new transaction.
+func (r *ProjectsInstancesDatabasesSessionsService) PartitionRead(session string, partitionreadrequest *PartitionReadRequest) *ProjectsInstancesDatabasesSessionsPartitionReadCall {
+	c := &ProjectsInstancesDatabasesSessionsPartitionReadCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.session = session
+	c.partitionreadrequest = partitionreadrequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *ProjectsInstancesDatabasesSessionsPartitionReadCall) Fields(s ...googleapi.Field) *ProjectsInstancesDatabasesSessionsPartitionReadCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *ProjectsInstancesDatabasesSessionsPartitionReadCall) Context(ctx context.Context) *ProjectsInstancesDatabasesSessionsPartitionReadCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *ProjectsInstancesDatabasesSessionsPartitionReadCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ProjectsInstancesDatabasesSessionsPartitionReadCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.partitionreadrequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "v1/{+session}:partitionRead")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"session": c.session,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "spanner.projects.instances.databases.sessions.partitionRead" call.
+// Exactly one of *PartitionResponse or error will be non-nil. Any
+// non-2xx status code is an error. Response headers are in either
+// *PartitionResponse.ServerResponse.Header or (if a response was
+// returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *ProjectsInstancesDatabasesSessionsPartitionReadCall) Do(opts ...googleapi.CallOption) (*PartitionResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &PartitionResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Creates a set of partition tokens that can be used to execute a read\noperation in parallel.  Each of the returned partition tokens can be used\nby StreamingRead to specify a subset of the read\nresult to read.  The same session and read-only transaction must be used by\nthe PartitionReadRequest used to create the partition tokens and the\nReadRequests that use the partition tokens.\nPartition tokens become invalid when the session used to create them\nis deleted or begins a new transaction.",
+	//   "flatPath": "v1/projects/{projectsId}/instances/{instancesId}/databases/{databasesId}/sessions/{sessionsId}:partitionRead",
+	//   "httpMethod": "POST",
+	//   "id": "spanner.projects.instances.databases.sessions.partitionRead",
+	//   "parameterOrder": [
+	//     "session"
+	//   ],
+	//   "parameters": {
+	//     "session": {
+	//       "description": "Required. The session used to create the partitions.",
+	//       "location": "path",
+	//       "pattern": "^projects/[^/]+/instances/[^/]+/databases/[^/]+/sessions/[^/]+$",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "v1/{+session}:partitionRead",
+	//   "request": {
+	//     "$ref": "PartitionReadRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "PartitionResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/spanner.data"
+	//   ]
+	// }
+
 }
 
 // method id "spanner.projects.instances.databases.sessions.read":

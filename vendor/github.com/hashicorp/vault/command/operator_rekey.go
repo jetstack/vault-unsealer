@@ -37,9 +37,10 @@ type OperatorRekeyCommand struct {
 
 	// Deprecations
 	// TODO: remove in 0.9.0
-	flagDelete      bool
-	flagRecoveryKey bool
-	flagRetrieve    bool
+	flagDelete       bool
+	flagRecoveryKey  bool
+	flagRetrieve     bool
+	flagStoredShares int
 
 	testStdin io.Reader // for tests
 }
@@ -96,7 +97,7 @@ Usage: vault rekey [options] [KEY]
 }
 
 func (c *OperatorRekeyCommand) Flags() *FlagSets {
-	set := c.flagSet(FlagSetHTTP)
+	set := c.flagSet(FlagSetHTTP | FlagSetOutputFormat)
 
 	f := set.NewFlagSet("Common Options")
 
@@ -231,6 +232,15 @@ func (c *OperatorRekeyCommand) Flags() *FlagSets {
 		Usage:   "",
 	})
 
+	// Kept to keep scripts passing the flag working, but not used
+	f.IntVar(&IntVar{
+		Name:    "stored-shares",
+		Target:  &c.flagStoredShares,
+		Default: 0,
+		Hidden:  true,
+		Usage:   "",
+	})
+
 	return set
 }
 
@@ -259,21 +269,27 @@ func (c *OperatorRekeyCommand) Run(args []string) int {
 	// Deprecations
 	// TODO: remove in 0.9.0
 	if c.flagDelete {
-		c.UI.Warn(wrapAtLength(
-			"WARNING! The -delete flag is deprecated. Please use -backup-delete " +
-				"instead. This flag will be removed in Vault 0.11 (or later)."))
+		if Format(c.UI) == "table" {
+			c.UI.Warn(wrapAtLength(
+				"WARNING! The -delete flag is deprecated. Please use -backup-delete " +
+					"instead. This flag will be removed in Vault 0.11 (or later)."))
+		}
 		c.flagBackupDelete = true
 	}
 	if c.flagRetrieve {
-		c.UI.Warn(wrapAtLength(
-			"WARNING! The -retrieve flag is deprecated. Please use -backup-retrieve " +
-				"instead. This flag will be removed in Vault 0.11 (or later)."))
+		if Format(c.UI) == "table" {
+			c.UI.Warn(wrapAtLength(
+				"WARNING! The -retrieve flag is deprecated. Please use -backup-retrieve " +
+					"instead. This flag will be removed in Vault 0.11 (or later)."))
+		}
 		c.flagBackupRetrieve = true
 	}
 	if c.flagRecoveryKey {
-		c.UI.Warn(wrapAtLength(
-			"WARNING! The -recovery-key flag is deprecated. Please use -target=recovery " +
-				"instead. This flag will be removed in Vault 0.11 (or later)."))
+		if Format(c.UI) == "table" {
+			c.UI.Warn(wrapAtLength(
+				"WARNING! The -recovery-key flag is deprecated. Please use -target=recovery " +
+					"instead. This flag will be removed in Vault 0.11 (or later)."))
+		}
 		c.flagTarget = "recovery"
 	}
 
@@ -323,6 +339,7 @@ func (c *OperatorRekeyCommand) init(client *api.Client) int {
 	status, err := fn(&api.RekeyInitRequest{
 		SecretShares:    c.flagKeyShares,
 		SecretThreshold: c.flagKeyThreshold,
+		StoredShares:    c.flagStoredShares,
 		PGPKeys:         c.flagPGPKeys,
 		Backup:          c.flagBackup,
 	})
@@ -333,25 +350,29 @@ func (c *OperatorRekeyCommand) init(client *api.Client) int {
 
 	// Print warnings about recovery, etc.
 	if len(c.flagPGPKeys) == 0 {
-		c.UI.Warn(wrapAtLength(
-			"WARNING! If you lose the keys after they are returned, there is no " +
-				"recovery. Consider canceling this operation and re-initializing " +
-				"with the -pgp-keys flag to protect the returned unseal keys along " +
-				"with -backup to allow recovery of the encrypted keys in case of " +
-				"emergency. You can delete the stored keys later using the -delete " +
-				"flag."))
-		c.UI.Output("")
+		if Format(c.UI) == "table" {
+			c.UI.Warn(wrapAtLength(
+				"WARNING! If you lose the keys after they are returned, there is no " +
+					"recovery. Consider canceling this operation and re-initializing " +
+					"with the -pgp-keys flag to protect the returned unseal keys along " +
+					"with -backup to allow recovery of the encrypted keys in case of " +
+					"emergency. You can delete the stored keys later using the -delete " +
+					"flag."))
+			c.UI.Output("")
+		}
 	}
 	if len(c.flagPGPKeys) > 0 && !c.flagBackup {
-		c.UI.Warn(wrapAtLength(
-			"WARNING! You are using PGP keys for encrypted the resulting unseal " +
-				"keys, but you did not enable the option to backup the keys to " +
-				"Vault's core. If you lose the encrypted keys after they are " +
-				"returned, you will not be able to recover them. Consider canceling " +
-				"this operation and re-running with -backup to allow recovery of the " +
-				"encrypted unseal keys in case of emergency. You can delete the " +
-				"stored keys later using the -delete flag."))
-		c.UI.Output("")
+		if Format(c.UI) == "table" {
+			c.UI.Warn(wrapAtLength(
+				"WARNING! You are using PGP keys for encrypted the resulting unseal " +
+					"keys, but you did not enable the option to backup the keys to " +
+					"Vault's core. If you lose the encrypted keys after they are " +
+					"returned, you will not be able to recover them. Consider canceling " +
+					"this operation and re-running with -backup to allow recovery of the " +
+					"encrypted unseal keys in case of emergency. You can delete the " +
+					"stored keys later using the -delete flag."))
+			c.UI.Output("")
+		}
 	}
 
 	// Provide the current status
@@ -534,7 +555,7 @@ func (c *OperatorRekeyCommand) backupRetrieve(client *api.Client) int {
 		Data: structs.New(storedKeys).Map(),
 	}
 
-	return OutputSecret(c.UI, "table", secret)
+	return OutputSecret(c.UI, secret)
 }
 
 // backupDelete deletes the stored backup keys.
@@ -579,11 +600,22 @@ func (c *OperatorRekeyCommand) printStatus(status *api.RekeyStatusResponse) int 
 		out = append(out, fmt.Sprintf("Backup | %t", status.Backup))
 	}
 
-	c.UI.Output(tableOutput(out, nil))
-	return 0
+	switch Format(c.UI) {
+	case "table":
+		c.UI.Output(tableOutput(out, nil))
+		return 0
+	default:
+		return OutputData(c.UI, status)
+	}
 }
 
 func (c *OperatorRekeyCommand) printUnsealKeys(status *api.RekeyStatusResponse, resp *api.RekeyUpdateResponse) int {
+	switch Format(c.UI) {
+	case "table":
+	default:
+		return OutputData(c.UI, resp)
+	}
+
 	// Space between the key prompt, if any, and the output
 	c.UI.Output("")
 

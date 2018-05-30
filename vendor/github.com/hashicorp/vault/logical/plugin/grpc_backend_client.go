@@ -3,14 +3,15 @@ package plugin
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 
 	"google.golang.org/grpc"
 
+	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/vault/helper/pluginutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/plugin/pb"
-	log "github.com/mgutz/logxi/v1"
 )
 
 var ErrPluginShutdown = errors.New("plugin is shut down")
@@ -28,8 +29,13 @@ type backendGRPCPluginClient struct {
 	system logical.SystemView
 	logger log.Logger
 
+	// This is used to signal to the Cleanup function that it can proceed
+	// because we have a defined server
+	cleanupCh chan struct{}
+
 	// server is the grpc server used for serving storage and sysview requests.
-	server *grpc.Server
+	server *atomic.Value
+
 	// clientConn is the underlying grpc connection to the server, we store it
 	// so it can be cleaned up.
 	clientConn *grpc.ClientConn
@@ -53,7 +59,7 @@ func (b *backendGRPCPluginClient) HandleRequest(ctx context.Context, req *logica
 
 	reply, err := b.client.HandleRequest(ctx, &pb.HandleRequestArgs{
 		Request: protoReq,
-	})
+	}, largeMsgGRPCCallOpts...)
 	if err != nil {
 		if b.doneCtx.Err() != nil {
 			return nil, ErrPluginShutdown
@@ -73,9 +79,12 @@ func (b *backendGRPCPluginClient) HandleRequest(ctx context.Context, req *logica
 }
 
 func (b *backendGRPCPluginClient) SpecialPaths() *logical.Paths {
-	// Timeout the connection
 	reply, err := b.client.SpecialPaths(b.doneCtx, &pb.Empty{})
 	if err != nil {
+		return nil
+	}
+
+	if reply.Paths == nil {
 		return nil
 	}
 
@@ -115,7 +124,7 @@ func (b *backendGRPCPluginClient) HandleExistenceCheck(ctx context.Context, req 
 	defer cancel()
 	reply, err := b.client.HandleExistenceCheck(ctx, &pb.HandleExistenceCheckArgs{
 		Request: protoReq,
-	})
+	}, largeMsgGRPCCallOpts...)
 	if err != nil {
 		if b.doneCtx.Err() != nil {
 			return false, false, ErrPluginShutdown
@@ -136,8 +145,16 @@ func (b *backendGRPCPluginClient) Cleanup(ctx context.Context) {
 	defer cancel()
 
 	b.client.Cleanup(ctx, &pb.Empty{})
-	if b.server != nil {
-		b.server.GracefulStop()
+
+	// This will block until Setup has run the function to create a new server
+	// in b.server. If we stop here before it has a chance to actually start
+	// listening, when it starts listening it will immediatley error out and
+	// exit, which is fine. Overall this ensures that we do not miss stopping
+	// the server if it ends up being created after Cleanup is called.
+	<-b.cleanupCh
+	server := b.server.Load()
+	if server != nil {
+		server.(*grpc.Server).GracefulStop()
 	}
 	b.clientConn.Close()
 }
@@ -181,15 +198,17 @@ func (b *backendGRPCPluginClient) Setup(ctx context.Context, config *logical.Bac
 		s := grpc.NewServer(opts...)
 		pb.RegisterSystemViewServer(s, sysView)
 		pb.RegisterStorageServer(s, storage)
-		b.server = s
+		b.server.Store(s)
+		close(b.cleanupCh)
 		return s
 	}
 	brokerID := b.broker.NextId()
 	go b.broker.AcceptAndServe(brokerID, serverFunc)
 
 	args := &pb.SetupArgs{
-		BrokerID: brokerID,
-		Config:   config.Config,
+		BrokerID:    brokerID,
+		Config:      config.Config,
+		BackendUUID: config.BackendUUID,
 	}
 
 	ctx, cancel := context.WithCancel(ctx)

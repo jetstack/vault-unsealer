@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 
-	"github.com/jetstack/vault-unsealer/pkg/kv"
+	"github.com/soter/vault-unsealer/pkg/kv"
 )
 
 type awsSSM struct {

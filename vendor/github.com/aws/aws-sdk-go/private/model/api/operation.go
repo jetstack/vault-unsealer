@@ -66,13 +66,14 @@ func (o *Operation) GetSigner() string {
 
 // tplOperation defines a template for rendering an API Operation
 var tplOperation = template.Must(template.New("operation").Funcs(template.FuncMap{
-	"GetCrosslinkURL": GetCrosslinkURL,
+	"GetCrosslinkURL":       GetCrosslinkURL,
+	"EnableStopOnSameToken": enableStopOnSameToken,
 }).Parse(`
 const op{{ .ExportedName }} = "{{ .Name }}"
 
 // {{ .ExportedName }}Request generates a "aws/request.Request" representing the
 // client's request for the {{ .ExportedName }} operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -214,6 +215,8 @@ func (c *{{ .API.StructName }}) {{ .ExportedName }}PagesWithContext(` +
 	`fn func({{ .OutputRef.GoType }}, bool) bool, ` +
 	`opts ...request.Option) error {
 	p := request.Pagination {
+		{{ if EnableStopOnSameToken .API.PackageName -}}EndPageOnSameToken: true,
+		{{ end -}}
 		NewRequest: func() (*request.Request, error) {
 			var inCpy {{ .InputRef.GoType }}
 			if input != nil  {

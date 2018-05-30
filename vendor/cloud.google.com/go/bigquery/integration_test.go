@@ -34,6 +34,7 @@ import (
 	"cloud.google.com/go/internal"
 	"cloud.google.com/go/internal/pretty"
 	"cloud.google.com/go/internal/testutil"
+	"cloud.google.com/go/internal/uid"
 	"cloud.google.com/go/storage"
 	"golang.org/x/net/context"
 	"google.golang.org/api/googleapi"
@@ -55,9 +56,12 @@ var (
 	testTableExpiration time.Time
 	// BigQuery does not accept hyphens in dataset or table IDs, so we create IDs
 	// with underscores.
-	datasetIDs = testutil.NewUIDSpaceSep("dataset", '_')
-	tableIDs   = testutil.NewUIDSpaceSep("table", '_')
+	datasetIDs = uid.NewSpace("dataset", &uid.Options{Sep: '_'})
+	tableIDs   = uid.NewSpace("table", &uid.Options{Sep: '_'})
 )
+
+// Note: integration tests cannot be run in parallel, because TestIntegration_Location
+// modifies the client.
 
 func TestMain(m *testing.M) {
 	cleanup := initIntegrationTest()
@@ -102,28 +106,12 @@ func initIntegrationTest() func() {
 	}
 	testTableExpiration = time.Now().Add(10 * time.Minute).Round(time.Second)
 	return func() {
-		if err := deleteDataset(ctx, dataset); err != nil {
+		if err := dataset.DeleteWithContents(ctx); err != nil {
 			log.Printf("could not delete %s", dataset.DatasetID)
 		}
 	}
 }
 
-func deleteDataset(ctx context.Context, ds *Dataset) error {
-	it := ds.Tables(ctx)
-	for {
-		tbl, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		if err := tbl.Delete(ctx); err != nil {
-			return err
-		}
-	}
-	return ds.Delete(ctx)
-}
 func TestIntegration_TableCreate(t *testing.T) {
 	// Check that creating a record field with an empty schema is an error.
 	if client == nil {
@@ -164,7 +152,9 @@ func TestIntegration_TableCreateView(t *testing.T) {
 	if err != nil {
 		t.Fatalf("table.create: Did not expect an error, got: %v", err)
 	}
-	view.Delete(ctx)
+	if err := view.Delete(ctx); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestIntegration_TableMetadata(t *testing.T) {
@@ -306,6 +296,28 @@ func TestIntegration_DatasetDelete(t *testing.T) {
 	}
 	if err := ds.Delete(ctx); err != nil {
 		t.Fatalf("deleting dataset %s: %v", ds.DatasetID, err)
+	}
+}
+
+func TestIntegration_DatasetDeleteWithContents(t *testing.T) {
+	if client == nil {
+		t.Skip("Integration tests skipped")
+	}
+	ctx := context.Background()
+	ds := client.Dataset(datasetIDs.New())
+	if err := ds.Create(ctx, nil); err != nil {
+		t.Fatalf("creating dataset %s: %v", ds.DatasetID, err)
+	}
+	table := ds.Table(tableIDs.New())
+	if err := table.Create(ctx, nil); err != nil {
+		t.Fatalf("creating table %s in dataset %s: %v", table.TableID, table.DatasetID, err)
+	}
+	// We expect failure here
+	if err := ds.Delete(ctx); err == nil {
+		t.Fatalf("non-recursive delete of dataset %s succeeded unexpectedly.", ds.DatasetID)
+	}
+	if err := ds.DeleteWithContents(ctx); err != nil {
+		t.Fatalf("deleting recursively dataset %s: %v", ds.DatasetID, err)
 	}
 }
 
@@ -691,14 +703,14 @@ func TestIntegration_UploadAndReadStructs(t *testing.T) {
 	table := newTable(t, schema)
 	defer table.Delete(ctx)
 
-	d := civil.Date{2016, 3, 20}
-	tm := civil.Time{15, 4, 5, 6000}
+	d := civil.Date{Year: 2016, Month: 3, Day: 20}
+	tm := civil.Time{Hour: 15, Minute: 4, Second: 5, Nanosecond: 6000}
 	ts := time.Date(2016, 3, 20, 15, 4, 5, 6000, time.UTC)
-	dtm := civil.DateTime{d, tm}
-	d2 := civil.Date{1994, 5, 15}
-	tm2 := civil.Time{1, 2, 4, 0}
+	dtm := civil.DateTime{Date: d, Time: tm}
+	d2 := civil.Date{Year: 1994, Month: 5, Day: 15}
+	tm2 := civil.Time{Hour: 1, Minute: 2, Second: 4, Nanosecond: 0}
 	ts2 := time.Date(1994, 5, 15, 1, 2, 4, 0, time.UTC)
-	dtm2 := civil.DateTime{d2, tm2}
+	dtm2 := civil.DateTime{Date: d2, Time: tm2}
 
 	// Populate the table.
 	upl := table.Uploader()
@@ -797,8 +809,8 @@ func TestIntegration_UploadAndReadNullable(t *testing.T) {
 	if client == nil {
 		t.Skip("Integration tests skipped")
 	}
-	ctm := civil.Time{15, 4, 5, 6000}
-	cdt := civil.DateTime{testDate, ctm}
+	ctm := civil.Time{Hour: 15, Minute: 4, Second: 5, Nanosecond: 6000}
+	cdt := civil.DateTime{Date: testDate, Time: ctm}
 	testUploadAndReadNullable(t, testStructNullable{}, make([]Value, len(testStructNullableSchema)))
 	testUploadAndReadNullable(t, testStructNullable{
 		String:    NullString{"x", true},
@@ -943,23 +955,23 @@ func TestIntegration_TableUpdate(t *testing.T) {
 	// Error cases when updating schema.
 	for _, test := range []struct {
 		desc   string
-		fields []*FieldSchema
+		fields Schema
 	}{
-		{"change from optional to required", []*FieldSchema{
+		{"change from optional to required", Schema{
 			{Name: "name", Type: StringFieldType, Required: true},
 			schema3[1],
 			schema3[2],
 			schema3[3],
 		}},
-		{"add a required field", []*FieldSchema{
+		{"add a required field", Schema{
 			schema3[0], schema3[1], schema3[2], schema3[3],
 			{Name: "req", Type: StringFieldType, Required: true},
 		}},
-		{"remove a field", []*FieldSchema{schema3[0], schema3[1], schema3[2]}},
-		{"remove a nested field", []*FieldSchema{
+		{"remove a field", Schema{schema3[0], schema3[1], schema3[2]}},
+		{"remove a nested field", Schema{
 			schema3[0], schema3[1], schema3[2],
 			{Name: "rec2", Type: RecordFieldType, Schema: Schema{nested[0]}}}},
-		{"remove all nested fields", []*FieldSchema{
+		{"remove all nested fields", Schema{
 			schema3[0], schema3[1], schema3[2],
 			{Name: "rec2", Type: RecordFieldType, Schema: Schema{}}}},
 	} {
@@ -1085,9 +1097,9 @@ func TestIntegration_TimeTypes(t *testing.T) {
 	table := newTable(t, dtSchema)
 	defer table.Delete(ctx)
 
-	d := civil.Date{2016, 3, 20}
-	tm := civil.Time{12, 30, 0, 6000}
-	dtm := civil.DateTime{d, tm}
+	d := civil.Date{Year: 2016, Month: 3, Day: 20}
+	tm := civil.Time{Hour: 12, Minute: 30, Second: 0, Nanosecond: 6000}
+	dtm := civil.DateTime{Date: d, Time: tm}
 	ts := time.Date(2016, 3, 20, 15, 04, 05, 0, time.UTC)
 	wantRows := [][]Value{
 		[]Value{d, tm, dtm, ts},
@@ -1121,8 +1133,8 @@ func TestIntegration_StandardQuery(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	d := civil.Date{2016, 3, 20}
-	tm := civil.Time{15, 04, 05, 0}
+	d := civil.Date{Year: 2016, Month: 3, Day: 20}
+	tm := civil.Time{Hour: 15, Minute: 04, Second: 05, Nanosecond: 0}
 	ts := time.Date(2016, 3, 20, 15, 04, 05, 0, time.UTC)
 	dtm := ts.Format("2006-01-02 15:04:05")
 
@@ -1147,7 +1159,7 @@ func TestIntegration_StandardQuery(t *testing.T) {
 		{fmt.Sprintf("SELECT TIMESTAMP '%s'", dtm), []Value{ts}},
 		{fmt.Sprintf("SELECT [TIMESTAMP '%s', TIMESTAMP '%s']", dtm, dtm), []Value{[]Value{ts, ts}}},
 		{fmt.Sprintf("SELECT ('hello', TIMESTAMP '%s')", dtm), []Value{[]Value{"hello", ts}}},
-		{fmt.Sprintf("SELECT DATETIME(TIMESTAMP '%s')", dtm), []Value{civil.DateTime{d, tm}}},
+		{fmt.Sprintf("SELECT DATETIME(TIMESTAMP '%s')", dtm), []Value{civil.DateTime{Date: d, Time: tm}}},
 		{fmt.Sprintf("SELECT DATE(TIMESTAMP '%s')", dtm), []Value{d}},
 		{fmt.Sprintf("SELECT TIME(TIMESTAMP '%s')", dtm), []Value{tm}},
 		{"SELECT (1, 2)", []Value{ints(1, 2)}},
@@ -1206,11 +1218,11 @@ func TestIntegration_QueryParameters(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	d := civil.Date{2016, 3, 20}
-	tm := civil.Time{15, 04, 05, 3008}
+	d := civil.Date{Year: 2016, Month: 3, Day: 20}
+	tm := civil.Time{Hour: 15, Minute: 04, Second: 05, Nanosecond: 3008}
 	rtm := tm
 	rtm.Nanosecond = 3000 // round to microseconds
-	dtm := civil.DateTime{d, tm}
+	dtm := civil.DateTime{Date: d, Time: tm}
 	ts := time.Date(2016, 3, 20, 15, 04, 05, 0, time.UTC)
 
 	type ss struct {
@@ -1275,8 +1287,8 @@ func TestIntegration_QueryParameters(t *testing.T) {
 		{
 			"SELECT @val",
 			[]QueryParameter{{"val", dtm}},
-			[]Value{civil.DateTime{d, rtm}},
-			civil.DateTime{d, rtm},
+			[]Value{civil.DateTime{Date: d, Time: rtm}},
+			civil.DateTime{Date: d, Time: rtm},
 		},
 		{
 			"SELECT @val",
@@ -1567,7 +1579,7 @@ func TestIntegration_TableUseLegacySQL(t *testing.T) {
 		} else if !gotErr && test.err {
 			t.Errorf("%+v:\nsucceeded, but want error", test)
 		}
-		view.Delete(ctx)
+		_ = view.Delete(ctx)
 	}
 }
 
@@ -1600,6 +1612,117 @@ func TestIntegration_ListJobs(t *testing.T) {
 	// We expect that there is at least one job in the last few months.
 	if len(jobs) == 0 {
 		t.Fatal("did not get any jobs")
+	}
+}
+
+const tokyo = "asia-northeast1"
+
+func TestIntegration_Location(t *testing.T) {
+	if client == nil {
+		t.Skip("Integration tests skipped")
+	}
+	client.Location = ""
+	testLocation(t, tokyo)
+	client.Location = tokyo
+	defer func() {
+		client.Location = ""
+	}()
+	testLocation(t, "")
+}
+
+func testLocation(t *testing.T, loc string) {
+	ctx := context.Background()
+	tokyoDataset := client.Dataset("tokyo")
+	err := tokyoDataset.Create(ctx, &DatasetMetadata{Location: loc})
+	if err != nil && !hasStatusCode(err, 409) { // 409 = already exists
+		t.Fatal(err)
+	}
+	md, err := tokyoDataset.Metadata(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if md.Location != tokyo {
+		t.Fatalf("dataset location: got %s, want %s", md.Location, tokyo)
+	}
+	table := tokyoDataset.Table(tableIDs.New())
+	err = table.Create(context.Background(), &TableMetadata{
+		Schema: Schema{
+			{Name: "name", Type: StringFieldType},
+			{Name: "nums", Type: IntegerFieldType},
+		},
+		ExpirationTime: testTableExpiration,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer table.Delete(ctx)
+	loader := table.LoaderFrom(NewReaderSource(strings.NewReader("a,0\nb,1\nc,2\n")))
+	loader.Location = loc
+	job, err := loader.Run(ctx)
+	if err != nil {
+		t.Fatal("loader.Run", err)
+	}
+	if job.Location() != tokyo {
+		t.Fatalf("job location: got %s, want %s", job.Location(), tokyo)
+	}
+	_, err = client.JobFromID(ctx, job.ID())
+	if client.Location == "" && err == nil {
+		t.Error("JobFromID with Tokyo job, no client location: want error, got nil")
+	}
+	if client.Location != "" && err != nil {
+		t.Errorf("JobFromID with Tokyo job, with client location: want nil, got %v", err)
+	}
+	_, err = client.JobFromIDLocation(ctx, job.ID(), "US")
+	if err == nil {
+		t.Error("JobFromIDLocation with US: want error, got nil")
+	}
+	job2, err := client.JobFromIDLocation(ctx, job.ID(), loc)
+	if loc == tokyo && err != nil {
+		t.Errorf("loc=tokyo: %v", err)
+	}
+	if loc == "" && err == nil {
+		t.Error("loc empty: got nil, want error")
+	}
+	if job2 != nil && (job2.ID() != job.ID() || job2.Location() != tokyo) {
+		t.Errorf("got id %s loc %s, want id%s loc %s", job2.ID(), job2.Location(), job.ID(), tokyo)
+	}
+	if err := wait(ctx, job); err != nil {
+		t.Fatal(err)
+	}
+	// Cancel should succeed even if the job is done.
+	if err := job.Cancel(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	q := client.Query(fmt.Sprintf("SELECT * FROM %s.%s", table.DatasetID, table.TableID))
+	q.Location = loc
+	iter, err := q.Read(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantRows := [][]Value{
+		[]Value{"a", int64(0)},
+		[]Value{"b", int64(1)},
+		[]Value{"c", int64(2)},
+	}
+	checkRead(t, "location", iter, wantRows)
+
+	table2 := tokyoDataset.Table(tableIDs.New())
+	copier := table2.CopierFrom(table)
+	copier.Location = loc
+	if _, err := copier.Run(ctx); err != nil {
+		t.Fatal(err)
+	}
+	bucketName := testutil.ProjID()
+	objectName := fmt.Sprintf("bq-test-%s.csv", table.TableID)
+	uri := fmt.Sprintf("gs://%s/%s", bucketName, objectName)
+	defer storageClient.Bucket(bucketName).Object(objectName).Delete(ctx)
+	gr := NewGCSReference(uri)
+	gr.DestinationFormat = CSV
+	e := table.ExtractorTo(gr)
+	e.Location = loc
+	if _, err := e.Run(ctx); err != nil {
+		t.Fatal(err)
 	}
 }
 

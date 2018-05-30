@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/vault/helper/cidrutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -51,9 +53,181 @@ func (b *backend) pathLoginUpdateAliasLookahead(ctx context.Context, req *logica
 // Returns the Auth object indicating the authentication and authorization information
 // if the credentials provided are validated by the backend.
 func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	role, roleName, metadata, _, err := b.validateCredentials(ctx, req, data)
-	if err != nil || role == nil {
-		return logical.ErrorResponse(fmt.Sprintf("failed to validate credentials: %v", err)), nil
+
+	// RoleID must be supplied during every login
+	roleID := strings.TrimSpace(data.Get("role_id").(string))
+	if roleID == "" {
+		return logical.ErrorResponse("missing role_id"), nil
+	}
+
+	// Look for the storage entry that maps the roleID to role
+	roleIDIndex, err := b.roleIDEntry(ctx, req.Storage, roleID)
+	if err != nil {
+		return nil, err
+	}
+	if roleIDIndex == nil {
+		return logical.ErrorResponse(fmt.Sprintf("invalid role_id %q", roleID)), nil
+	}
+
+	roleName := roleIDIndex.Name
+
+	roleLock := b.roleLock(roleName)
+	roleLock.RLock()
+
+	role, err := b.roleEntry(ctx, req.Storage, roleName)
+	roleLock.RUnlock()
+	if err != nil {
+		return nil, err
+	}
+	if role == nil {
+		return logical.ErrorResponse(fmt.Sprintf("invalid role_id %q", roleID)), nil
+	}
+
+	var metadata map[string]string
+	if role.BindSecretID {
+		secretID := strings.TrimSpace(data.Get("secret_id").(string))
+		if secretID == "" {
+			return logical.ErrorResponse("missing secret_id"), nil
+		}
+
+		if role.LowerCaseRoleName {
+			roleName = strings.ToLower(roleName)
+		}
+
+		secretIDHMAC, err := createHMAC(role.HMACKey, secretID)
+		if err != nil {
+			return nil, errwrap.Wrapf("failed to create HMAC of secret_id: {{err}}", err)
+		}
+
+		roleNameHMAC, err := createHMAC(role.HMACKey, roleName)
+		if err != nil {
+			return nil, errwrap.Wrapf("failed to create HMAC of role_name: {{err}}", err)
+		}
+
+		entryIndex := fmt.Sprintf("%s%s/%s", role.SecretIDPrefix, roleNameHMAC, secretIDHMAC)
+
+		secretIDLock := b.secretIDLock(secretIDHMAC)
+		secretIDLock.RLock()
+
+		entry, err := b.nonLockedSecretIDStorageEntry(ctx, req.Storage, role.SecretIDPrefix, roleNameHMAC, secretIDHMAC)
+		if err != nil {
+			secretIDLock.RUnlock()
+			return nil, err
+		} else if entry == nil {
+			secretIDLock.RUnlock()
+			return logical.ErrorResponse(fmt.Sprintf("invalid secret_id %q", secretID)), nil
+		}
+
+		switch {
+		case entry.SecretIDNumUses == 0:
+			defer secretIDLock.RUnlock()
+			//
+			// SecretIDNumUses will be zero only if the usage limit was not set at all,
+			// in which case, the SecretID will remain to be valid as long as it is not
+			// expired.
+			//
+
+			// Ensure that the CIDRs on the secret ID are still a subset of that of
+			// role's
+			err = verifyCIDRRoleSecretIDSubset(entry.CIDRList, role.BoundCIDRList)
+			if err != nil {
+				return nil, err
+			}
+
+			// If CIDR restrictions are present on the secret ID, check if the
+			// source IP complies to it
+			if len(entry.CIDRList) != 0 {
+				if req.Connection == nil || req.Connection.RemoteAddr == "" {
+					return nil, fmt.Errorf("failed to get connection information")
+				}
+
+				belongs, err := cidrutil.IPBelongsToCIDRBlocksSlice(req.Connection.RemoteAddr, entry.CIDRList)
+				if !belongs || err != nil {
+					return logical.ErrorResponse(errwrap.Wrapf(fmt.Sprintf("source address %q unauthorized through CIDR restrictions on the secret ID: {{err}}", req.Connection.RemoteAddr), err).Error()), nil
+				}
+			}
+		default:
+			//
+			// If the SecretIDNumUses is non-zero, it means that its use-count should be updated
+			// in the storage. Switch the lock from a `read` to a `write` and update
+			// the storage entry.
+			//
+
+			secretIDLock.RUnlock()
+			secretIDLock.Lock()
+			defer secretIDLock.Unlock()
+
+			// Lock switching may change the data. Refresh the contents.
+			entry, err = b.nonLockedSecretIDStorageEntry(ctx, req.Storage, role.SecretIDPrefix, roleNameHMAC, secretIDHMAC)
+			if err != nil {
+				return nil, err
+			}
+			if entry == nil {
+				return logical.ErrorResponse(fmt.Sprintf("invalid secret_id %q", secretID)), nil
+			}
+
+			// If there exists a single use left, delete the SecretID entry from
+			// the storage but do not fail the validation request. Subsequent
+			// requests to use the same SecretID will fail.
+			if entry.SecretIDNumUses == 1 {
+				// Delete the secret IDs accessor first
+				err = b.deleteSecretIDAccessorEntry(ctx, req.Storage, entry.SecretIDAccessor, role.SecretIDPrefix)
+				if err != nil {
+					return nil, err
+				}
+				err = req.Storage.Delete(ctx, entryIndex)
+				if err != nil {
+					return nil, errwrap.Wrapf("failed to delete secret ID: {{err}}", err)
+				}
+			} else {
+				// If the use count is greater than one, decrement it and update the last updated time.
+				entry.SecretIDNumUses -= 1
+				entry.LastUpdatedTime = time.Now()
+
+				sEntry, err := logical.StorageEntryJSON(entryIndex, &entry)
+				if err != nil {
+					return nil, err
+				}
+
+				err = req.Storage.Put(ctx, sEntry)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			// Ensure that the CIDRs on the secret ID are still a subset of that of
+			// role's
+			err = verifyCIDRRoleSecretIDSubset(entry.CIDRList, role.BoundCIDRList)
+			if err != nil {
+				return nil, err
+			}
+
+			// If CIDR restrictions are present on the secret ID, check if the
+			// source IP complies to it
+			if len(entry.CIDRList) != 0 {
+				if req.Connection == nil || req.Connection.RemoteAddr == "" {
+					return nil, fmt.Errorf("failed to get connection information")
+				}
+
+				belongs, err := cidrutil.IPBelongsToCIDRBlocksSlice(req.Connection.RemoteAddr, entry.CIDRList)
+				if err != nil || !belongs {
+					return logical.ErrorResponse(errwrap.Wrapf(fmt.Sprintf("source address %q unauthorized by CIDR restrictions on the secret ID: {{err}}", req.Connection.RemoteAddr), err).Error()), nil
+				}
+			}
+		}
+
+		metadata = entry.Metadata
+	}
+
+	if len(role.BoundCIDRList) != 0 {
+		if req.Connection == nil || req.Connection.RemoteAddr == "" {
+			return nil, fmt.Errorf("failed to get connection information")
+		}
+
+		belongs, err := cidrutil.IPBelongsToCIDRBlocksSlice(req.Connection.RemoteAddr, role.BoundCIDRList)
+		if err != nil || !belongs {
+			return logical.ErrorResponse(errwrap.Wrapf(fmt.Sprintf("source address %q unauthorized by CIDR restrictions on the role: {{err}}", req.Connection.RemoteAddr), err).Error()), nil
+		}
 	}
 
 	// Always include the role name, for later filtering
@@ -70,6 +244,7 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, dat
 		LeaseOptions: logical.LeaseOptions{
 			Renewable: true,
 			TTL:       role.TokenTTL,
+			MaxTTL:    role.TokenMaxTTL,
 		},
 		Alias: &logical.Alias{
 			Name: role.RoleID,
@@ -95,23 +270,17 @@ func (b *backend) pathLoginRenew(ctx context.Context, req *logical.Request, data
 	// Ensure that the Role still exists.
 	role, err := b.roleEntry(ctx, req.Storage, strings.ToLower(roleName))
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate role %s during renewal:%s", roleName, err)
+		return nil, errwrap.Wrapf(fmt.Sprintf("failed to validate role %q during renewal: {{err}}", roleName), err)
 	}
 	if role == nil {
-		return nil, fmt.Errorf("role %s does not exist during renewal", roleName)
+		return nil, fmt.Errorf("role %q does not exist during renewal", roleName)
 	}
 
-	// If a period is provided, set that as part of resp.Auth.Period and return a
-	// response immediately. Let expiration manager handle renewal from there on.
-	if role.Period > time.Duration(0) {
-		resp := &logical.Response{
-			Auth: req.Auth,
-		}
-		resp.Auth.Period = role.Period
-		return resp, nil
-	}
-
-	return framework.LeaseExtend(role.TokenTTL, role.TokenMaxTTL, b.System())(ctx, req, data)
+	resp := &logical.Response{Auth: req.Auth}
+	resp.Auth.TTL = role.TokenTTL
+	resp.Auth.MaxTTL = role.TokenMaxTTL
+	resp.Auth.Period = role.Period
+	return resp, nil
 }
 
 const pathLoginHelpSys = "Issue a token based on the credentials supplied"

@@ -82,14 +82,19 @@ func (c *ListCommand) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error listing %s: %s", path, err))
 		return 2
 	}
-	if secret == nil || secret.Data == nil {
+	if secret == nil {
 		c.UI.Error(fmt.Sprintf("No value found at %s", path))
 		return 2
+	}
+	if secret.Data == nil {
+		// If secret wasn't nil, we have warnings, so output them anyways. We
+		// may also have non-keys info.
+		return OutputSecret(c.UI, secret)
 	}
 
 	// If the secret is wrapped, return the wrapped response.
 	if secret.WrapInfo != nil && secret.WrapInfo.TTL != 0 {
-		return OutputSecret(c.UI, c.flagFormat, secret)
+		return OutputSecret(c.UI, secret)
 	}
 
 	if _, ok := extractListData(secret); !ok {
@@ -97,5 +102,5 @@ func (c *ListCommand) Run(args []string) int {
 		return 2
 	}
 
-	return OutputList(c.UI, c.flagFormat, secret)
+	return OutputList(c.UI, secret)
 }

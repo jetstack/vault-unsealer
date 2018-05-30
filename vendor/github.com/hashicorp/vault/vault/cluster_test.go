@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/helper/consts"
-	"github.com/hashicorp/vault/helper/logformat"
+	"github.com/hashicorp/vault/helper/logging"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/physical"
 	"github.com/hashicorp/vault/physical/inmem"
-	log "github.com/mgutz/logxi/v1"
 )
 
 var (
@@ -41,7 +41,7 @@ func TestClusterFetching(t *testing.T) {
 }
 
 func TestClusterHAFetching(t *testing.T) {
-	logger := logformat.NewVaultLogger(log.LevelTrace)
+	logger := logging.NewVaultLogger(log.Trace)
 
 	redirect := "http://127.0.0.1:8200"
 
@@ -108,7 +108,7 @@ func TestCluster_ListenForRequests(t *testing.T) {
 	// Use this to have a valid config after sealing since ClusterTLSConfig returns nil
 	var lastTLSConfig *tls.Config
 	checkListenersFunc := func(expectFail bool) {
-		tlsConfig, err := cores[0].ClusterTLSConfig(context.Background())
+		tlsConfig, err := cores[0].ClusterTLSConfig(context.Background(), nil)
 		if err != nil {
 			if err.Error() != consts.ErrSealed.Error() {
 				t.Fatal(err)
@@ -338,7 +338,6 @@ func testCluster_ForwardRequests(t *testing.T, c *TestClusterCore, rootToken, re
 	// We need to call Leader as that refreshes the connection info
 	isLeader, _, _, err := c.Leader()
 	if err != nil {
-		panic(err.Error())
 		t.Fatal(err)
 	}
 	if isLeader {
@@ -396,7 +395,7 @@ func TestCluster_CustomCipherSuites(t *testing.T) {
 	// Wait for core to become active
 	TestWaitActive(t, core.Core)
 
-	tlsConf, err := core.Core.ClusterTLSConfig(context.Background())
+	tlsConf, err := core.Core.ClusterTLSConfig(context.Background(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

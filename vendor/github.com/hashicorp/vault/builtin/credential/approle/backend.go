@@ -4,10 +4,18 @@ import (
 	"context"
 	"sync"
 
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/helper/salt"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
+)
+
+const (
+	secretIDPrefix              = "secret_id/"
+	secretIDLocalPrefix         = "secret_id_local/"
+	secretIDAccessorPrefix      = "accessor/"
+	secretIDAccessorLocalPrefix = "accessor_local/"
 )
 
 type backend struct {
@@ -89,6 +97,10 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 			Unauthenticated: []string{
 				"login",
 			},
+			LocalStorage: []string{
+				secretIDLocalPrefix,
+				secretIDAccessorLocalPrefix,
+			},
 		},
 		Paths: framework.PathAppend(
 			rolePaths(b),
@@ -103,7 +115,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 	return b, nil
 }
 
-func (b *backend) Salt() (*salt.Salt, error) {
+func (b *backend) Salt(ctx context.Context) (*salt.Salt, error) {
 	b.saltMutex.RLock()
 	if b.salt != nil {
 		defer b.saltMutex.RUnlock()
@@ -115,7 +127,7 @@ func (b *backend) Salt() (*salt.Salt, error) {
 	if b.salt != nil {
 		return b.salt, nil
 	}
-	salt, err := salt.NewSalt(b.view, &salt.Config{
+	salt, err := salt.NewSalt(ctx, b.view, &salt.Config{
 		HashFunc: salt.SHA256Hash,
 		Location: salt.DefaultLocation,
 	})
@@ -142,7 +154,9 @@ func (b *backend) invalidate(_ context.Context, key string) {
 // to delay the removal of SecretIDs by a minute.
 func (b *backend) periodicFunc(ctx context.Context, req *logical.Request) error {
 	// Initiate clean-up of expired SecretID entries
-	b.tidySecretID(ctx, req.Storage)
+	if b.System().LocalMount() || !b.System().ReplicationState().HasState(consts.ReplicationPerformanceSecondary) {
+		b.tidySecretID(ctx, req.Storage)
+	}
 	return nil
 }
 

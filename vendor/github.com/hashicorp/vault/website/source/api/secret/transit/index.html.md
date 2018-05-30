@@ -34,10 +34,7 @@ values set here cannot be changed after key creation.
   convergent encryption, where the same plaintext creates the same ciphertext.
   This requires _derived_ to be set to `true`. When enabled, each
   encryption(/decryption/rewrap/datakey) operation will derive a `nonce` value
-  rather than randomly generate it. Note that while this is useful for
-  particular situations, all nonce values used with a given context value **must
-  be unique** or it will compromise the security of your key, and the key space
-  for nonces is 96 bit -- not as large as the AES key itself.
+  rather than randomly generate it.
 
 - `derived` `(bool: false)` – Specifies if key derivation is to be used. If
   enabled, all encrypt/decrypt requests to this named key must provide a context
@@ -53,10 +50,14 @@ values set here cannot be changed after key creation.
 - `type` `(string: "aes256-gcm96")` – Specifies the type of key to create. The
   currently-supported types are:
 
-    - `aes256-gcm96` – AES-256 wrapped with GCM using a 12-byte nonce size
-      (symmetric, supports derivation)
+    - `aes256-gcm96` – AES-256 wrapped with GCM using a 96-bit nonce size AEAD
+      (symmetric, supports derivation and convergent encryption)
+    - `chacha20-poly1305` – ChaCha20-Poly1305 AEAD (symmetric, supports
+      derivation and convergent encryption)
+    - `ed25519` – ED25519 (asymmetric, supports derivation). When using
+      derivation, a sign operation with the same context will derive the same
+      key and signature; this is a signing analogue to `convergent_encryption`.
     - `ecdsa-p256` – ECDSA using the P-256 elliptic curve (asymmetric)
-    - `ed25519` – ED25519 (asymmetric, supports derivation)
     - `rsa-2048` - RSA with bit size of 2048 (asymmetric)
     - `rsa-4096` - RSA with bit size of 4096 (asymmetric)
 
@@ -76,7 +77,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/keys/my-key
+    http://127.0.0.1:8200/v1/transit/keys/my-key
 ```
 
 ## Read Key
@@ -101,7 +102,7 @@ type.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/transit/keys/my-key
+    http://127.0.0.1:8200/v1/transit/keys/my-key
 ```
 
 ### Sample Response
@@ -143,7 +144,7 @@ actual keys themselves).
 $ curl \
     --header "X-Vault-Token: ..." \
     --request LIST \
-    https://vault.rocks/v1/transit/keys
+    http://127.0.0.1:8200/v1/transit/keys
 ```
 
 ### Sample Response
@@ -181,7 +182,7 @@ catastrophic operation, the `deletion_allowed` tunable must be set in the key's
 $ curl \
     --header "X-Vault-Token: ..." \
     --request DELETE \
-    https://vault.rocks/v1/transit/keys/my-key
+    http://127.0.0.1:8200/v1/transit/keys/my-key
 ```
 
 ## Update Key Configuration
@@ -232,7 +233,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/keys/my-key/config
+    http://127.0.0.1:8200/v1/transit/keys/my-key/config
 ```
 
 ## Rotate Key
@@ -253,7 +254,7 @@ decryption operations.
 $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
-    https://vault.rocks/v1/transit/keys/my-key/rotate
+    http://127.0.0.1:8200/v1/transit/keys/my-key/rotate
 ```
 
 ## Export Key
@@ -290,7 +291,7 @@ be valid.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/transit/export/encryption-key/my-key/1
+    http://127.0.0.1:8200/v1/transit/export/encryption-key/my-key/1
 ```
 
 ### Sample Response
@@ -390,7 +391,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/encrypt/my-key
+    http://127.0.0.1:8200/v1/transit/encrypt/my-key
 ```
 
 ### Sample Response
@@ -459,7 +460,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/decrypt/my-key
+    http://127.0.0.1:8200/v1/transit/decrypt/my-key
 ```
 
 ### Sample Response
@@ -534,7 +535,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/rewrap/my-key
+    http://127.0.0.1:8200/v1/transit/rewrap/my-key
 ```
 
 ### Sample Response
@@ -598,7 +599,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/datakey/plaintext/my-key
+    http://127.0.0.1:8200/v1/transit/datakey/plaintext/my-key
 ```
 
 ### Sample Response
@@ -643,7 +644,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/random/164
+    http://127.0.0.1:8200/v1/transit/random/164
 ```
 
 ### Sample Response
@@ -695,7 +696,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/hash/sha2-512
+    http://127.0.0.1:8200/v1/transit/hash/sha2-512
 ```
 
 ### Sample Response
@@ -754,7 +755,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/hmac/my-key/sha2-512
+    http://127.0.0.1:8200/v1/transit/hmac/my-key/sha2-512
 ```
 
 ### Sample Response
@@ -775,7 +776,7 @@ supports signing.
 
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
-| `POST`   | `/transit/sign/:name(/:algorithm)` | `200 application/json` |
+| `POST`   | `/transit/sign/:name(/:hash_algorithm)` | `200 application/json` |
 
 ### Parameters
 
@@ -786,7 +787,7 @@ supports signing.
   signing. If not set, uses the latest version. Must be greater than or equal
   to the key's `min_encryption_version`, if set.
 
-- `algorithm` `(string: "sha2-256")` – Specifies the hash algorithm to use for
+- `hash_algorithm` `(string: "sha2-256")` – Specifies the hash algorithm to use for
   supporting key types (notably, not including `ed25519` which specifies its
   own hash algorithm). This can also be specified as part of the URL.
   Currently-supported algorithms are:
@@ -802,9 +803,20 @@ supports signing.
    Required if key derivation is enabled; currently only available with ed25519
    keys.
 
-- `prehashed` `(bool: false)` - Set to `true` when the input is already
-   hashed. If the key type is `rsa-2048` or `rsa-4096`, then the algorithm used
-   to hash the input should be indicated by the `algorithm` parameter.
+- `prehashed` `(bool: false)` - Set to `true` when the input is already hashed.
+  If the key type is `rsa-2048` or `rsa-4096`, then the algorithm used to hash
+  the input should be indicated by the `hash_algorithm` parameter.  Just as the
+  value to sign should be the base64-encoded representation of the exact binary
+  data you want signed, when set, `input` is expected to be base64-encoded
+  binary hashed data, not hex-formatted. (As an example, on the command line,
+  you could generate a suitable input via `openssl dgst -sha256 -binary |
+  base64`.)
+
+- `signature_algorithm` `(string: "pss")` – When using a RSA key, specifies the RSA
+  signature algorithm to use for signing. Supported signature types are:
+
+    - `pss`
+    - `pkcs1v15`
 
 
 ### Sample Payload
@@ -822,7 +834,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/sign/my-key/sha2-512
+    http://127.0.0.1:8200/v1/transit/sign/my-key/sha2-512
 ```
 
 ### Sample Response
@@ -842,14 +854,14 @@ data.
 
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
-| `POST`   | `/transit/verify/:name(/:algorithm)` | `200 application/json` |
+| `POST`   | `/transit/verify/:name(/:hash_algorithm)` | `200 application/json` |
 
 ### Parameters
 
 - `name` `(string: <required>)` – Specifies the name of the encryption key that
   was used to generate the signature or HMAC.
 
-- `algorithm` `(string: "sha2-256")` – Specifies the hash algorithm to use. This
+- `hash_algorithm` `(string: "sha2-256")` – Specifies the hash algorithm to use. This
   can also be specified as part of the URL. Currently-supported algorithms are:
 
     - `sha2-224`
@@ -873,7 +885,14 @@ data.
 
 - `prehashed` `(bool: false)` - Set to `true` when the input is already
    hashed. If the key type is `rsa-2048` or `rsa-4096`, then the algorithm used
-   to hash the input should be indicated by the `algorithm` parameter.
+   to hash the input should be indicated by the `hash_algorithm` parameter.
+
+- `signature_algorithm` `(string: "pss")` – When using a RSA key, specifies the RSA
+  signature algorithm to use for signature verification. Supported signature types
+  are:
+
+    - `pss`
+    - `pkcs1v15`
 
 ### Sample Payload
 
@@ -891,7 +910,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/verify/my-key/sha2-512
+    http://127.0.0.1:8200/v1/transit/verify/my-key/sha2-512
 ```
 
 ### Sample Response
@@ -924,7 +943,7 @@ restore the key.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/transit/backup/aes
+    http://127.0.0.1:8200/v1/transit/backup/aes
 ```
 
 ### Sample Response
@@ -968,5 +987,5 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/transit/restore
+    http://127.0.0.1:8200/v1/transit/restore
 ```

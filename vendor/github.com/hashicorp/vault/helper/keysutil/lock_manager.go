@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/logical"
 )
@@ -162,7 +163,7 @@ func (lm *LockManager) GetPolicyShared(ctx context.Context, storage logical.Stor
 		return p, lock, err
 	}
 
-	// Try again while asking for an exlusive lock
+	// Try again while asking for an exclusive lock
 	p, lock, _, err = lm.getPolicyCommon(ctx, PolicyRequest{
 		Storage: storage,
 		Name:    name,
@@ -201,7 +202,7 @@ func (lm *LockManager) GetPolicyUpsert(ctx context.Context, req PolicyRequest) (
 		return p, lock, false, err
 	}
 
-	// Try again while asking for an exlusive lock
+	// Try again while asking for an exclusive lock
 	p, lock, upserted, err := lm.getPolicyCommon(ctx, req, exclusive)
 	if err != nil || p == nil || lock == nil {
 		return p, lock, upserted, err
@@ -239,6 +240,9 @@ func (lm *LockManager) RestorePolicy(ctx context.Context, storage logical.Storag
 
 	name = keyData.Policy.Name
 
+	// set the policy version cache
+	keyData.Policy.versionPrefixCache = &sync.Map{}
+
 	lockType := exclusive
 	lock := lm.policyLock(name, lockType)
 	defer lm.UnlockPolicy(lock, lockType)
@@ -267,7 +271,7 @@ func (lm *LockManager) RestorePolicy(ctx context.Context, storage logical.Storag
 	if keyData.ArchivedKeys != nil {
 		err = keyData.Policy.storeArchive(ctx, storage, keyData.ArchivedKeys)
 		if err != nil {
-			return fmt.Errorf("failed to restore archived keys for policy %q: %v", name, err)
+			return errwrap.Wrapf(fmt.Sprintf("failed to restore archived keys for policy %q: {{err}}", name), err)
 		}
 	}
 
@@ -280,7 +284,7 @@ func (lm *LockManager) RestorePolicy(ctx context.Context, storage logical.Storag
 	// Restore the policy. This will also attempt to adjust the archive.
 	err = keyData.Policy.Persist(ctx, storage)
 	if err != nil {
-		return fmt.Errorf("failed to restore the policy %q: %v", name, err)
+		return errwrap.Wrapf(fmt.Sprintf("failed to restore the policy %q: {{err}}", name), err)
 	}
 
 	// Update the cache to contain the restored policy
@@ -352,7 +356,7 @@ func (lm *LockManager) getPolicyCommon(ctx context.Context, req PolicyRequest, l
 		}
 
 		switch req.KeyType {
-		case KeyType_AES256_GCM96:
+		case KeyType_AES256_GCM96, KeyType_ChaCha20_Poly1305:
 			if req.Convergent && !req.Derived {
 				lm.UnlockPolicy(lock, lockType)
 				return nil, nil, false, fmt.Errorf("convergent encryption requires derivation to be enabled")
@@ -387,6 +391,7 @@ func (lm *LockManager) getPolicyCommon(ctx context.Context, req PolicyRequest, l
 			Derived:              req.Derived,
 			Exportable:           req.Exportable,
 			AllowPlaintextBackup: req.AllowPlaintextBackup,
+			versionPrefixCache:   &sync.Map{},
 		}
 		if req.Derived {
 			p.KDF = Kdf_hkdf_sha256
@@ -480,12 +485,12 @@ func (lm *LockManager) DeletePolicy(ctx context.Context, storage logical.Storage
 
 	err = storage.Delete(ctx, "policy/"+name)
 	if err != nil {
-		return fmt.Errorf("error deleting policy %s: %s", name, err)
+		return errwrap.Wrapf(fmt.Sprintf("error deleting policy %q: {{err}}", name), err)
 	}
 
 	err = storage.Delete(ctx, "archive/"+name)
 	if err != nil {
-		return fmt.Errorf("error deleting archive %s: %s", name, err)
+		return errwrap.Wrapf(fmt.Sprintf("error deleting archive %q: {{err}}", name), err)
 	}
 
 	if lm.CacheActive() {
@@ -496,21 +501,5 @@ func (lm *LockManager) DeletePolicy(ctx context.Context, storage logical.Storage
 }
 
 func (lm *LockManager) getStoredPolicy(ctx context.Context, storage logical.Storage, name string) (*Policy, error) {
-	// Check if the policy already exists
-	raw, err := storage.Get(ctx, "policy/"+name)
-	if err != nil {
-		return nil, err
-	}
-	if raw == nil {
-		return nil, nil
-	}
-
-	// Decode the policy
-	var policy Policy
-	err = jsonutil.DecodeJSON(raw.Value, &policy)
-	if err != nil {
-		return nil, err
-	}
-
-	return &policy, nil
+	return LoadPolicy(ctx, storage, "policy/"+name)
 }

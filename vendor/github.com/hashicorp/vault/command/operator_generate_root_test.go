@@ -1,7 +1,10 @@
+// +build !race
+
 package command
 
 import (
 	"io"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -88,7 +91,11 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
+				client, closer := testVaultServer(t)
+				defer closer()
+
 				ui, cmd := testOperatorGenerateRootCommand(t)
+				cmd.client = client
 
 				code := cmd.Run(tc.args)
 				if code != tc.code {
@@ -106,7 +113,11 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 	t.Run("generate_otp", func(t *testing.T) {
 		t.Parallel()
 
+		client, closer := testVaultServer(t)
+		defer closer()
+
 		ui, cmd := testOperatorGenerateRootCommand(t)
+		cmd.client = client
 
 		code := cmd.Run([]string{
 			"-generate-otp",
@@ -127,7 +138,19 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 		encoded := "L9MaZ/4mQanpOV6QeWd84g=="
 		otp := "dIeeezkjpDUv3fy7MYPOLQ=="
 
+		client, closer := testVaultServer(t)
+		defer closer()
+
 		ui, cmd := testOperatorGenerateRootCommand(t)
+		cmd.client = client
+
+		// Simulate piped output to print raw output
+		old := os.Stdout
+		_, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.Stdout = w
 
 		code := cmd.Run([]string{
 			"-decode", encoded,
@@ -136,6 +159,9 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 		if exp := 0; code != exp {
 			t.Errorf("expected %d to be %d", code, exp)
 		}
+
+		w.Close()
+		os.Stdout = old
 
 		expected := "5b54841c-c705-e59c-c6e4-a22b48e4b2cf"
 		combined := ui.OutputWriter.String() + ui.ErrorWriter.String()

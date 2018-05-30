@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/errwrap"
-
 	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/pluginutil"
 	"github.com/hashicorp/vault/helper/wrapping"
@@ -32,7 +31,7 @@ func (d dynamicSystemView) SudoPrivilege(ctx context.Context, path string, token
 	// Resolve the token policy
 	te, err := d.core.tokenStore.Lookup(ctx, token)
 	if err != nil {
-		d.core.logger.Error("core: failed to lookup token", "error", err)
+		d.core.logger.Error("failed to lookup token", "error", err)
 		return false
 	}
 
@@ -83,6 +82,10 @@ func (d dynamicSystemView) Tainted() bool {
 // CachingDisabled indicates whether to use caching behavior
 func (d dynamicSystemView) CachingDisabled() bool {
 	return d.core.cachingDisabled || (d.mountEntry != nil && d.mountEntry.Config.ForceNoCache)
+}
+
+func (d dynamicSystemView) LocalMount() bool {
+	return d.mountEntry != nil && d.mountEntry.Local
 }
 
 // Checks if this is a primary Vault instance. Caller should hold the stateLock
