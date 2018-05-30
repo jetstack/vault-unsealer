@@ -24,7 +24,7 @@ relatively simple:
 ```hcl
 storage "consul" {
   address = "127.0.0.1:8500"
-  path    = "vault"
+  path    = "vault/"
 }
 
 listener "tcp" {
@@ -72,7 +72,7 @@ $ vault server -config=config.hcl
 ==> Vault server started! Log data will stream in below:
 ```
 
--> If you get a warning message about mlock not begin supported, that is okay.
+-> If you get a warning message about mlock not being supported, that is okay.
  However, you should run Vault on a system that supports mlock for maximum
  security.
 
@@ -111,7 +111,7 @@ server_.
 
 During initialization, the encryption keys are generated, unseal keys are
 created, and the initial root token is setup. To initialize Vault use `vault
-init`. This is an _unauthenticated_ request, but it only works on brand new
+operator init`. This is an _unauthenticated_ request, but it only works on brand new
 Vaults with no data:
 
 ```text
@@ -124,8 +124,8 @@ Unseal Key 5: cI8yglWJX+jPf/yQG7Sg6SPWzy0WyrBPvaFTOAYkPJTx
 
 Initial Root Token: 62421926-81b9-b202-86f8-8850176c0cf3
 
-Vault initialized with 5 key shares an a key threshold of 3. Please securely
-distributed the key shares printed above. When the Vault is re-sealed,
+Vault initialized with 5 key shares and a key threshold of 3. Please securely
+distribute the key shares printed above. When the Vault is re-sealed,
 restarted, or stopped, you must supply at least 3 of these keys to unseal it
 before it can start servicing requests.
 

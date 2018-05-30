@@ -86,7 +86,6 @@ func TestBackend_config_connection(t *testing.T) {
 
 	configData := map[string]interface{}{
 		"connection_url":       "sample_connection_url",
-		"value":                "",
 		"max_open_connections": 9,
 		"max_idle_connections": 7,
 		"verify_connection":    false,
@@ -110,6 +109,7 @@ func TestBackend_config_connection(t *testing.T) {
 	}
 
 	delete(configData, "verify_connection")
+	delete(configData, "connection_url")
 	if !reflect.DeepEqual(configData, resp.Data) {
 		t.Fatalf("bad: expected:%#v\nactual:%#v\n", configData, resp.Data)
 	}
@@ -285,7 +285,7 @@ func testAccStepConfig(t *testing.T, d map[string]interface{}, expectError bool)
 					return err
 				}
 				if len(e.Error) == 0 {
-					return fmt.Errorf("expected error, but write succeeded.")
+					return fmt.Errorf("expected error, but write succeeded")
 				}
 				return nil
 			} else if resp != nil && resp.IsError() {
@@ -396,7 +396,7 @@ func testAccStepReadCreds(t *testing.T, b logical.Backend, s logical.Storage, na
 			}
 			if resp != nil {
 				if resp.IsError() {
-					return fmt.Errorf("Error on resp: %#v", *resp)
+					return fmt.Errorf("error on resp: %#v", *resp)
 				}
 			}
 
@@ -457,7 +457,7 @@ func testAccStepCreateTable(t *testing.T, b logical.Backend, s logical.Storage, 
 			}
 			if resp != nil {
 				if resp.IsError() {
-					return fmt.Errorf("Error on resp: %#v", *resp)
+					return fmt.Errorf("error on resp: %#v", *resp)
 				}
 			}
 
@@ -512,7 +512,7 @@ func testAccStepDropTable(t *testing.T, b logical.Backend, s logical.Storage, na
 			}
 			if resp != nil {
 				if resp.IsError() {
-					return fmt.Errorf("Error on resp: %#v", *resp)
+					return fmt.Errorf("error on resp: %#v", *resp)
 				}
 			}
 

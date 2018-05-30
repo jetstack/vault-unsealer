@@ -121,7 +121,7 @@ func (s *server) CreateTable(ctx context.Context, req *btapb.CreateTableRequest)
 	s.mu.Lock()
 	if _, ok := s.tables[tbl]; ok {
 		s.mu.Unlock()
-		return nil, grpc.Errorf(codes.AlreadyExists, "table %q already exists", tbl)
+		return nil, status.Errorf(codes.AlreadyExists, "table %q already exists", tbl)
 	}
 	s.tables[tbl] = newTable(req)
 	s.mu.Unlock()
@@ -151,7 +151,7 @@ func (s *server) GetTable(ctx context.Context, req *btapb.GetTableRequest) (*bta
 	tblIns, ok := s.tables[tbl]
 	s.mu.Unlock()
 	if !ok {
-		return nil, grpc.Errorf(codes.NotFound, "table %q not found", tbl)
+		return nil, status.Errorf(codes.NotFound, "table %q not found", tbl)
 	}
 
 	return &btapb.Table{
@@ -177,7 +177,7 @@ func (s *server) ModifyColumnFamilies(ctx context.Context, req *btapb.ModifyColu
 	tbl, ok := s.tables[req.Name]
 	s.mu.Unlock()
 	if !ok {
-		return nil, grpc.Errorf(codes.NotFound, "table %q not found", req.Name)
+		return nil, status.Errorf(codes.NotFound, "table %q not found", req.Name)
 	}
 
 	tbl.mu.Lock()
@@ -186,7 +186,7 @@ func (s *server) ModifyColumnFamilies(ctx context.Context, req *btapb.ModifyColu
 	for _, mod := range req.Modifications {
 		if create := mod.GetCreate(); create != nil {
 			if _, ok := tbl.families[mod.Id]; ok {
-				return nil, grpc.Errorf(codes.AlreadyExists, "family %q already exists", mod.Id)
+				return nil, status.Errorf(codes.AlreadyExists, "family %q already exists", mod.Id)
 			}
 			newcf := &columnFamily{
 				name:   req.Name + "/columnFamilies/" + mod.Id,
@@ -218,6 +218,7 @@ func (s *server) ModifyColumnFamilies(ctx context.Context, req *btapb.ModifyColu
 	return &btapb.Table{
 		Name:           tblName,
 		ColumnFamilies: toColumnFamilies(tbl.families),
+		Granularity:    btapb.Table_TimestampGranularity(btapb.Table_MILLIS),
 	}, nil
 }
 
@@ -316,7 +317,8 @@ func (s *server) ReadRows(req *btpb.ReadRowsRequest, stream btpb.Bigtable_ReadRo
 		return true
 	}
 
-	if req.Rows != nil {
+	if req.Rows != nil &&
+		len(req.Rows.RowKeys)+len(req.Rows.RowRanges) > 0 {
 		// Add the explicitly given keys
 		for _, key := range req.Rows.RowKeys {
 			k := string(key)
@@ -415,7 +417,7 @@ func streamRow(stream btpb.Bigtable_ReadRowsServer, r *row, f *btpb.RowFilter) (
 	// We can't have a cell with just COMMIT set, which would imply a new empty cell.
 	// So modify the last cell to have the COMMIT flag set.
 	if len(rrr.Chunks) > 0 {
-		rrr.Chunks[len(rrr.Chunks)-1].RowStatus = &btpb.ReadRowsResponse_CellChunk_CommitRow{true}
+		rrr.Chunks[len(rrr.Chunks)-1].RowStatus = &btpb.ReadRowsResponse_CellChunk_CommitRow{CommitRow: true}
 	}
 
 	return true, stream.Send(rrr)
@@ -429,6 +431,10 @@ func filterRow(f *btpb.RowFilter, r *row) bool {
 	}
 	// Handle filters that apply beyond just including/excluding cells.
 	switch f := f.Filter.(type) {
+	case *btpb.RowFilter_BlockAllFilter:
+		return !f.BlockAllFilter
+	case *btpb.RowFilter_PassAllFilter:
+		return f.PassAllFilter
 	case *btpb.RowFilter_Chain_:
 		for _, sub := range f.Chain.Filters {
 			if !filterRow(sub, r) {
@@ -693,8 +699,7 @@ func (s *server) MutateRows(req *btpb.MutateRowsRequest, stream btpb.Bigtable_Mu
 		}
 		r.mu.Unlock()
 	}
-	stream.Send(res)
-	return nil
+	return stream.Send(res)
 }
 
 func (s *server) CheckAndMutateRow(ctx context.Context, req *btpb.CheckAndMutateRowRequest) (*btpb.CheckAndMutateRowResponse, error) {
@@ -856,12 +861,13 @@ func (s *server) ReadModifyWriteRow(ctx context.Context, req *btpb.ReadModifyWri
 	if !ok {
 		return nil, status.Errorf(codes.NotFound, "table %q not found", req.TableName)
 	}
-	updates := make(map[string]cell) // copy of updated cells; keyed by full column name
 
 	fs := tbl.columnFamilies()
 
 	rowKey := string(req.RowKey)
 	r := tbl.mutableRow(rowKey)
+	resultRow := newRow(rowKey) // copy of updated cells
+
 	// This must be done before the row lock, acquired below, is released.
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -909,35 +915,37 @@ func (s *server) ReadModifyWriteRow(ctx context.Context, req *btpb.ReadModifyWri
 			binary.BigEndian.PutUint64(val[:], uint64(v))
 			newCell = cell{ts: ts, value: val[:]}
 		}
-		key := strings.Join([]string{fam, col}, ":")
-		updates[key] = newCell
+
+		// Store the new cell
 		f.cells[col] = appendOrReplaceCell(f.cellsByColumn(col), newCell)
+
+		// Store a copy for the result row
+		resultFamily := resultRow.getOrCreateFamily(fam, fs[fam].order)
+		resultFamily.cellsByColumn(col)           // create the column
+		resultFamily.cells[col] = []cell{newCell} // overwrite the cells
 	}
 
+	// Build the response using the result row
 	res := &btpb.Row{
-		Key: req.RowKey,
+		Key:      req.RowKey,
+		Families: make([]*btpb.Family, len(resultRow.families)),
 	}
-	for col, cell := range updates {
-		i := strings.Index(col, ":")
-		fam, qual := col[:i], col[i+1:]
-		var f *btpb.Family
-		for _, ff := range res.Families {
-			if ff.Name == fam {
-				f = ff
-				break
+
+	for i, family := range resultRow.sortedFamilies() {
+		res.Families[i] = &btpb.Family{
+			Name:    family.name,
+			Columns: make([]*btpb.Column, len(family.colNames)),
+		}
+
+		for j, colName := range family.colNames {
+			res.Families[i].Columns[j] = &btpb.Column{
+				Qualifier: []byte(colName),
+				Cells: []*btpb.Cell{{
+					TimestampMicros: family.cells[colName][0].ts,
+					Value:           family.cells[colName][0].value,
+				}},
 			}
 		}
-		if f == nil {
-			f = &btpb.Family{Name: fam}
-			res.Families = append(res.Families, f)
-		}
-		f.Columns = append(f.Columns, &btpb.Column{
-			Qualifier: []byte(qual),
-			Cells: []*btpb.Cell{{
-				TimestampMicros: cell.ts,
-				Value:           cell.value,
-			}},
-		})
 	}
 	return &btpb.ReadModifyWriteRowResponse{Row: res}, nil
 }

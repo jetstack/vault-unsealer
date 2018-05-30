@@ -222,6 +222,9 @@ type BackupConfiguration struct {
 	// Kind: This is always sql#backupConfiguration.
 	Kind string `json:"kind,omitempty"`
 
+	// ReplicationLogArchivingEnabled: Reserved for future use.
+	ReplicationLogArchivingEnabled bool `json:"replicationLogArchivingEnabled,omitempty"`
+
 	// StartTime: Start time for the daily backup configuration in UTC
 	// timezone in the 24 hour format - HH:MM.
 	StartTime string `json:"startTime,omitempty"`
@@ -414,6 +417,9 @@ type CloneContext struct {
 	// Kind: This is always sql#cloneContext.
 	Kind string `json:"kind,omitempty"`
 
+	// PitrTimestampMs: Reserved for future use.
+	PitrTimestampMs int64 `json:"pitrTimestampMs,omitempty,string"`
+
 	// ForceSendFields is a list of field names (e.g. "BinLogCoordinates")
 	// to unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -567,9 +573,10 @@ type DatabaseInstance struct {
 	// property is applicable only to Second Generation instances.
 	FailoverReplica *DatabaseInstanceFailoverReplica `json:"failoverReplica,omitempty"`
 
-	// GceZone: The GCE zone that the instance is serving from. In case when
-	// the instance is failed over to standby zone, this value may be
-	// different with what user specified in the settings.
+	// GceZone: The Compute Engine zone that the instance is currently
+	// serving from. This value could be different from the zone that was
+	// specified when the instance was created if the instance has failed
+	// over to its secondary zone.
 	GceZone string `json:"gceZone,omitempty"`
 
 	// InstanceType: The instance type. This can be one of the
@@ -806,6 +813,16 @@ type DemoteMasterContext struct {
 	// replicating from the on-premises master.
 	ReplicaConfiguration *DemoteMasterConfiguration `json:"replicaConfiguration,omitempty"`
 
+	// VerifyGtidConsistency: Verify GTID consistency for demote operation.
+	// Default value: True. Second Generation instances only. Setting this
+	// flag to false enables you to bypass GTID consistency check between
+	// on-premises master and Cloud SQL instance during the demotion
+	// operation but also exposes you to the risk of future replication
+	// failures. Change the value only if you know the reason for the GTID
+	// divergence and are confident that doing so will not cause any
+	// replication issues.
+	VerifyGtidConsistency bool `json:"verifyGtidConsistency,omitempty"`
+
 	// ForceSendFields is a list of field names (e.g. "Kind") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -903,8 +920,9 @@ type ExportContext struct {
 
 	// Uri: The path to the file in Google Cloud Storage where the export
 	// will be stored. The URI is in the form gs://bucketName/fileName. If
-	// the file already exists, the operation fails. If fileType is SQL and
-	// the filename ends with .gz, the contents are compressed.
+	// the file already exists, the requests succeeds, but the operation
+	// fails. If fileType is SQL and the filename ends with .gz, the
+	// contents are compressed.
 	Uri string `json:"uri,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "CsvExportOptions") to
@@ -1384,6 +1402,43 @@ func (s *InstancesListResponse) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// InstancesListServerCasResponse: Instances ListServerCas response.
+type InstancesListServerCasResponse struct {
+	ActiveVersion string `json:"activeVersion,omitempty"`
+
+	// Certs: List of server CA certificates for the instance.
+	Certs []*SslCert `json:"certs,omitempty"`
+
+	// Kind: This is always sql#instancesListServerCas.
+	Kind string `json:"kind,omitempty"`
+
+	// ServerResponse contains the HTTP response code and headers from the
+	// server.
+	googleapi.ServerResponse `json:"-"`
+
+	// ForceSendFields is a list of field names (e.g. "ActiveVersion") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ActiveVersion") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *InstancesListServerCasResponse) MarshalJSON() ([]byte, error) {
+	type NoMethod InstancesListServerCasResponse
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // InstancesRestoreBackupRequest: Database instance restore backup
 // request.
 type InstancesRestoreBackupRequest struct {
@@ -1412,6 +1467,37 @@ type InstancesRestoreBackupRequest struct {
 
 func (s *InstancesRestoreBackupRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod InstancesRestoreBackupRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// InstancesRotateServerCaRequest: Rotate Server CA request.
+type InstancesRotateServerCaRequest struct {
+	// RotateServerCaContext: Contains details about the rotate server CA
+	// operation.
+	RotateServerCaContext *RotateServerCaContext `json:"rotateServerCaContext,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g.
+	// "RotateServerCaContext") to unconditionally include in API requests.
+	// By default, fields with empty values are omitted from API requests.
+	// However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "RotateServerCaContext") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *InstancesRotateServerCaRequest) MarshalJSON() ([]byte, error) {
+	type NoMethod InstancesRotateServerCaRequest
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1580,6 +1666,9 @@ type MaintenanceWindow struct {
 	// Kind: This is always sql#maintenanceWindow.
 	Kind string `json:"kind,omitempty"`
 
+	// UpdateTrack: Maintenance timing setting: canary (Earlier) or stable
+	// (Later).
+	//  Learn more.
 	UpdateTrack string `json:"updateTrack,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Day") to
@@ -1981,20 +2070,53 @@ func (s *RestoreBackupContext) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// RotateServerCaContext: Instance rotate server CA context.
+type RotateServerCaContext struct {
+	// Kind: This is always sql#rotateServerCaContext.
+	Kind string `json:"kind,omitempty"`
+
+	// NextVersion: The fingerprint of the next version to be rotated to. If
+	// left unspecified, will be rotated to the most recently added server
+	// CA version.
+	NextVersion string `json:"nextVersion,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Kind") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Kind") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *RotateServerCaContext) MarshalJSON() ([]byte, error) {
+	type NoMethod RotateServerCaContext
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // Settings: Database instance settings.
 type Settings struct {
 	// ActivationPolicy: The activation policy specifies when the instance
 	// is activated; it is applicable only when the instance state is
-	// RUNNABLE. The activation policy cannot be updated together with other
-	// settings for Second Generation instances. Valid values:
-	// ALWAYS: The instance is on; it is not deactivated by
-	// inactivity.
+	// RUNNABLE. Valid values:
+	// ALWAYS: The instance is on, and remains so even in the absence of
+	// connection requests.
 	// NEVER: The instance is off; it is not activated, even if a connection
 	// request arrives.
-	// ON_DEMAND: The instance responds to incoming requests, and turns
-	// itself off when not in use. Instances with PER_USE pricing turn off
-	// after 15 minutes of inactivity. Instances with PER_PACKAGE pricing
-	// turn off after 12 hours of inactivity.
+	// ON_DEMAND: First Generation instances only. The instance responds to
+	// incoming requests, and turns itself off when not in use. Instances
+	// with PER_USE pricing turn off after 15 minutes of inactivity.
+	// Instances with PER_PACKAGE pricing turn off after 12 hours of
+	// inactivity.
 	ActivationPolicy string `json:"activationPolicy,omitempty"`
 
 	// AuthorizedGaeApplications: The App Engine app IDs that can access
@@ -2002,7 +2124,14 @@ type Settings struct {
 	// instances.
 	AuthorizedGaeApplications []string `json:"authorizedGaeApplications,omitempty"`
 
-	// AvailabilityType: Reserved for future use.
+	// AvailabilityType: Availability type (PostgreSQL instances only).
+	// Potential values:
+	// ZONAL: The instance serves data from only one zone. Outages in that
+	// zone affect data accessibility.
+	// REGIONAL: The instance can serve data from more than one zone in a
+	// region (it is highly available).
+	// For more information, see Overview of the High Availability
+	// Configuration.
 	AvailabilityType string `json:"availabilityType,omitempty"`
 
 	// BackupConfiguration: The daily backup configuration for the instance.
@@ -2041,8 +2170,8 @@ type Settings struct {
 
 	// LocationPreference: The location preference settings. This allows the
 	// instance to be located as near as possible to either an App Engine
-	// app or GCE zone for better performance. App Engine co-location is
-	// only applicable to First Generation instances.
+	// app or Compute Engine zone for better performance. App Engine
+	// co-location is only applicable to First Generation instances.
 	LocationPreference *LocationPreference `json:"locationPreference,omitempty"`
 
 	// MaintenanceWindow: The maintenance window for this instance. This
@@ -2261,9 +2390,9 @@ func (s *SslCertsInsertRequest) MarshalJSON() ([]byte, error) {
 
 // SslCertsInsertResponse: SslCert insert response.
 type SslCertsInsertResponse struct {
-	// ClientCert: The new client certificate and private key. The new
-	// certificate will not work until the instance is restarted for First
-	// Generation instances.
+	// ClientCert: The new client certificate and private key. For First
+	// Generation instances, the new certificate does not take effect until
+	// the instance is restarted.
 	ClientCert *SslCertDetail `json:"clientCert,omitempty"`
 
 	// Kind: This is always sql#sslCertsInsert.
@@ -4231,6 +4360,144 @@ func (c *FlagsListCall) Do(opts ...googleapi.CallOption) (*FlagsListResponse, er
 
 }
 
+// method id "sql.instances.addServerCa":
+
+type InstancesAddServerCaCall struct {
+	s          *Service
+	project    string
+	instance   string
+	urlParams_ gensupport.URLParams
+	ctx_       context.Context
+	header_    http.Header
+}
+
+// AddServerCa: Add a new trusted Certificate Authority (CA) version for
+// the specified instance. Required to prepare for a certificate
+// rotation. If a CA version was previously added but never used in a
+// certificate rotation, this operation replaces that version. There can
+// not be more than one CA version waiting to be rotated in.
+func (r *InstancesService) AddServerCa(project string, instance string) *InstancesAddServerCaCall {
+	c := &InstancesAddServerCaCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.project = project
+	c.instance = instance
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *InstancesAddServerCaCall) Fields(s ...googleapi.Field) *InstancesAddServerCaCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *InstancesAddServerCaCall) Context(ctx context.Context) *InstancesAddServerCaCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *InstancesAddServerCaCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *InstancesAddServerCaCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/addServerCa")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"project":  c.project,
+		"instance": c.instance,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sql.instances.addServerCa" call.
+// Exactly one of *Operation or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *InstancesAddServerCaCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Add a new trusted Certificate Authority (CA) version for the specified instance. Required to prepare for a certificate rotation. If a CA version was previously added but never used in a certificate rotation, this operation replaces that version. There can not be more than one CA version waiting to be rotated in.",
+	//   "httpMethod": "POST",
+	//   "id": "sql.instances.addServerCa",
+	//   "parameterOrder": [
+	//     "project",
+	//     "instance"
+	//   ],
+	//   "parameters": {
+	//     "instance": {
+	//       "description": "Cloud SQL instance ID. This does not include the project ID.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "project": {
+	//       "description": "Project ID of the project that contains the instance.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "projects/{project}/instances/{instance}/addServerCa",
+	//   "response": {
+	//     "$ref": "Operation"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/sqlservice.admin"
+	//   ]
+	// }
+
+}
+
 // method id "sql.instances.clone":
 
 type InstancesCloneCall struct {
@@ -4522,8 +4789,7 @@ type InstancesDemoteMasterCall struct {
 	header_                      http.Header
 }
 
-// DemoteMaster: Demotes the standalone instance to be a read replica
-// Cloud SQL instance of an on-premises master.
+// DemoteMaster: Reserved for future use.
 func (r *InstancesService) DemoteMaster(project string, instance string, instancesdemotemasterrequest *InstancesDemoteMasterRequest) *InstancesDemoteMasterCall {
 	c := &InstancesDemoteMasterCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.project = project
@@ -4619,7 +4885,7 @@ func (c *InstancesDemoteMasterCall) Do(opts ...googleapi.CallOption) (*Operation
 	}
 	return ret, nil
 	// {
-	//   "description": "Demotes the standalone instance to be a read replica Cloud SQL instance of an on-premises master.",
+	//   "description": "Reserved for future use.",
 	//   "httpMethod": "POST",
 	//   "id": "sql.instances.demoteMaster",
 	//   "parameterOrder": [
@@ -5568,6 +5834,158 @@ func (c *InstancesListCall) Pages(ctx context.Context, f func(*InstancesListResp
 	}
 }
 
+// method id "sql.instances.listServerCas":
+
+type InstancesListServerCasCall struct {
+	s            *Service
+	project      string
+	instance     string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// ListServerCas: Lists all of the trusted Certificate Authorities (CAs)
+// for the specified instance. There can be up to three CAs listed: the
+// CA that was used to sign the certificate that is currently in use, a
+// CA that has been added but not yet used to sign a certificate, and a
+// CA used to sign a certificate that has previously rotated out.
+func (r *InstancesService) ListServerCas(project string, instance string) *InstancesListServerCasCall {
+	c := &InstancesListServerCasCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.project = project
+	c.instance = instance
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *InstancesListServerCasCall) Fields(s ...googleapi.Field) *InstancesListServerCasCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets the optional parameter which makes the operation
+// fail if the object's ETag matches the given value. This is useful for
+// getting updates only after the object has changed since the last
+// request. Use googleapi.IsNotModified to check whether the response
+// error from Do is the result of In-None-Match.
+func (c *InstancesListServerCasCall) IfNoneMatch(entityTag string) *InstancesListServerCasCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *InstancesListServerCasCall) Context(ctx context.Context) *InstancesListServerCasCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *InstancesListServerCasCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *InstancesListServerCasCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	var body io.Reader = nil
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/listServerCas")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("GET", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"project":  c.project,
+		"instance": c.instance,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sql.instances.listServerCas" call.
+// Exactly one of *InstancesListServerCasResponse or error will be
+// non-nil. Any non-2xx status code is an error. Response headers are in
+// either *InstancesListServerCasResponse.ServerResponse.Header or (if a
+// response was returned at all) in error.(*googleapi.Error).Header. Use
+// googleapi.IsNotModified to check whether the returned error was
+// because http.StatusNotModified was returned.
+func (c *InstancesListServerCasCall) Do(opts ...googleapi.CallOption) (*InstancesListServerCasResponse, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &InstancesListServerCasResponse{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Lists all of the trusted Certificate Authorities (CAs) for the specified instance. There can be up to three CAs listed: the CA that was used to sign the certificate that is currently in use, a CA that has been added but not yet used to sign a certificate, and a CA used to sign a certificate that has previously rotated out.",
+	//   "httpMethod": "GET",
+	//   "id": "sql.instances.listServerCas",
+	//   "parameterOrder": [
+	//     "project",
+	//     "instance"
+	//   ],
+	//   "parameters": {
+	//     "instance": {
+	//       "description": "Cloud SQL instance ID. This does not include the project ID.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "project": {
+	//       "description": "Project ID of the project that contains the instance.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "projects/{project}/instances/{instance}/listServerCas",
+	//   "response": {
+	//     "$ref": "InstancesListServerCasResponse"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/sqlservice.admin"
+	//   ]
+	// }
+
+}
+
 // method id "sql.instances.patch":
 
 type InstancesPatchCall struct {
@@ -6254,6 +6672,152 @@ func (c *InstancesRestoreBackupCall) Do(opts ...googleapi.CallOption) (*Operatio
 	//   "path": "projects/{project}/instances/{instance}/restoreBackup",
 	//   "request": {
 	//     "$ref": "InstancesRestoreBackupRequest"
+	//   },
+	//   "response": {
+	//     "$ref": "Operation"
+	//   },
+	//   "scopes": [
+	//     "https://www.googleapis.com/auth/cloud-platform",
+	//     "https://www.googleapis.com/auth/sqlservice.admin"
+	//   ]
+	// }
+
+}
+
+// method id "sql.instances.rotateServerCa":
+
+type InstancesRotateServerCaCall struct {
+	s                              *Service
+	project                        string
+	instance                       string
+	instancesrotateservercarequest *InstancesRotateServerCaRequest
+	urlParams_                     gensupport.URLParams
+	ctx_                           context.Context
+	header_                        http.Header
+}
+
+// RotateServerCa: Rotates the server certificate to one signed by the
+// Certificate Authority (CA) version previously added with the
+// addServerCA method.
+func (r *InstancesService) RotateServerCa(project string, instance string, instancesrotateservercarequest *InstancesRotateServerCaRequest) *InstancesRotateServerCaCall {
+	c := &InstancesRotateServerCaCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.project = project
+	c.instance = instance
+	c.instancesrotateservercarequest = instancesrotateservercarequest
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse
+// for more information.
+func (c *InstancesRotateServerCaCall) Fields(s ...googleapi.Field) *InstancesRotateServerCaCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// Context sets the context to be used in this call's Do method. Any
+// pending HTTP request will be aborted if the provided context is
+// canceled.
+func (c *InstancesRotateServerCaCall) Context(ctx context.Context) *InstancesRotateServerCaCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns an http.Header that can be modified by the caller to
+// add HTTP headers to the request.
+func (c *InstancesRotateServerCaCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *InstancesRotateServerCaCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := make(http.Header)
+	for k, v := range c.header_ {
+		reqHeaders[k] = v
+	}
+	reqHeaders.Set("User-Agent", c.s.userAgent())
+	var body io.Reader = nil
+	body, err := googleapi.WithoutDataWrapper.JSONReader(c.instancesrotateservercarequest)
+	if err != nil {
+		return nil, err
+	}
+	reqHeaders.Set("Content-Type", "application/json")
+	c.urlParams_.Set("alt", alt)
+	urls := googleapi.ResolveRelative(c.s.BasePath, "projects/{project}/instances/{instance}/rotateServerCa")
+	urls += "?" + c.urlParams_.Encode()
+	req, _ := http.NewRequest("POST", urls, body)
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"project":  c.project,
+		"instance": c.instance,
+	})
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sql.instances.rotateServerCa" call.
+// Exactly one of *Operation or error will be non-nil. Any non-2xx
+// status code is an error. Response headers are in either
+// *Operation.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified
+// to check whether the returned error was because
+// http.StatusNotModified was returned.
+func (c *InstancesRotateServerCaCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, &googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, err
+	}
+	ret := &Operation{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	if err := gensupport.DecodeResponse(target, res); err != nil {
+		return nil, err
+	}
+	return ret, nil
+	// {
+	//   "description": "Rotates the server certificate to one signed by the Certificate Authority (CA) version previously added with the addServerCA method.",
+	//   "httpMethod": "POST",
+	//   "id": "sql.instances.rotateServerCa",
+	//   "parameterOrder": [
+	//     "project",
+	//     "instance"
+	//   ],
+	//   "parameters": {
+	//     "instance": {
+	//       "description": "Cloud SQL instance ID. This does not include the project ID.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     },
+	//     "project": {
+	//       "description": "Project ID of the project that contains the instance.",
+	//       "location": "path",
+	//       "required": true,
+	//       "type": "string"
+	//     }
+	//   },
+	//   "path": "projects/{project}/instances/{instance}/rotateServerCa",
+	//   "request": {
+	//     "$ref": "InstancesRotateServerCaRequest"
 	//   },
 	//   "response": {
 	//     "$ref": "Operation"

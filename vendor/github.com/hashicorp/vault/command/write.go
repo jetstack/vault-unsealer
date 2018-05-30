@@ -131,11 +131,14 @@ func (c *WriteCommand) Run(args []string) int {
 	secret, err := client.Logical().Write(path, data)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing data to %s: %s", path, err))
+		if secret != nil {
+			OutputSecret(c.UI, secret)
+		}
 		return 2
 	}
 	if secret == nil {
 		// Don't output anything unless using the "table" format
-		if c.flagFormat == "table" {
+		if Format(c.UI) == "table" {
 			c.UI.Info(fmt.Sprintf("Success! Data written to: %s", path))
 		}
 		return 0
@@ -146,5 +149,5 @@ func (c *WriteCommand) Run(args []string) int {
 		return PrintRawField(c.UI, secret, c.flagField)
 	}
 
-	return OutputSecret(c.UI, c.flagFormat, secret)
+	return OutputSecret(c.UI, secret)
 }

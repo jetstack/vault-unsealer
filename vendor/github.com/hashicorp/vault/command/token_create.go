@@ -207,8 +207,10 @@ func (c *TokenCreateCommand) Run(args []string) int {
 
 	// TODO: remove in 0.9.0
 	if c.flagLease != 0 {
-		c.UI.Warn("The -lease flag is deprecated. Please use -ttl instead.")
-		c.flagTTL = c.flagLease
+		if Format(c.UI) == "table" {
+			c.UI.Warn("The -lease flag is deprecated. Please use -ttl instead.")
+			c.flagTTL = c.flagLease
+		}
 	}
 
 	client, err := c.Client()
@@ -246,5 +248,5 @@ func (c *TokenCreateCommand) Run(args []string) int {
 		return PrintRawField(c.UI, secret, c.flagField)
 	}
 
-	return OutputSecret(c.UI, c.flagFormat, secret)
+	return OutputSecret(c.UI, secret)
 }

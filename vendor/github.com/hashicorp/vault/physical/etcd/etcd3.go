@@ -14,9 +14,10 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/coreos/etcd/pkg/transport"
+	"github.com/hashicorp/errwrap"
+	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/physical"
-	log "github.com/mgutz/logxi/v1"
 	"golang.org/x/net/context"
 )
 
@@ -85,9 +86,9 @@ func newEtcd3Backend(conf map[string]string, logger log.Logger) (physical.Backen
 	ca, hasCa := conf["tls_ca_file"]
 	if (hasCert && hasKey) || hasCa {
 		tls := transport.TLSInfo{
-			CAFile:   ca,
-			CertFile: cert,
-			KeyFile:  key,
+			TrustedCAFile: ca,
+			CertFile:      cert,
+			KeyFile:       key,
 		}
 
 		tlscfg, err := tls.ClientConfig()
@@ -113,6 +114,15 @@ func newEtcd3Backend(conf map[string]string, logger log.Logger) (physical.Backen
 		cfg.Password = password
 	}
 
+	if maxReceive, ok := conf["max_receive_size"]; ok {
+		// grpc converts this to uint32 internally, so parse as that to avoid passing invalid values
+		val, err := strconv.ParseUint(maxReceive, 10, 32)
+		if err != nil {
+			return nil, errwrap.Wrapf(fmt.Sprintf("value of 'max_receive_size' (%v) could not be understood: {{err}}", maxReceive), err)
+		}
+		cfg.MaxCallRecvMsgSize = int(val)
+	}
+
 	etcd, err := clientv3.New(cfg)
 	if err != nil {
 		return nil, err
@@ -124,7 +134,7 @@ func newEtcd3Backend(conf map[string]string, logger log.Logger) (physical.Backen
 	}
 	sync, err := strconv.ParseBool(ssync)
 	if err != nil {
-		return nil, fmt.Errorf("value of 'sync' (%v) could not be understood", err)
+		return nil, errwrap.Wrapf(fmt.Sprintf("value of 'sync' (%v) could not be understood: {{err}}", ssync), err)
 	}
 
 	if sync {
@@ -233,7 +243,7 @@ func (e *EtcdBackend) HAEnabled() bool {
 	return e.haEnabled
 }
 
-// EtcdLock emplements a lock using and etcd backend.
+// EtcdLock implements a lock using and etcd backend.
 type EtcdLock struct {
 	lock sync.Mutex
 	held bool
@@ -249,24 +259,23 @@ type EtcdLock struct {
 
 // Lock is used for mutual exclusion based on the given key.
 func (c *EtcdBackend) LockWith(key, value string) (physical.Lock, error) {
-	session, err := concurrency.NewSession(c.etcd, concurrency.WithTTL(etcd3LockTimeoutInSeconds))
-	if err != nil {
-		return nil, err
-	}
-
 	p := path.Join(c.path, key)
 	return &EtcdLock{
-		etcdSession: session,
-		etcdMu:      concurrency.NewMutex(session, p),
-		prefix:      p,
-		value:       value,
-		etcd:        c.etcd,
+		prefix: p,
+		value:  value,
+		etcd:   c.etcd,
 	}, nil
 }
 
 func (c *EtcdLock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	if c.etcdMu == nil {
+		if err := c.initMu(); err != nil {
+			return nil, err
+		}
+	}
 
 	if c.held {
 		return nil, EtcdLockHeldError
@@ -276,13 +285,10 @@ func (c *EtcdLock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	case _, ok := <-c.etcdSession.Done():
 		if !ok {
 			// The session's done channel is closed, so the session is over,
-			// and we need a new one
-			session, err := concurrency.NewSession(c.etcd, concurrency.WithTTL(etcd3LockTimeoutInSeconds))
-			if err != nil {
+			// and we need a new lock with a new session.
+			if err := c.initMu(); err != nil {
 				return nil, err
 			}
-			c.etcdSession = session
-			c.etcdMu = concurrency.NewMutex(session, c.prefix)
 		}
 	default:
 	}
@@ -339,4 +345,14 @@ func (c *EtcdLock) Value() (bool, string, error) {
 	}
 
 	return true, string(resp.Kvs[0].Value), nil
+}
+
+func (c *EtcdLock) initMu() error {
+	session, err := concurrency.NewSession(c.etcd, concurrency.WithTTL(etcd3LockTimeoutInSeconds))
+	if err != nil {
+		return err
+	}
+	c.etcdSession = session
+	c.etcdMu = concurrency.NewMutex(session, c.prefix)
+	return nil
 }

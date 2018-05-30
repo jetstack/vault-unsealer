@@ -20,13 +20,17 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/hkdf"
 
+	"github.com/hashicorp/errwrap"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/helper/errutil"
 	"github.com/hashicorp/vault/helper/jsonutil"
@@ -48,9 +52,17 @@ const (
 	KeyType_ED25519
 	KeyType_RSA2048
 	KeyType_RSA4096
+	KeyType_ChaCha20_Poly1305
 )
 
-const ErrTooOld = "ciphertext or signature version is disallowed by policy (too old)"
+const (
+	// ErrTooOld is returned whtn the ciphertext or signatures's key version is
+	// too old.
+	ErrTooOld = "ciphertext or signature version is disallowed by policy (too old)"
+
+	// DefaultVersionTemplate is used when no version template is provided.
+	DefaultVersionTemplate = "vault:v{{version}}:"
+)
 
 type RestoreInfo struct {
 	Time    time.Time `json:"time"`
@@ -75,7 +87,7 @@ type KeyType int
 
 func (kt KeyType) EncryptionSupported() bool {
 	switch kt {
-	case KeyType_AES256_GCM96, KeyType_RSA2048, KeyType_RSA4096:
+	case KeyType_AES256_GCM96, KeyType_ChaCha20_Poly1305, KeyType_RSA2048, KeyType_RSA4096:
 		return true
 	}
 	return false
@@ -83,7 +95,7 @@ func (kt KeyType) EncryptionSupported() bool {
 
 func (kt KeyType) DecryptionSupported() bool {
 	switch kt {
-	case KeyType_AES256_GCM96, KeyType_RSA2048, KeyType_RSA4096:
+	case KeyType_AES256_GCM96, KeyType_ChaCha20_Poly1305, KeyType_RSA2048, KeyType_RSA4096:
 		return true
 	}
 	return false
@@ -107,7 +119,7 @@ func (kt KeyType) HashSignatureInput() bool {
 
 func (kt KeyType) DerivationSupported() bool {
 	switch kt {
-	case KeyType_AES256_GCM96, KeyType_ED25519:
+	case KeyType_AES256_GCM96, KeyType_ChaCha20_Poly1305, KeyType_ED25519:
 		return true
 	}
 	return false
@@ -117,6 +129,8 @@ func (kt KeyType) String() string {
 	switch kt {
 	case KeyType_AES256_GCM96:
 		return "aes256-gcm96"
+	case KeyType_ChaCha20_Poly1305:
+		return "chacha20-poly1305"
 	case KeyType_ECDSA_P256:
 		return "ecdsa-p256"
 	case KeyType_ED25519:
@@ -172,7 +186,7 @@ func (kem deprecatedKeyEntryMap) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&intermediate)
 }
 
-// MarshalJSON implements JSON unmarshaling
+// MarshalJSON implements JSON unmarshalling
 func (kem deprecatedKeyEntryMap) UnmarshalJSON(data []byte) error {
 	intermediate := map[string]KeyEntry{}
 	if err := jsonutil.DecodeJSON(data, &intermediate); err != nil {
@@ -191,6 +205,85 @@ func (kem deprecatedKeyEntryMap) UnmarshalJSON(data []byte) error {
 
 // keyEntryMap is used to allow JSON marshal/unmarshal
 type keyEntryMap map[string]KeyEntry
+
+// PolicyConfig is used to create a new policy
+type PolicyConfig struct {
+	// The name of the policy
+	Name string `json:"name"`
+
+	// The type of key
+	Type KeyType
+
+	// Derived keys MUST provide a context and the master underlying key is
+	// never used. If convergent encryption is true, the context will be used
+	// as the nonce as well.
+	Derived              bool
+	KDF                  int
+	ConvergentEncryption bool
+
+	// Whether the key is exportable
+	Exportable bool
+
+	// Whether the key is allowed to be deleted
+	DeletionAllowed bool
+
+	// AllowPlaintextBackup allows taking backup of the policy in plaintext
+	AllowPlaintextBackup bool
+
+	// VersionTemplate is used to prefix the ciphertext with information about
+	// the key version. It must inclide {{version}} and a delimiter between the
+	// version prefix and the ciphertext.
+	VersionTemplate string
+
+	// StoragePrefix is used to add a prefix when storing and retrieving the
+	// policy object.
+	StoragePrefix string
+}
+
+// NewPolicy takes a policy config and returns a Policy with those settings.
+func NewPolicy(config PolicyConfig) *Policy {
+	var convergentVersion int
+	if config.ConvergentEncryption {
+		convergentVersion = 2
+	}
+
+	return &Policy{
+		Name:                 config.Name,
+		Type:                 config.Type,
+		Derived:              config.Derived,
+		KDF:                  config.KDF,
+		ConvergentEncryption: config.ConvergentEncryption,
+		ConvergentVersion:    convergentVersion,
+		Exportable:           config.Exportable,
+		DeletionAllowed:      config.DeletionAllowed,
+		AllowPlaintextBackup: config.AllowPlaintextBackup,
+		VersionTemplate:      config.VersionTemplate,
+		StoragePrefix:        config.StoragePrefix,
+		versionPrefixCache:   &sync.Map{},
+	}
+}
+
+// LoadPolicy will load a policy from the provided storage path and set the
+// necessary un-exported variables. It is particularly useful when accessing a
+// policy without the lock manager.
+func LoadPolicy(ctx context.Context, s logical.Storage, path string) (*Policy, error) {
+	raw, err := s.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	if raw == nil {
+		return nil, nil
+	}
+
+	var policy Policy
+	err = jsonutil.DecodeJSON(raw.Value, &policy)
+	if err != nil {
+		return nil, err
+	}
+
+	policy.versionPrefixCache = &sync.Map{}
+	return &policy, nil
+}
 
 // Policy is the struct used to store metadata
 type Policy struct {
@@ -240,6 +333,19 @@ type Policy struct {
 
 	// AllowPlaintextBackup allows taking backup of the policy in plaintext
 	AllowPlaintextBackup bool `json:"allow_plaintext_backup"`
+
+	// VersionTemplate is used to prefix the ciphertext with information about
+	// the key version. It must inclide {{version}} and a delimiter between the
+	// version prefix and the ciphertext.
+	VersionTemplate string `json:"version_template"`
+
+	// StoragePrefix is used to add a prefix when storing and retrieving the
+	// policy object.
+	StoragePrefix string `json:"storage_prefix"`
+
+	// versionPrefixCache stores caches of verison prefix strings and the split
+	// version template.
+	versionPrefixCache *sync.Map
 }
 
 // ArchivedKeys stores old keys. This is used to keep the key loading time sane
@@ -251,7 +357,7 @@ type archivedKeys struct {
 func (p *Policy) LoadArchive(ctx context.Context, storage logical.Storage) (*archivedKeys, error) {
 	archive := &archivedKeys{}
 
-	raw, err := storage.Get(ctx, "archive/"+p.Name)
+	raw, err := storage.Get(ctx, path.Join(p.StoragePrefix, "archive", p.Name))
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +382,7 @@ func (p *Policy) storeArchive(ctx context.Context, storage logical.Storage, arch
 
 	// Write the policy into storage
 	err = storage.Put(ctx, &logical.StorageEntry{
-		Key:   "archive/" + p.Name,
+		Key:   path.Join(p.StoragePrefix, "archive", p.Name),
 		Value: buf,
 	})
 	if err != nil {
@@ -325,7 +431,6 @@ func (p *Policy) handleArchiving(ctx context.Context, storage logical.Storage) e
 
 	if !keysContainsMinimum {
 		// Need to move keys *from* archive
-
 		for i := p.MinDecryptionVersion; i <= p.LatestVersion; i++ {
 			p.Keys[strconv.Itoa(i)] = archive.Keys[i]
 		}
@@ -366,7 +471,29 @@ func (p *Policy) handleArchiving(ctx context.Context, storage logical.Storage) e
 	return nil
 }
 
-func (p *Policy) Persist(ctx context.Context, storage logical.Storage) error {
+func (p *Policy) Persist(ctx context.Context, storage logical.Storage) (retErr error) {
+	// Other functions will take care of restoring other values; this is just
+	// responsible for archiving and keys since the archive function can modify
+	// keys. At the moment one of the other functions calling persist will also
+	// roll back keys, but better safe than sorry and this doesn't happen
+	// enough to worry about the speed tradeoff.
+	priorArchiveVersion := p.ArchiveVersion
+	var priorKeys keyEntryMap
+
+	if p.Keys != nil {
+		priorKeys = keyEntryMap{}
+		for k, v := range p.Keys {
+			priorKeys[k] = v
+		}
+	}
+
+	defer func() {
+		if retErr != nil {
+			p.ArchiveVersion = priorArchiveVersion
+			p.Keys = priorKeys
+		}
+	}()
+
 	err := p.handleArchiving(ctx, storage)
 	if err != nil {
 		return err
@@ -380,7 +507,7 @@ func (p *Policy) Persist(ctx context.Context, storage logical.Storage) error {
 
 	// Write the policy into storage
 	err = storage.Put(ctx, &logical.StorageEntry{
-		Key:   "policy/" + p.Name,
+		Key:   path.Join(p.StoragePrefix, "policy", p.Name),
 		Value: buf,
 	})
 	if err != nil {
@@ -429,7 +556,30 @@ func (p *Policy) NeedsUpgrade() bool {
 	return false
 }
 
-func (p *Policy) Upgrade(ctx context.Context, storage logical.Storage) error {
+func (p *Policy) Upgrade(ctx context.Context, storage logical.Storage) (retErr error) {
+	priorKey := p.Key
+	priorLatestVersion := p.LatestVersion
+	priorMinDecryptionVersion := p.MinDecryptionVersion
+	priorConvergentVersion := p.ConvergentVersion
+	var priorKeys keyEntryMap
+
+	if p.Keys != nil {
+		priorKeys = keyEntryMap{}
+		for k, v := range p.Keys {
+			priorKeys[k] = v
+		}
+	}
+
+	defer func() {
+		if retErr != nil {
+			p.Key = priorKey
+			p.LatestVersion = priorLatestVersion
+			p.MinDecryptionVersion = priorMinDecryptionVersion
+			p.ConvergentVersion = priorConvergentVersion
+			p.Keys = priorKeys
+		}
+	}()
+
 	persistNeeded := false
 	// Ensure we've moved from Key -> Keys
 	if p.Key != nil && len(p.Key) > 0 {
@@ -525,7 +675,7 @@ func (p *Policy) DeriveKey(context []byte, ver int) ([]byte, error) {
 		}
 
 		switch p.Type {
-		case KeyType_AES256_GCM96:
+		case KeyType_AES256_GCM96, KeyType_ChaCha20_Poly1305:
 			n, err := derBytes.ReadFrom(limReader)
 			if err != nil {
 				return nil, errutil.InternalError{Err: fmt.Sprintf("error reading returned derived bytes: %v", err)}
@@ -578,47 +728,62 @@ func (p *Policy) Encrypt(ver int, context, nonce []byte, value string) (string, 
 	var ciphertext []byte
 
 	switch p.Type {
-	case KeyType_AES256_GCM96:
+	case KeyType_AES256_GCM96, KeyType_ChaCha20_Poly1305:
 		// Derive the key that should be used
 		key, err := p.DeriveKey(context, ver)
 		if err != nil {
 			return "", err
 		}
 
-		// Setup the cipher
-		aesCipher, err := aes.NewCipher(key)
-		if err != nil {
-			return "", errutil.InternalError{Err: err.Error()}
-		}
+		var aead cipher.AEAD
 
-		// Setup the GCM AEAD
-		gcm, err := cipher.NewGCM(aesCipher)
-		if err != nil {
-			return "", errutil.InternalError{Err: err.Error()}
+		switch p.Type {
+		case KeyType_AES256_GCM96:
+			// Setup the cipher
+			aesCipher, err := aes.NewCipher(key)
+			if err != nil {
+				return "", errutil.InternalError{Err: err.Error()}
+			}
+
+			// Setup the GCM AEAD
+			gcm, err := cipher.NewGCM(aesCipher)
+			if err != nil {
+				return "", errutil.InternalError{Err: err.Error()}
+			}
+
+			aead = gcm
+
+		case KeyType_ChaCha20_Poly1305:
+			cha, err := chacha20poly1305.New(key)
+			if err != nil {
+				return "", errutil.InternalError{Err: err.Error()}
+			}
+
+			aead = cha
 		}
 
 		if p.ConvergentEncryption {
 			switch p.ConvergentVersion {
 			case 1:
-				if len(nonce) != gcm.NonceSize() {
-					return "", errutil.UserError{Err: fmt.Sprintf("base64-decoded nonce must be %d bytes long when using convergent encryption with this key", gcm.NonceSize())}
+				if len(nonce) != aead.NonceSize() {
+					return "", errutil.UserError{Err: fmt.Sprintf("base64-decoded nonce must be %d bytes long when using convergent encryption with this key", aead.NonceSize())}
 				}
 			default:
 				nonceHmac := hmac.New(sha256.New, context)
 				nonceHmac.Write(plaintext)
 				nonceSum := nonceHmac.Sum(nil)
-				nonce = nonceSum[:gcm.NonceSize()]
+				nonce = nonceSum[:aead.NonceSize()]
 			}
 		} else {
 			// Compute random nonce
-			nonce, err = uuid.GenerateRandomBytes(gcm.NonceSize())
+			nonce, err = uuid.GenerateRandomBytes(aead.NonceSize())
 			if err != nil {
 				return "", errutil.InternalError{Err: err.Error()}
 			}
 		}
 
-		// Encrypt and tag with GCM
-		ciphertext = gcm.Seal(nil, nonce, plaintext, nil)
+		// Encrypt and tag with AEAD
+		ciphertext = aead.Seal(nil, nonce, plaintext, nil)
 
 		// Place the encrypted data after the nonce
 		if !p.ConvergentEncryption || p.ConvergentVersion > 1 {
@@ -640,7 +805,7 @@ func (p *Policy) Encrypt(ver int, context, nonce []byte, value string) (string, 
 	encoded := base64.StdEncoding.EncodeToString(ciphertext)
 
 	// Prepend some information
-	encoded = "vault:v" + strconv.Itoa(ver) + ":" + encoded
+	encoded = p.getVersionPrefix(ver) + encoded
 
 	return encoded, nil
 }
@@ -650,8 +815,13 @@ func (p *Policy) Decrypt(context, nonce []byte, value string) (string, error) {
 		return "", errutil.UserError{Err: fmt.Sprintf("message decryption not supported for key type %v", p.Type)}
 	}
 
+	tplParts, err := p.getTemplateParts()
+	if err != nil {
+		return "", err
+	}
+
 	// Verify the prefix
-	if !strings.HasPrefix(value, "vault:v") {
+	if !strings.HasPrefix(value, tplParts[0]) {
 		return "", errutil.UserError{Err: "invalid ciphertext: no prefix"}
 	}
 
@@ -659,7 +829,7 @@ func (p *Policy) Decrypt(context, nonce []byte, value string) (string, error) {
 		return "", errutil.UserError{Err: "invalid convergent nonce supplied"}
 	}
 
-	splitVerCiphertext := strings.SplitN(strings.TrimPrefix(value, "vault:v"), ":", 2)
+	splitVerCiphertext := strings.SplitN(strings.TrimPrefix(value, tplParts[0]), tplParts[1], 2)
 	if len(splitVerCiphertext) != 2 {
 		return "", errutil.UserError{Err: "invalid ciphertext: wrong number of fields"}
 	}
@@ -692,25 +862,40 @@ func (p *Policy) Decrypt(context, nonce []byte, value string) (string, error) {
 	var plain []byte
 
 	switch p.Type {
-	case KeyType_AES256_GCM96:
+	case KeyType_AES256_GCM96, KeyType_ChaCha20_Poly1305:
 		key, err := p.DeriveKey(context, ver)
 		if err != nil {
 			return "", err
 		}
 
-		// Setup the cipher
-		aesCipher, err := aes.NewCipher(key)
-		if err != nil {
-			return "", errutil.InternalError{Err: err.Error()}
+		var aead cipher.AEAD
+
+		switch p.Type {
+		case KeyType_AES256_GCM96:
+			// Setup the cipher
+			aesCipher, err := aes.NewCipher(key)
+			if err != nil {
+				return "", errutil.InternalError{Err: err.Error()}
+			}
+
+			// Setup the GCM AEAD
+			gcm, err := cipher.NewGCM(aesCipher)
+			if err != nil {
+				return "", errutil.InternalError{Err: err.Error()}
+			}
+
+			aead = gcm
+
+		case KeyType_ChaCha20_Poly1305:
+			cha, err := chacha20poly1305.New(key)
+			if err != nil {
+				return "", errutil.InternalError{Err: err.Error()}
+			}
+
+			aead = cha
 		}
 
-		// Setup the GCM AEAD
-		gcm, err := cipher.NewGCM(aesCipher)
-		if err != nil {
-			return "", errutil.InternalError{Err: err.Error()}
-		}
-
-		if len(decoded) < gcm.NonceSize() {
+		if len(decoded) < aead.NonceSize() {
 			return "", errutil.UserError{Err: "invalid ciphertext length"}
 		}
 
@@ -719,12 +904,12 @@ func (p *Policy) Decrypt(context, nonce []byte, value string) (string, error) {
 		if p.ConvergentEncryption && p.ConvergentVersion < 2 {
 			ciphertext = decoded
 		} else {
-			nonce = decoded[:gcm.NonceSize()]
-			ciphertext = decoded[gcm.NonceSize():]
+			nonce = decoded[:aead.NonceSize()]
+			ciphertext = decoded[aead.NonceSize():]
 		}
 
 		// Verify and Decrypt
-		plain, err = gcm.Open(nil, nonce, ciphertext, nil)
+		plain, err = aead.Open(nil, nonce, ciphertext, nil)
 		if err != nil {
 			return "", errutil.UserError{Err: "invalid ciphertext: unable to decrypt"}
 		}
@@ -758,7 +943,7 @@ func (p *Policy) HMACKey(version int) ([]byte, error) {
 	return p.Keys[strconv.Itoa(version)].HMACKey, nil
 }
 
-func (p *Policy) Sign(ver int, context, input []byte, algorithm string) (*SigningResult, error) {
+func (p *Policy) Sign(ver int, context, input []byte, hashAlgorithm, sigAlgorithm string) (*SigningResult, error) {
 	if !p.Type.SigningSupported() {
 		return nil, fmt.Errorf("message signing not supported for key type %v", p.Type)
 	}
@@ -827,7 +1012,7 @@ func (p *Policy) Sign(ver int, context, input []byte, algorithm string) (*Signin
 		key := p.Keys[strconv.Itoa(ver)].RSAKey
 
 		var algo crypto.Hash
-		switch algorithm {
+		switch hashAlgorithm {
 		case "sha2-224":
 			algo = crypto.SHA224
 		case "sha2-256":
@@ -837,12 +1022,26 @@ func (p *Policy) Sign(ver int, context, input []byte, algorithm string) (*Signin
 		case "sha2-512":
 			algo = crypto.SHA512
 		default:
-			return nil, errutil.InternalError{Err: fmt.Sprintf("unsupported algorithm %s", algorithm)}
+			return nil, errutil.InternalError{Err: fmt.Sprintf("unsupported hash algorithm %s", hashAlgorithm)}
 		}
 
-		sig, err = rsa.SignPSS(rand.Reader, key, algo, input, nil)
-		if err != nil {
-			return nil, err
+		if sigAlgorithm == "" {
+			sigAlgorithm = "pss"
+		}
+
+		switch sigAlgorithm {
+		case "pss":
+			sig, err = rsa.SignPSS(rand.Reader, key, algo, input, nil)
+			if err != nil {
+				return nil, err
+			}
+		case "pkcs1v15":
+			sig, err = rsa.SignPKCS1v15(rand.Reader, key, algo, input)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, errutil.InternalError{Err: fmt.Sprintf("unsupported rsa signature algorithm %s", sigAlgorithm)}
 		}
 
 	default:
@@ -851,26 +1050,30 @@ func (p *Policy) Sign(ver int, context, input []byte, algorithm string) (*Signin
 
 	// Convert to base64
 	encoded := base64.StdEncoding.EncodeToString(sig)
-
 	res := &SigningResult{
-		Signature: "vault:v" + strconv.Itoa(ver) + ":" + encoded,
+		Signature: p.getVersionPrefix(ver) + encoded,
 		PublicKey: pubKey,
 	}
 
 	return res, nil
 }
 
-func (p *Policy) VerifySignature(context, input []byte, sig, algorithm string) (bool, error) {
+func (p *Policy) VerifySignature(context, input []byte, sig, hashAlgorithm string, sigAlgorithm string) (bool, error) {
 	if !p.Type.SigningSupported() {
 		return false, errutil.UserError{Err: fmt.Sprintf("message verification not supported for key type %v", p.Type)}
 	}
 
+	tplParts, err := p.getTemplateParts()
+	if err != nil {
+		return false, err
+	}
+
 	// Verify the prefix
-	if !strings.HasPrefix(sig, "vault:v") {
+	if !strings.HasPrefix(sig, tplParts[0]) {
 		return false, errutil.UserError{Err: "invalid signature: no prefix"}
 	}
 
-	splitVerSig := strings.SplitN(strings.TrimPrefix(sig, "vault:v"), ":", 2)
+	splitVerSig := strings.SplitN(strings.TrimPrefix(sig, tplParts[0]), tplParts[1], 2)
 	if len(splitVerSig) != 2 {
 		return false, errutil.UserError{Err: "invalid signature: wrong number of fields"}
 	}
@@ -933,7 +1136,7 @@ func (p *Policy) VerifySignature(context, input []byte, sig, algorithm string) (
 		key := p.Keys[strconv.Itoa(ver)].RSAKey
 
 		var algo crypto.Hash
-		switch algorithm {
+		switch hashAlgorithm {
 		case "sha2-224":
 			algo = crypto.SHA224
 		case "sha2-256":
@@ -943,21 +1146,49 @@ func (p *Policy) VerifySignature(context, input []byte, sig, algorithm string) (
 		case "sha2-512":
 			algo = crypto.SHA512
 		default:
-			return false, errutil.InternalError{Err: fmt.Sprintf("unsupported algorithm %s", algorithm)}
+			return false, errutil.InternalError{Err: fmt.Sprintf("unsupported hash algorithm %s", hashAlgorithm)}
 		}
 
-		err = rsa.VerifyPSS(&key.PublicKey, algo, input, sigBytes, nil)
+		if sigAlgorithm == "" {
+			sigAlgorithm = "pss"
+		}
+
+		switch sigAlgorithm {
+		case "pss":
+			err = rsa.VerifyPSS(&key.PublicKey, algo, input, sigBytes, nil)
+		case "pkcs1v15":
+			err = rsa.VerifyPKCS1v15(&key.PublicKey, algo, input, sigBytes)
+		default:
+			return false, errutil.InternalError{Err: fmt.Sprintf("unsupported rsa signature algorithm %s", sigAlgorithm)}
+		}
 
 		return err == nil, nil
 
 	default:
 		return false, errutil.InternalError{Err: fmt.Sprintf("unsupported key type %v", p.Type)}
 	}
-
-	return false, errutil.InternalError{Err: "no valid key type found"}
 }
 
-func (p *Policy) Rotate(ctx context.Context, storage logical.Storage) error {
+func (p *Policy) Rotate(ctx context.Context, storage logical.Storage) (retErr error) {
+	priorLatestVersion := p.LatestVersion
+	priorMinDecryptionVersion := p.MinDecryptionVersion
+	var priorKeys keyEntryMap
+
+	if p.Keys != nil {
+		priorKeys = keyEntryMap{}
+		for k, v := range p.Keys {
+			priorKeys[k] = v
+		}
+	}
+
+	defer func() {
+		if retErr != nil {
+			p.LatestVersion = priorLatestVersion
+			p.MinDecryptionVersion = priorMinDecryptionVersion
+			p.Keys = priorKeys
+		}
+	}()
+
 	if p.Keys == nil {
 		// This is an initial key rotation when generating a new policy. We
 		// don't need to call migrate here because if we've called getPolicy to
@@ -979,7 +1210,7 @@ func (p *Policy) Rotate(ctx context.Context, storage logical.Storage) error {
 	entry.HMACKey = hmacKey
 
 	switch p.Type {
-	case KeyType_AES256_GCM96:
+	case KeyType_AES256_GCM96, KeyType_ChaCha20_Poly1305:
 		// Generate a 256bit key
 		newKey, err := uuid.GenerateRandomBytes(32)
 		if err != nil {
@@ -997,7 +1228,7 @@ func (p *Policy) Rotate(ctx context.Context, storage logical.Storage) error {
 		entry.EC_Y = privKey.Y
 		derBytes, err := x509.MarshalPKIXPublicKey(privKey.Public())
 		if err != nil {
-			return fmt.Errorf("error marshaling public key: %s", err)
+			return errwrap.Wrapf("error marshaling public key: {{err}}", err)
 		}
 		pemBlock := &pem.Block{
 			Type:  "PUBLIC KEY",
@@ -1054,7 +1285,7 @@ func (p *Policy) MigrateKeyToKeysMap() {
 }
 
 // Backup should be called with an exclusive lock held on the policy
-func (p *Policy) Backup(ctx context.Context, storage logical.Storage) (string, error) {
+func (p *Policy) Backup(ctx context.Context, storage logical.Storage) (out string, retErr error) {
 	if !p.Exportable {
 		return "", fmt.Errorf("exporting is disallowed on the policy")
 	}
@@ -1063,6 +1294,14 @@ func (p *Policy) Backup(ctx context.Context, storage logical.Storage) (string, e
 		return "", fmt.Errorf("plaintext backup is disallowed on the policy")
 	}
 
+	priorBackupInfo := p.BackupInfo
+
+	defer func() {
+		if retErr != nil {
+			p.BackupInfo = priorBackupInfo
+		}
+	}()
+
 	// Create a record of this backup operation in the policy
 	p.BackupInfo = &BackupInfo{
 		Time:    time.Now(),
@@ -1070,7 +1309,7 @@ func (p *Policy) Backup(ctx context.Context, storage logical.Storage) (string, e
 	}
 	err := p.Persist(ctx, storage)
 	if err != nil {
-		return "", fmt.Errorf("failed to persist policy with backup info: %v", err)
+		return "", errwrap.Wrapf("failed to persist policy with backup info: {{err}}", err)
 	}
 
 	// Load the archive only after persisting the policy as the archive can get
@@ -1091,4 +1330,41 @@ func (p *Policy) Backup(ctx context.Context, storage logical.Storage) (string, e
 	}
 
 	return base64.StdEncoding.EncodeToString(encodedBackup), nil
+}
+
+func (p *Policy) getTemplateParts() ([]string, error) {
+	partsRaw, ok := p.versionPrefixCache.Load("template-parts")
+	if ok {
+		return partsRaw.([]string), nil
+	}
+
+	template := p.VersionTemplate
+	if template == "" {
+		template = DefaultVersionTemplate
+	}
+
+	tplParts := strings.Split(template, "{{version}}")
+	if len(tplParts) != 2 {
+		return nil, errutil.InternalError{Err: "error parsing version template"}
+	}
+
+	p.versionPrefixCache.Store("template-parts", tplParts)
+	return tplParts, nil
+}
+
+func (p *Policy) getVersionPrefix(ver int) string {
+	prefixRaw, ok := p.versionPrefixCache.Load(ver)
+	if ok {
+		return prefixRaw.(string)
+	}
+
+	template := p.VersionTemplate
+	if template == "" {
+		template = DefaultVersionTemplate
+	}
+
+	prefix := strings.Replace(template, "{{version}}", strconv.Itoa(ver), -1)
+	p.versionPrefixCache.Store(ver, prefix)
+
+	return prefix
 }

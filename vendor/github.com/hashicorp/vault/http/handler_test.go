@@ -168,6 +168,7 @@ func TestSysMounts_headerAuth(t *testing.T) {
 				},
 				"local":     false,
 				"seal_wrap": false,
+				"options":   map[string]interface{}{"version": "1"},
 			},
 			"sys/": map[string]interface{}{
 				"description": "system endpoints used for control, policy and debugging",
@@ -180,6 +181,7 @@ func TestSysMounts_headerAuth(t *testing.T) {
 				},
 				"local":     false,
 				"seal_wrap": false,
+				"options":   interface{}(nil),
 			},
 			"cubbyhole/": map[string]interface{}{
 				"description": "per-token private secret storage",
@@ -192,6 +194,7 @@ func TestSysMounts_headerAuth(t *testing.T) {
 				},
 				"local":     true,
 				"seal_wrap": false,
+				"options":   interface{}(nil),
 			},
 			"identity/": map[string]interface{}{
 				"description": "identity store",
@@ -204,6 +207,7 @@ func TestSysMounts_headerAuth(t *testing.T) {
 				},
 				"local":     false,
 				"seal_wrap": false,
+				"options":   interface{}(nil),
 			},
 		},
 		"secret/": map[string]interface{}{
@@ -217,6 +221,7 @@ func TestSysMounts_headerAuth(t *testing.T) {
 			},
 			"local":     false,
 			"seal_wrap": false,
+			"options":   map[string]interface{}{"version": "1"},
 		},
 		"sys/": map[string]interface{}{
 			"description": "system endpoints used for control, policy and debugging",
@@ -229,6 +234,7 @@ func TestSysMounts_headerAuth(t *testing.T) {
 			},
 			"local":     false,
 			"seal_wrap": false,
+			"options":   interface{}(nil),
 		},
 		"cubbyhole/": map[string]interface{}{
 			"description": "per-token private secret storage",
@@ -241,6 +247,7 @@ func TestSysMounts_headerAuth(t *testing.T) {
 			},
 			"local":     true,
 			"seal_wrap": false,
+			"options":   interface{}(nil),
 		},
 		"identity/": map[string]interface{}{
 			"description": "identity store",
@@ -253,6 +260,7 @@ func TestSysMounts_headerAuth(t *testing.T) {
 			},
 			"local":     false,
 			"seal_wrap": false,
+			"options":   interface{}(nil),
 		},
 	}
 	testResponseStatus(t, resp, 200)
@@ -354,7 +362,7 @@ func TestHandler_sealed(t *testing.T) {
 func TestHandler_error(t *testing.T) {
 	w := httptest.NewRecorder()
 
-	respondError(w, 500, errors.New("Test Error"))
+	respondError(w, 500, errors.New("test Error"))
 
 	if w.Code != 500 {
 		t.Fatalf("expected 500, got %d", w.Code)

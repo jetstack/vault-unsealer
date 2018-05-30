@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/helper/errutil"
 	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/logical"
@@ -43,7 +44,7 @@ type BatchResponseItem struct {
 	// request item
 	Ciphertext string `json:"ciphertext,omitempty" structs:"ciphertext" mapstructure:"ciphertext"`
 
-	// Plaintext for the ciphertext present in the corresponsding batch
+	// Plaintext for the ciphertext present in the corresponding batch
 	// request item
 	Plaintext string `json:"plaintext,omitempty" structs:"plaintext" mapstructure:"plaintext"`
 
@@ -146,7 +147,7 @@ func (b *backend) pathEncryptWrite(ctx context.Context, req *logical.Request, d 
 	if batchInputRaw != nil {
 		err = mapstructure.Decode(batchInputRaw, &batchInputItems)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse batch input: %v", err)
+			return nil, errwrap.Wrapf("failed to parse batch input: {{err}}", err)
 		}
 
 		if len(batchInputItems) == 0 {
@@ -225,6 +226,8 @@ func (b *backend) pathEncryptWrite(ctx context.Context, req *logical.Request, d 
 		switch keyType {
 		case "aes256-gcm96":
 			polReq.KeyType = keysutil.KeyType_AES256_GCM96
+		case "chacha20-poly1305":
+			polReq.KeyType = keysutil.KeyType_ChaCha20_Poly1305
 		case "ecdsa-p256":
 			return logical.ErrorResponse(fmt.Sprintf("key type %v not supported for this operation", keyType)), logical.ErrInvalidRequest
 		default:

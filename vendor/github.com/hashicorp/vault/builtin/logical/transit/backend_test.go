@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/rand"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -177,8 +178,8 @@ func testTransit_RSA(t *testing.T, keyType string) {
 	}
 
 	signReq.Data = map[string]interface{}{
-		"input":     plaintext,
-		"algorithm": "invalid",
+		"input":          plaintext,
+		"hash_algorithm": "invalid",
 	}
 	resp, err = b.HandleRequest(context.Background(), signReq)
 	if err != nil {
@@ -189,8 +190,8 @@ func testTransit_RSA(t *testing.T, keyType string) {
 	}
 
 	signReq.Data = map[string]interface{}{
-		"input":     plaintext,
-		"algorithm": "sha2-512",
+		"input":          plaintext,
+		"hash_algorithm": "sha2-512",
 	}
 	resp, err = b.HandleRequest(context.Background(), signReq)
 	if err != nil || (resp != nil && resp.IsError()) {
@@ -211,9 +212,9 @@ func testTransit_RSA(t *testing.T, keyType string) {
 	}
 
 	verifyReq.Data = map[string]interface{}{
-		"input":     plaintext,
-		"signature": signature,
-		"algorithm": "sha2-512",
+		"input":          plaintext,
+		"signature":      signature,
+		"hash_algorithm": "sha2-512",
 	}
 	resp, err = b.HandleRequest(context.Background(), verifyReq)
 	if err != nil || (resp != nil && resp.IsError()) {
@@ -283,6 +284,13 @@ func TestBackend_datakey(t *testing.T) {
 }
 
 func TestBackend_rotation(t *testing.T) {
+	defer os.Setenv("TRANSIT_ACC_KEY_TYPE", "")
+	testBackendRotation(t)
+	os.Setenv("TRANSIT_ACC_KEY_TYPE", "CHACHA")
+	testBackendRotation(t)
+}
+
+func testBackendRotation(t *testing.T) {
 	decryptData := make(map[string]interface{})
 	encryptHistory := make(map[int]map[string]interface{})
 	logicaltest.Test(t, logicaltest.TestCase{
@@ -365,13 +373,17 @@ func TestBackend_basic_derived(t *testing.T) {
 }
 
 func testAccStepWritePolicy(t *testing.T, name string, derived bool) logicaltest.TestStep {
-	return logicaltest.TestStep{
+	ts := logicaltest.TestStep{
 		Operation: logical.UpdateOperation,
 		Path:      "keys/" + name,
 		Data: map[string]interface{}{
 			"derived": derived,
 		},
 	}
+	if os.Getenv("TRANSIT_ACC_KEY_TYPE") == "CHACHA" {
+		ts.Data["type"] = "chacha20-poly1305"
+	}
+	return ts
 }
 
 func testAccStepListPolicy(t *testing.T, name string, expectNone bool) logicaltest.TestStep {
@@ -463,7 +475,7 @@ func testAccStepDeleteNotDisabledPolicy(t *testing.T, name string) logicaltest.T
 		ErrorOk:   true,
 		Check: func(resp *logical.Response) error {
 			if resp == nil {
-				return fmt.Errorf("Got nil response instead of error")
+				return fmt.Errorf("got nil response instead of error")
 			}
 			if resp.IsError() {
 				return nil
@@ -509,7 +521,11 @@ func testAccStepReadPolicyWithVersions(t *testing.T, name string, expectNone, de
 			if d.Name != name {
 				return fmt.Errorf("bad name: %#v", d)
 			}
-			if d.Type != keysutil.KeyType(keysutil.KeyType_AES256_GCM96).String() {
+			if os.Getenv("TRANSIT_ACC_KEY_TYPE") == "CHACHA" {
+				if d.Type != keysutil.KeyType(keysutil.KeyType_ChaCha20_Poly1305).String() {
+					return fmt.Errorf("bad key type: %#v", d)
+				}
+			} else if d.Type != keysutil.KeyType(keysutil.KeyType_AES256_GCM96).String() {
 				return fmt.Errorf("bad key type: %#v", d)
 			}
 			// Should NOT get a key back
@@ -661,10 +677,10 @@ func testAccStepRewrap(
 			verString := splitStrings[1][1:]
 			ver, err := strconv.Atoi(verString)
 			if err != nil {
-				return fmt.Errorf("Error pulling out version from verString '%s', ciphertext was %s", verString, d.Ciphertext)
+				return fmt.Errorf("error pulling out version from verString '%s', ciphertext was %s", verString, d.Ciphertext)
 			}
 			if ver != expectedVer {
-				return fmt.Errorf("Did not get expected version")
+				return fmt.Errorf("did not get expected version")
 			}
 			decryptData["ciphertext"] = d.Ciphertext
 			return nil
@@ -826,6 +842,11 @@ func TestKeyUpgrade(t *testing.T) {
 }
 
 func TestDerivedKeyUpgrade(t *testing.T) {
+	testDerivedKeyUpgrade(t, keysutil.KeyType_AES256_GCM96)
+	testDerivedKeyUpgrade(t, keysutil.KeyType_ChaCha20_Poly1305)
+}
+
+func testDerivedKeyUpgrade(t *testing.T, keyType keysutil.KeyType) {
 	storage := &logical.InmemStorage{}
 	key, _ := uuid.GenerateRandomBytes(32)
 	keyContext, _ := uuid.GenerateRandomBytes(32)
@@ -833,7 +854,7 @@ func TestDerivedKeyUpgrade(t *testing.T) {
 	p := &keysutil.Policy{
 		Name:    "test",
 		Key:     key,
-		Type:    keysutil.KeyType_AES256_GCM96,
+		Type:    keyType,
 		Derived: true,
 	}
 
@@ -883,11 +904,12 @@ func TestDerivedKeyUpgrade(t *testing.T) {
 }
 
 func TestConvergentEncryption(t *testing.T) {
-	testConvergentEncryptionCommon(t, 0)
-	testConvergentEncryptionCommon(t, 2)
+	testConvergentEncryptionCommon(t, 0, keysutil.KeyType_AES256_GCM96)
+	testConvergentEncryptionCommon(t, 2, keysutil.KeyType_AES256_GCM96)
+	testConvergentEncryptionCommon(t, 2, keysutil.KeyType_ChaCha20_Poly1305)
 }
 
-func testConvergentEncryptionCommon(t *testing.T, ver int) {
+func testConvergentEncryptionCommon(t *testing.T, ver int, keyType keysutil.KeyType) {
 	var b *backend
 	sysView := logical.TestSystemView()
 	storage := &logical.InmemStorage{}
@@ -920,7 +942,7 @@ func testConvergentEncryptionCommon(t *testing.T, ver int) {
 
 	p := &keysutil.Policy{
 		Name:                 "testkey",
-		Type:                 keysutil.KeyType_AES256_GCM96,
+		Type:                 keyType,
 		Derived:              true,
 		ConvergentEncryption: true,
 		ConvergentVersion:    ver,

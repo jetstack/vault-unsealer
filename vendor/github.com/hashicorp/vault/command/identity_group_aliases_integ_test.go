@@ -3,12 +3,12 @@ package command
 import (
 	"testing"
 
+	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/builtin/credential/ldap"
 	vaulthttp "github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/vault"
-	logxi "github.com/mgutz/logxi/v1"
 )
 
 func TestIdentityStore_Integ_GroupAliases(t *testing.T) {
@@ -16,7 +16,7 @@ func TestIdentityStore_Integ_GroupAliases(t *testing.T) {
 	coreConfig := &vault.CoreConfig{
 		DisableMlock: true,
 		DisableCache: true,
-		Logger:       logxi.NullLog,
+		Logger:       log.NewNullLogger(),
 		CredentialBackends: map[string]logical.Factory{
 			"ldap": ldap.Factory,
 		},
@@ -192,7 +192,7 @@ func TestIdentityStore_Integ_GroupAliases(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected entity ID %q to be part of Italians group")
+		t.Fatalf("expected entity ID %q to be part of Italians group", entityID)
 	}
 
 	secret, err = client.Logical().Read("identity/group/id/" + scientistsGroupID)
@@ -207,7 +207,7 @@ func TestIdentityStore_Integ_GroupAliases(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected entity ID %q to be part of Scientists group")
+		t.Fatalf("expected entity ID %q to be part of Scientists group", entityID)
 	}
 
 	secret, err = client.Logical().Read("identity/group/id/" + devopsGroupID)
@@ -222,7 +222,7 @@ func TestIdentityStore_Integ_GroupAliases(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected entity ID %q to be part of devops group")
+		t.Fatalf("expected entity ID %q to be part of devops group", entityID)
 	}
 
 	identityStore := cores[0].IdentityStore()
@@ -308,7 +308,7 @@ func TestIdentityStore_Integ_GroupAliases(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected entity ID %q to be part of Italians group")
+		t.Fatalf("expected entity ID %q to be part of Italians group", entityID)
 	}
 
 	secret, err = client.Logical().Read("identity/group/id/" + scientistsGroupID)
@@ -323,7 +323,7 @@ func TestIdentityStore_Integ_GroupAliases(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected entity ID %q to be part of Italians group")
+		t.Fatalf("expected entity ID %q to be part of scientists group", entityID)
 	}
 
 	secret, err = client.Logical().Read("identity/group/id/" + devopsGroupID)
@@ -339,7 +339,7 @@ func TestIdentityStore_Integ_GroupAliases(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected entity ID %q to be part of devops group")
+		t.Fatalf("expected entity ID %q to be part of devops group", entityID)
 	}
 
 	// Remove user tesla from the devops group in LDAP backend

@@ -1,42 +1,20 @@
 package vault
 
 import (
-	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/sirupsen/logrus"
 
-	"github.com/jetstack/vault-unsealer/pkg/kv"
+	"github.com/soter/vault-unsealer/pkg/kv"
 )
 
-// That configures the vault API
-
-type Config struct {
-	// key prefix
-	KeyPrefix string
-
-	// how many key parts exist
-	SecretShares int
-	// how many of these parts are needed to unseal vault  (secretThreshold <= secretShares)
-	SecretThreshold int
-
-	// if this root token is set, the dynamic generated will be invalidated and this created instead
-	InitRootToken string
-	// should the root token be stored in the keyStore
-	StoreRootToken bool
-
-	// overwrite existing tokens
-	OverwriteExisting bool
-}
-
 // vault is an implementation of the Vault interface that will perform actions
-// against a Vault server, using a provided KMS to retreive
+// against a Vault server, using a provided KMS to retrieve
 type vault struct {
 	keyStore kv.Service
 	cl       *api.Client
-	config   *Config
+	config   *VaultOptions
 }
 
 var _ Vault = &vault{}
@@ -50,12 +28,7 @@ type Vault interface {
 }
 
 // New returns a new vault Vault, or an error.
-func New(k kv.Service, cl *api.Client, config Config) (Vault, error) {
-
-	if config.SecretShares < config.SecretThreshold {
-		return nil, errors.New("the secret threshold can't be bigger than the shares")
-	}
-
+func New(k kv.Service, cl *api.Client, config VaultOptions) (Vault, error) {
 	return &vault{
 		keyStore: k,
 		cl:       cl,
@@ -167,57 +140,13 @@ func (u *vault) Init() error {
 
 	rootToken := resp.RootToken
 
-	// this sets up a predefined root token
-	if u.config.InitRootToken != "" {
-		logrus.Info("setting up init root token, waiting for vault to be unsealed")
-
-		count := 0
-		wait := time.Second * 2
-		for {
-			sealed, err := u.Sealed()
-			if !sealed {
-				break
-			}
-			if err == nil {
-				logrus.Info("vault still sealed, wait for unsealing")
-			} else {
-				logrus.Infof("vault not reachable: %s", err.Error())
-			}
-
-			count++
-			time.Sleep(wait)
-		}
-
-		// use temporary token
-		u.cl.SetToken(resp.RootToken)
-
-		// setup root token with provided key
-		_, err := u.cl.Auth().Token().CreateOrphan(&api.TokenCreateRequest{
-			ID:          u.config.InitRootToken,
-			Policies:    []string{"root"},
-			DisplayName: "root-token",
-			NoParent:    true,
-		})
-		if err != nil {
-			return fmt.Errorf("unable to setup requested root token, (temporary root token: '%s'): %s", resp.RootToken, err)
-		}
-
-		// revoke the temporary token
-		err = u.cl.Auth().Token().RevokeSelf(resp.RootToken)
-		if err != nil {
-			return fmt.Errorf("unable to revoke temporary root token: %s", err.Error())
-		}
-
-		rootToken = u.config.InitRootToken
-	}
-
 	if u.config.StoreRootToken {
 		rootTokenKey := u.rootTokenKey()
 		if err = u.keyStoreSet(rootTokenKey, []byte(resp.RootToken)); err != nil {
 			return fmt.Errorf("error storing root token '%s' in key'%s'", rootToken, rootTokenKey)
 		}
 		logrus.WithField("key", rootTokenKey).Info("root token stored in key store")
-	} else if u.config.InitRootToken == "" {
+	} else {
 		logrus.WithField("root-token", resp.RootToken).Warnf("won't store root token in key store, this token grants full privileges to vault, so keep this secret")
 	}
 

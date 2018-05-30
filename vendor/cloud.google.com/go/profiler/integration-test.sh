@@ -7,19 +7,6 @@ set -eo pipefail
 set -x
 
 cd git/gocloud
-
-# Run test only if profiler directory is touched.
-profiler_test=false
-for f in $(git diff-tree --no-commit-id --name-only -r HEAD); do
-  if [[ "$(dirname $f)" == "profiler" ]]; then
-    profiler_test=true
-  fi
-done
-
-if [[ "$profiler_test" = false ]]; then
-  exit 0
-fi
-
 COMMIT=$(git rev-parse HEAD)
 
 # Set $GOPATH
@@ -41,7 +28,7 @@ set -x
 
 export GOOGLE_APPLICATION_CREDENTIALS="$(pwd)/key.json"
 export GCLOUD_TESTS_GOLANG_PROJECT_ID="dulcet-port-762"
-export GCLOUD_TESTS_GOLANG_ZONE="us-west1-a"
+export GCLOUD_TESTS_GOLANG_ZONE="us-west1-b"
 export GCLOUD_TESTS_GOLANG_BUCKET="dulcet-port-762-go-cloud-profiler-test"
 
 cd $GOCLOUD_HOME/profiler

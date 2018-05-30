@@ -202,7 +202,6 @@ func TestBackend_renew_revoke(t *testing.T) {
 	}
 
 	generatedSecret := resp.Secret
-	generatedSecret.IssueTime = time.Now()
 	generatedSecret.TTL = 6 * time.Hour
 
 	var d struct {
@@ -212,7 +211,7 @@ func TestBackend_renew_revoke(t *testing.T) {
 	if err := mapstructure.Decode(resp.Data, &d); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("[WARN] Generated token: %s with accesor %s", d.Token, d.Accessor)
+	t.Logf("[WARN] Generated token: %s with accessor %s", d.Token, d.Accessor)
 
 	// Build a client and verify that the credentials work
 	nomadapiConfig := nomadapi.DefaultConfig()

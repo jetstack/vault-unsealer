@@ -51,7 +51,11 @@ func TestSecretsTuneCommand_Run(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
+				client, closer := testVaultServer(t)
+				defer closer()
+
 				ui, cmd := testSecretsTuneCommand(t)
+				cmd.client = client
 
 				code := cmd.Run(tc.args)
 				if code != tc.code {
@@ -85,6 +89,9 @@ func TestSecretsTuneCommand_Run(t *testing.T) {
 		code := cmd.Run([]string{
 			"-default-lease-ttl", "30m",
 			"-max-lease-ttl", "1h",
+			"-audit-non-hmac-request-keys", "foo,bar",
+			"-audit-non-hmac-response-keys", "foo,bar",
+			"-listing-visibility", "unauth",
 			"mount_tune_integration/",
 		})
 		if exp := 0; code != exp {

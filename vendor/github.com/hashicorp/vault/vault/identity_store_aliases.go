@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/hashicorp/errwrap"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/vault/helper/identity"
 	"github.com/hashicorp/vault/logical"
@@ -229,9 +230,13 @@ func (i *IdentityStore) handleAliasUpdateCommon(req *logical.Request, d *framewo
 		return logical.ErrorResponse("missing mount_accessor"), nil
 	}
 
-	mountValidationResp := i.validateMountAccessorFunc(mountAccessor)
+	mountValidationResp := i.core.router.validateMountByAccessor(mountAccessor)
 	if mountValidationResp == nil {
 		return logical.ErrorResponse(fmt.Sprintf("invalid mount accessor %q", mountAccessor)), nil
+	}
+
+	if mountValidationResp.MountLocal {
+		return logical.ErrorResponse(fmt.Sprintf("mount_accessor %q is of a local mount", mountAccessor)), nil
 	}
 
 	// Get alias metadata
@@ -314,9 +319,11 @@ func (i *IdentityStore) handleAliasUpdateCommon(req *logical.Request, d *framewo
 	// Update the fields
 	alias.Name = aliasName
 	alias.Metadata = aliasMetadata
-	alias.MountType = mountValidationResp.MountType
 	alias.MountAccessor = mountValidationResp.MountAccessor
-	alias.MountPath = mountValidationResp.MountPath
+
+	// Explicitly set to empty as in the past we incorrectly saved it
+	alias.MountPath = ""
+	alias.MountType = ""
 
 	// Set the canonical ID in the alias index. This should be done after
 	// sanitizing entity.
@@ -372,12 +379,15 @@ func (i *IdentityStore) handleAliasReadCommon(alias *identity.Alias) (*logical.R
 	respData := map[string]interface{}{}
 	respData["id"] = alias.ID
 	respData["canonical_id"] = alias.CanonicalID
-	respData["mount_type"] = alias.MountType
 	respData["mount_accessor"] = alias.MountAccessor
-	respData["mount_path"] = alias.MountPath
 	respData["metadata"] = alias.Metadata
 	respData["name"] = alias.Name
 	respData["merged_from_canonical_ids"] = alias.MergedFromCanonicalIDs
+
+	if mountValidationResp := i.core.router.validateMountByAccessor(alias.MountAccessor); mountValidationResp != nil {
+		respData["mount_path"] = mountValidationResp.MountPath
+		respData["mount_type"] = mountValidationResp.MountType
+	}
 
 	// Convert protobuf timestamp into RFC3339 format
 	respData["creation_time"] = ptypes.TimestampString(alias.CreationTime)
@@ -407,19 +417,50 @@ func (i *IdentityStore) pathAliasIDList() framework.OperationFunc {
 		ws := memdb.NewWatchSet()
 		iter, err := i.MemDBAliases(ws, false)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch iterator for aliases in memdb: %v", err)
+			return nil, errwrap.Wrapf("failed to fetch iterator for aliases in memdb: {{err}}", err)
 		}
 
 		var aliasIDs []string
+		aliasInfo := map[string]interface{}{}
+
+		type mountInfo struct {
+			MountType string
+			MountPath string
+		}
+		mountAccessorMap := map[string]mountInfo{}
+
 		for {
 			raw := iter.Next()
 			if raw == nil {
 				break
 			}
-			aliasIDs = append(aliasIDs, raw.(*identity.Alias).ID)
+			alias := raw.(*identity.Alias)
+			aliasIDs = append(aliasIDs, alias.ID)
+			aliasInfoEntry := map[string]interface{}{
+				"name":           alias.Name,
+				"canonical_id":   alias.CanonicalID,
+				"mount_accessor": alias.MountAccessor,
+			}
+
+			mi, ok := mountAccessorMap[alias.MountAccessor]
+			if ok {
+				aliasInfoEntry["mount_type"] = mi.MountType
+				aliasInfoEntry["mount_path"] = mi.MountPath
+			} else {
+				mi = mountInfo{}
+				if mountValidationResp := i.core.router.validateMountByAccessor(alias.MountAccessor); mountValidationResp != nil {
+					mi.MountType = mountValidationResp.MountType
+					mi.MountPath = mountValidationResp.MountPath
+					aliasInfoEntry["mount_type"] = mi.MountType
+					aliasInfoEntry["mount_path"] = mi.MountPath
+				}
+				mountAccessorMap[alias.MountAccessor] = mi
+			}
+
+			aliasInfo[alias.ID] = aliasInfoEntry
 		}
 
-		return logical.ListResponse(aliasIDs), nil
+		return logical.ListResponseWithInfo(aliasIDs, aliasInfo), nil
 	}
 }
 
@@ -433,7 +474,7 @@ var aliasHelp = map[string][2]string{
 		"",
 	},
 	"alias-id-list": {
-		"List all the entity IDs.",
+		"List all the alias IDs.",
 		"",
 	},
 }

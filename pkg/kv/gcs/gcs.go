@@ -7,7 +7,7 @@ import (
 
 	"cloud.google.com/go/storage"
 
-	"github.com/jetstack/vault-unsealer/pkg/kv"
+	"github.com/soter/vault-unsealer/pkg/kv"
 )
 
 type gcsStorage struct {

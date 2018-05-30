@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/helper/password"
@@ -82,7 +83,7 @@ Usage: vault operator generate-root [options] [KEY]
 }
 
 func (c *OperatorGenerateRootCommand) Flags() *FlagSets {
-	set := c.flagSet(FlagSetHTTP)
+	set := c.flagSet(FlagSetHTTP | FlagSetOutputFormat)
 
 	f := set.NewFlagSet("Command Options")
 
@@ -216,9 +217,11 @@ func (c *OperatorGenerateRootCommand) Run(args []string) int {
 	// TODO: remove in 0.9.0
 	switch {
 	case c.flagGenOTP:
-		c.UI.Warn(wrapAtLength(
-			"The -gen-otp flag is deprecated. Please use the -generate-otp flag " +
-				"instead."))
+		if Format(c.UI) == "table" {
+			c.UI.Warn(wrapAtLength(
+				"WARNING! The -gen-otp flag is deprecated. Please use the -generate-otp flag " +
+					"instead."))
+		}
 		c.flagGenerateOTP = c.flagGenOTP
 	}
 
@@ -252,14 +255,14 @@ func (c *OperatorGenerateRootCommand) Run(args []string) int {
 // verifyOTP verifies the given OTP code is exactly 16 bytes.
 func (c *OperatorGenerateRootCommand) verifyOTP(otp string) error {
 	if len(otp) == 0 {
-		return fmt.Errorf("No OTP passed in")
+		return fmt.Errorf("no OTP passed in")
 	}
 	otpBytes, err := base64.StdEncoding.DecodeString(otp)
 	if err != nil {
-		return fmt.Errorf("Error decoding base64 OTP value: %s", err)
+		return errwrap.Wrapf("error decoding base64 OTP value: {{err}}", err)
 	}
 	if otpBytes == nil || len(otpBytes) != 16 {
-		return fmt.Errorf("Decoded OTP value is invalid or wrong length")
+		return fmt.Errorf("decoded OTP value is invalid or wrong length")
 	}
 
 	return nil
@@ -337,7 +340,13 @@ func (c *OperatorGenerateRootCommand) init(client *api.Client, otp, pgpKey strin
 		c.UI.Error(fmt.Sprintf("Error initializing root generation: %s", err))
 		return 2
 	}
-	return c.printStatus(status)
+
+	switch Format(c.UI) {
+	case "table":
+		return c.printStatus(status)
+	default:
+		return OutputData(c.UI, status)
+	}
 }
 
 // provide prompts the user for the seal key and posts it to the update root
@@ -428,7 +437,12 @@ func (c *OperatorGenerateRootCommand) provide(client *api.Client, key string, dr
 		c.UI.Error(fmt.Sprintf("Error posting unseal key: %s", err))
 		return 2
 	}
-	return c.printStatus(status)
+	switch Format(c.UI) {
+	case "table":
+		return c.printStatus(status)
+	default:
+		return OutputData(c.UI, status)
+	}
 }
 
 // cancel cancels the root token generation
@@ -456,7 +470,12 @@ func (c *OperatorGenerateRootCommand) status(client *api.Client, drToken bool) i
 		c.UI.Error(fmt.Sprintf("Error getting root generation status: %s", err))
 		return 2
 	}
-	return c.printStatus(status)
+	switch Format(c.UI) {
+	case "table":
+		return c.printStatus(status)
+	default:
+		return OutputData(c.UI, status)
+	}
 }
 
 // printStatus dumps the status to output
@@ -469,8 +488,11 @@ func (c *OperatorGenerateRootCommand) printStatus(status *api.GenerateRootStatus
 	if status.PGPFingerprint != "" {
 		out = append(out, fmt.Sprintf("PGP Fingerprint | %s", status.PGPFingerprint))
 	}
-	if status.EncodedRootToken != "" {
+	switch {
+	case status.EncodedRootToken != "":
 		out = append(out, fmt.Sprintf("Root Token | %s", status.EncodedRootToken))
+	case status.EncodedToken != "":
+		out = append(out, fmt.Sprintf("Root Token | %s", status.EncodedToken))
 	}
 
 	output := columnOutput(out, nil)

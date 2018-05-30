@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/hashicorp/go-hclog"
+	kv "github.com/hashicorp/vault-plugin-secrets-kv"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/audit"
 	"github.com/hashicorp/vault/builtin/logical/pki"
@@ -22,11 +24,10 @@ import (
 	auditFile "github.com/hashicorp/vault/builtin/audit/file"
 	credUserpass "github.com/hashicorp/vault/builtin/credential/userpass"
 	vaulthttp "github.com/hashicorp/vault/http"
-	logxi "github.com/mgutz/logxi/v1"
 )
 
 var (
-	defaultVaultLogger = logxi.NullLog
+	defaultVaultLogger = log.NewNullLogger()
 
 	defaultVaultCredentialBackends = map[string]logical.Factory{
 		"userpass": credUserpass.Factory,
@@ -41,6 +42,7 @@ var (
 		"pki":            pki.Factory,
 		"ssh":            ssh.Factory,
 		"transit":        transit.Factory,
+		"kv":             kv.Factory,
 	}
 )
 
@@ -59,6 +61,20 @@ func testVaultServer(tb testing.TB) (*api.Client, func()) {
 	tb.Helper()
 
 	client, _, closer := testVaultServerUnseal(tb)
+	return client, closer
+}
+
+func testVaultServerAllBackends(tb testing.TB) (*api.Client, func()) {
+	tb.Helper()
+
+	client, _, closer := testVaultServerCoreConfig(tb, &vault.CoreConfig{
+		DisableMlock:       true,
+		DisableCache:       true,
+		Logger:             defaultVaultLogger,
+		CredentialBackends: credentialBackends,
+		AuditBackends:      auditBackends,
+		LogicalBackends:    logicalBackends,
+	})
 	return client, closer
 }
 

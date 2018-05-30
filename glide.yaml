@@ -1,0 +1,29 @@
+package: github.com/soter/vault-unsealer
+import:
+- package: cloud.google.com/go
+  version: master
+  subpackages:
+  - storage
+- package: github.com/aws/aws-sdk-go
+  version: master
+  subpackages:
+  - aws
+  - aws/session
+  - service/kms
+  - service/ssm
+- package: github.com/hashicorp/vault
+  version: master
+  subpackages:
+  - api
+- package: github.com/sirupsen/logrus
+  version: v1.0.4
+- package: github.com/spf13/cobra
+  version: master
+- package: github.com/spf13/viper
+- package: golang.org/x/oauth2
+  subpackages:
+  - google
+- package: google.golang.org/api
+  version: master
+  subpackages:
+  - cloudkms/v1

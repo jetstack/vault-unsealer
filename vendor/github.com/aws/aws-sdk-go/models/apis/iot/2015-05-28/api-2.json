@@ -437,6 +437,37 @@
         {"shape":"ResourceNotFoundException"}
       ]
     },
+    "DeleteJob":{
+      "name":"DeleteJob",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/jobs/{jobId}"
+      },
+      "input":{"shape":"DeleteJobRequest"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidStateTransitionException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
+    "DeleteJobExecution":{
+      "name":"DeleteJobExecution",
+      "http":{
+        "method":"DELETE",
+        "requestUri":"/things/{thingName}/jobs/{jobId}/executionNumber/{executionNumber}"
+      },
+      "input":{"shape":"DeleteJobExecutionRequest"},
+      "errors":[
+        {"shape":"InvalidRequestException"},
+        {"shape":"InvalidStateTransitionException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ThrottlingException"},
+        {"shape":"ServiceUnavailableException"}
+      ]
+    },
     "DeleteOTAUpdate":{
       "name":"DeleteOTAUpdate",
       "http":{
@@ -1712,7 +1743,8 @@
         {"shape":"ThrottlingException"},
         {"shape":"UnauthorizedException"},
         {"shape":"ServiceUnavailableException"},
-        {"shape":"InternalFailureException"}
+        {"shape":"InternalFailureException"},
+        {"shape":"ResourceAlreadyExistsException"}
       ]
     },
     "SetDefaultPolicyVersion":{
@@ -2054,7 +2086,8 @@
         "cloudwatchMetric":{"shape":"CloudwatchMetricAction"},
         "cloudwatchAlarm":{"shape":"CloudwatchAlarmAction"},
         "elasticsearch":{"shape":"ElasticsearchAction"},
-        "salesforce":{"shape":"SalesforceAction"}
+        "salesforce":{"shape":"SalesforceAction"},
+        "iotAnalytics":{"shape":"IotAnalyticsAction"}
       }
     },
     "ActionList":{
@@ -2318,7 +2351,10 @@
         "certificatePem":{"shape":"CertificatePem"},
         "ownedBy":{"shape":"AwsAccountId"},
         "creationDate":{"shape":"DateType"},
-        "autoRegistrationStatus":{"shape":"AutoRegistrationStatus"}
+        "autoRegistrationStatus":{"shape":"AutoRegistrationStatus"},
+        "lastModifiedDate":{"shape":"DateType"},
+        "customerVersion":{"shape":"CustomerVersion"},
+        "generationId":{"shape":"GenerationId"}
       }
     },
     "CACertificateStatus":{
@@ -2407,7 +2443,9 @@
         "previousOwnedBy":{"shape":"AwsAccountId"},
         "creationDate":{"shape":"DateType"},
         "lastModifiedDate":{"shape":"DateType"},
-        "transferData":{"shape":"TransferData"}
+        "customerVersion":{"shape":"CustomerVersion"},
+        "transferData":{"shape":"TransferData"},
+        "generationId":{"shape":"GenerationId"}
       }
     },
     "CertificateId":{
@@ -2457,6 +2495,7 @@
       "type":"list",
       "member":{"shape":"Certificate"}
     },
+    "ChannelName":{"type":"string"},
     "ClearDefaultAuthorizerRequest":{
       "type":"structure",
       "members":{
@@ -2870,6 +2909,10 @@
         "signatureAlgorithm":{"shape":"SignatureAlgorithm"}
       }
     },
+    "CustomerVersion":{
+      "type":"integer",
+      "min":1
+    },
     "DateType":{"type":"timestamp"},
     "DeleteAuthorizerRequest":{
       "type":"structure",
@@ -2926,6 +2969,52 @@
       },
       "error":{"httpStatusCode":409},
       "exception":true
+    },
+    "DeleteJobExecutionRequest":{
+      "type":"structure",
+      "required":[
+        "jobId",
+        "thingName",
+        "executionNumber"
+      ],
+      "members":{
+        "jobId":{
+          "shape":"JobId",
+          "location":"uri",
+          "locationName":"jobId"
+        },
+        "thingName":{
+          "shape":"ThingName",
+          "location":"uri",
+          "locationName":"thingName"
+        },
+        "executionNumber":{
+          "shape":"ExecutionNumber",
+          "location":"uri",
+          "locationName":"executionNumber"
+        },
+        "force":{
+          "shape":"ForceFlag",
+          "location":"querystring",
+          "locationName":"force"
+        }
+      }
+    },
+    "DeleteJobRequest":{
+      "type":"structure",
+      "required":["jobId"],
+      "members":{
+        "jobId":{
+          "shape":"JobId",
+          "location":"uri",
+          "locationName":"jobId"
+        },
+        "force":{
+          "shape":"ForceFlag",
+          "location":"querystring",
+          "locationName":"force"
+        }
+      }
     },
     "DeleteOTAUpdateRequest":{
       "type":"structure",
@@ -3656,12 +3745,14 @@
     },
     "Flag":{"type":"boolean"},
     "ForceDelete":{"type":"boolean"},
+    "ForceFlag":{"type":"boolean"},
     "FunctionArn":{"type":"string"},
     "GEMaxResults":{
       "type":"integer",
       "max":10000,
       "min":1
     },
+    "GenerationId":{"type":"string"},
     "GetEffectivePoliciesRequest":{
       "type":"structure",
       "members":{
@@ -3754,7 +3845,10 @@
         "policyName":{"shape":"PolicyName"},
         "policyArn":{"shape":"PolicyArn"},
         "policyDocument":{"shape":"PolicyDocument"},
-        "defaultVersionId":{"shape":"PolicyVersionId"}
+        "defaultVersionId":{"shape":"PolicyVersionId"},
+        "creationDate":{"shape":"DateType"},
+        "lastModifiedDate":{"shape":"DateType"},
+        "generationId":{"shape":"GenerationId"}
       }
     },
     "GetPolicyVersionRequest":{
@@ -3783,7 +3877,10 @@
         "policyName":{"shape":"PolicyName"},
         "policyDocument":{"shape":"PolicyDocument"},
         "policyVersionId":{"shape":"PolicyVersionId"},
-        "isDefaultVersion":{"shape":"IsDefaultVersion"}
+        "isDefaultVersion":{"shape":"IsDefaultVersion"},
+        "creationDate":{"shape":"DateType"},
+        "lastModifiedDate":{"shape":"DateType"},
+        "generationId":{"shape":"GenerationId"}
       }
     },
     "GetRegistrationCodeRequest":{
@@ -3914,6 +4011,22 @@
       },
       "error":{"httpStatusCode":400},
       "exception":true
+    },
+    "InvalidStateTransitionException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "error":{"httpStatusCode":409},
+      "exception":true
+    },
+    "IotAnalyticsAction":{
+      "type":"structure",
+      "members":{
+        "channelArn":{"shape":"AwsArn"},
+        "channelName":{"shape":"ChannelName"},
+        "roleArn":{"shape":"AwsArn"}
+      }
     },
     "IsAuthenticated":{"type":"boolean"},
     "IsDefaultVersion":{"type":"boolean"},
@@ -4051,7 +4164,8 @@
       "enum":[
         "IN_PROGRESS",
         "CANCELED",
-        "COMPLETED"
+        "COMPLETED",
+        "DELETION_IN_PROGRESS"
       ]
     },
     "JobSummary":{
@@ -5525,6 +5639,7 @@
       "type":"structure",
       "members":{
         "roleAlias":{"shape":"RoleAlias"},
+        "roleAliasArn":{"shape":"RoleAliasArn"},
         "roleArn":{"shape":"RoleArn"},
         "owner":{"shape":"AwsAccountId"},
         "credentialDurationSeconds":{"shape":"CredentialDurationSeconds"},
