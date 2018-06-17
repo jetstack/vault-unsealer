@@ -36,3 +36,20 @@ Flags:
 
 Use "vault-unsealer [command] --help" for more information about a command.
 ```
+
+## How to setup vault-unsealer via AWS KMS and SSM
+
+[Instruction on existing and new vaults for unsealing vault using KMS and SSM](docs/aws-kms-ssm.md)
+
+## Build from source
+
+```bash
+go get github.com/jetstack/vault-unsealer
+make -C $(go env GOPATH)/src/github.com/jetstack/vault-unsealer build
+```
+
+## Build a Docker image
+
+```bash
+docker build -t vault-unsealer:<version> .
+```
