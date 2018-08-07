@@ -77,8 +77,9 @@ to quickly create a Cobra application.`,
 
 				logrus.Infof("successfully unsealed vault")
 			}()
-			// wait 30 seconds before trying again
-			time.Sleep(time.Second * 30)
+
+			// wait cfgUnsealPeriod before trying again
+			time.Sleep(appConfig.GetDuration(cfgUnsealPeriod))
 		}
 	},
 }
