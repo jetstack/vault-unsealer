@@ -18,6 +18,7 @@ const cfgSecretThreshold = "secret-threshold"
 const cfgMode = "mode"
 const cfgModeValueAWSKMSSSM = "aws-kms-ssm"
 const cfgModeValueGoogleCloudKMSGCS = "google-cloud-kms-gcs"
+const cfgModeValueLocal = "local"
 
 const cfgGoogleCloudKMSProject = "google-cloud-kms-project"
 const cfgGoogleCloudKMSLocation = "google-cloud-kms-location"
@@ -30,6 +31,8 @@ const cfgGoogleCloudStoragePrefix = "google-cloud-storage-prefix"
 const cfgAWSKMSKeyID = "aws-kms-key-id"
 const cfgAWSSSMKeyPrefix = "aws-ssm-key-prefix"
 
+const cfgLocalKey = "local-key"
+
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "vault-unsealer",
@@ -38,7 +41,7 @@ var RootCmd = &cobra.Command{
 Hashicorp Vault.
 
 It will continuously attempt to unseal the target Vault instance, by retrieving
-unseal keys from a Google Cloud KMS keyring.
+unseal keys from a Google Cloud, AWS KMS keyring or local in path
 `,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
@@ -75,7 +78,7 @@ func init() {
 	configStringVar(
 		cfgMode,
 		cfgModeValueGoogleCloudKMSGCS,
-		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM),
+		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption; %s => Use local key in path", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM, cfgModeValueLocal),
 	)
 
 	// Secret config
@@ -97,5 +100,7 @@ func init() {
 
 	// AWS SSM Parameter Storage flags
 	configStringVar("aws-ssm-key-prefix", "", "The Key Prefix for SSM Parameter store")
+
+	configStringVar("local-key", "", "The local key in path to be used against the vault server")
 
 }
