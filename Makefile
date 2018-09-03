@@ -5,7 +5,7 @@ IMAGE_NAME := vault-unsealer
 BUILD_TAG := build
 IMAGE_TAGS := canary
 
-BUILD_IMAGE_NAME := golang:1.9.2
+BUILD_IMAGE_NAME := golang:1.10.4
 
 GOPATH ?= /tmp/go
 
