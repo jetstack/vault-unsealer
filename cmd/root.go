@@ -78,7 +78,7 @@ func init() {
 	configStringVar(
 		cfgMode,
 		cfgModeValueGoogleCloudKMSGCS,
-		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption; %s => Use local key in path", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM, cfgModeValueLocal),
+		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption; %s => Use local keys in path", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM, cfgModeValueLocal),
 	)
 
 	// Secret config
