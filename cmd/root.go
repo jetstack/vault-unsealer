@@ -31,7 +31,7 @@ const cfgGoogleCloudStoragePrefix = "google-cloud-storage-prefix"
 const cfgAWSKMSKeyID = "aws-kms-key-id"
 const cfgAWSSSMKeyPrefix = "aws-ssm-key-prefix"
 
-const cfgLocalKey = "local-key"
+const cfgLocalKeyDir = "local-key-dir"
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -101,6 +101,5 @@ func init() {
 	// AWS SSM Parameter Storage flags
 	configStringVar("aws-ssm-key-prefix", "", "The Key Prefix for SSM Parameter store")
 
-	configStringVar("local-key", "", "The local key in path to be used against the vault server")
-
+	configStringVar("local-key-dir", "", "Directory of key shares in path")
 }

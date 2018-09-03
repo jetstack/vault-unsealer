@@ -71,7 +71,7 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 		return kms, nil
 
 	case cfgModeValueLocal:
-		return local.New(cfg.GetString(cfgLocalKey))
+		return local.New(cfg.GetString(cfgLocalKeyDir))
 
 	default:
 		return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))

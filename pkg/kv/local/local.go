@@ -3,34 +3,38 @@ package local
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
 )
 
 type Local struct {
-	keyPath string
+	keyDir string
 }
 
-func New(keyPath string) (*Local, error) {
-	path, err := homedir.Expand(keyPath)
+func New(keyDir string) (*Local, error) {
+	dir, err := homedir.Expand(keyDir)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Local{
-		keyPath: path,
+		keyDir: dir,
 	}, nil
 }
 
 func (l *Local) Set(key string, value []byte) error {
-	return ioutil.WriteFile(l.keyPath, value, os.FileMode(0600))
+	path := filepath.Join(l.keyDir, key)
+	return ioutil.WriteFile(path, value, os.FileMode(0600))
 }
 
 func (l *Local) Get(key string) ([]byte, error) {
-	return ioutil.ReadFile(l.keyPath)
+	path := filepath.Join(l.keyDir, key)
+	return ioutil.ReadFile(path)
 }
 
 func (l *Local) Test(key string) error {
-	_, err := os.Stat(l.keyPath)
+	path := filepath.Join(l.keyDir, key)
+	_, err := os.Stat(path)
 	return err
 }
