@@ -3,6 +3,10 @@ package cert
 import (
 	"context"
 	"crypto/rand"
+	"net/http"
+
+	"golang.org/x/net/http2"
+
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -17,11 +21,18 @@ import (
 	"testing"
 	"time"
 
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	log "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/vault/api"
+	vaulthttp "github.com/hashicorp/vault/http"
+
 	"github.com/hashicorp/go-rootcerts"
+	"github.com/hashicorp/vault/builtin/logical/pki"
 	"github.com/hashicorp/vault/helper/certutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 	logicaltest "github.com/hashicorp/vault/logical/testing"
+	"github.com/hashicorp/vault/vault"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -140,6 +151,217 @@ func connectionState(serverCAPath, serverCertPath, serverKeyPath, clientCertPath
 	}
 	// Grab the current state
 	return <-connState, nil
+}
+
+func TestBackend_PermittedDNSDomainsIntermediateCA(t *testing.T) {
+	// Enable PKI secret engine and Cert auth method
+	coreConfig := &vault.CoreConfig{
+		DisableMlock: true,
+		DisableCache: true,
+		Logger:       log.NewNullLogger(),
+		CredentialBackends: map[string]logical.Factory{
+			"cert": Factory,
+		},
+		LogicalBackends: map[string]logical.Factory{
+			"pki": pki.Factory,
+		},
+	}
+	cluster := vault.NewTestCluster(t, coreConfig, &vault.TestClusterOptions{
+		HandlerFunc: vaulthttp.Handler,
+	})
+	cluster.Start()
+	defer cluster.Cleanup()
+	cores := cluster.Cores
+	vault.TestWaitActive(t, cores[0].Core)
+	client := cores[0].Client
+
+	var err error
+
+	// Mount /pki as a root CA
+	err = client.Sys().Mount("pki", &api.MountInput{
+		Type: "pki",
+		Config: api.MountConfigInput{
+			DefaultLeaseTTL: "16h",
+			MaxLeaseTTL:     "32h",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Set the cluster's certificate as the root CA in /pki
+	pemBundleRootCA := string(cluster.CACertPEM) + string(cluster.CAKeyPEM)
+	_, err = client.Logical().Write("pki/config/ca", map[string]interface{}{
+		"pem_bundle": pemBundleRootCA,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Mount /pki2 to operate as an intermediate CA
+	err = client.Sys().Mount("pki2", &api.MountInput{
+		Type: "pki",
+		Config: api.MountConfigInput{
+			DefaultLeaseTTL: "16h",
+			MaxLeaseTTL:     "32h",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a CSR for the intermediate CA
+	secret, err := client.Logical().Write("pki2/intermediate/generate/internal", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	intermediateCSR := secret.Data["csr"].(string)
+
+	// Sign the intermediate CSR using /pki
+	secret, err = client.Logical().Write("pki/root/sign-intermediate", map[string]interface{}{
+		"permitted_dns_domains": ".myvault.com",
+		"csr":                   intermediateCSR,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	intermediateCertPEM := secret.Data["certificate"].(string)
+
+	// Configure the intermediate cert as the CA in /pki2
+	_, err = client.Logical().Write("pki2/intermediate/set-signed", map[string]interface{}{
+		"certificate": intermediateCertPEM,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a role on the intermediate CA mount
+	_, err = client.Logical().Write("pki2/roles/myvault-dot-com", map[string]interface{}{
+		"allowed_domains":  "myvault.com",
+		"allow_subdomains": "true",
+		"max_ttl":          "5m",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Issue a leaf cert using the intermediate CA
+	secret, err = client.Logical().Write("pki2/issue/myvault-dot-com", map[string]interface{}{
+		"common_name": "cert.myvault.com",
+		"format":      "pem",
+		"ip_sans":     "127.0.0.1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	leafCertPEM := secret.Data["certificate"].(string)
+	leafCertKeyPEM := secret.Data["private_key"].(string)
+
+	// Enable the cert auth method
+	err = client.Sys().EnableAuthWithOptions("cert", &api.EnableAuthOptions{
+		Type: "cert",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Set the intermediate CA cert as a trusted certificate in the backend
+	_, err = client.Logical().Write("auth/cert/certs/myvault-dot-com", map[string]interface{}{
+		"display_name": "myvault.com",
+		"policies":     "default",
+		"certificate":  intermediateCertPEM,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create temporary files for CA cert, client cert and client cert key.
+	// This is used to configure TLS in the api client.
+	caCertFile, err := ioutil.TempFile("", "caCert")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(caCertFile.Name())
+	if _, err := caCertFile.Write([]byte(cluster.CACertPEM)); err != nil {
+		t.Fatal(err)
+	}
+	if err := caCertFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	leafCertFile, err := ioutil.TempFile("", "leafCert")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(leafCertFile.Name())
+	if _, err := leafCertFile.Write([]byte(leafCertPEM)); err != nil {
+		t.Fatal(err)
+	}
+	if err := leafCertFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	leafCertKeyFile, err := ioutil.TempFile("", "leafCertKey")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(leafCertKeyFile.Name())
+	if _, err := leafCertKeyFile.Write([]byte(leafCertKeyPEM)); err != nil {
+		t.Fatal(err)
+	}
+	if err := leafCertKeyFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// This function is a copy-pasta from the NewTestCluster, with the
+	// modification to reconfigure the TLS on the api client with the leaf
+	// certificate generated above.
+	getAPIClient := func(port int, tlsConfig *tls.Config) *api.Client {
+		transport := cleanhttp.DefaultPooledTransport()
+		transport.TLSClientConfig = tlsConfig.Clone()
+		if err := http2.ConfigureTransport(transport); err != nil {
+			t.Fatal(err)
+		}
+		client := &http.Client{
+			Transport: transport,
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				// This can of course be overridden per-test by using its own client
+				return fmt.Errorf("redirects not allowed in these tests")
+			},
+		}
+		config := api.DefaultConfig()
+		if config.Error != nil {
+			t.Fatal(config.Error)
+		}
+		config.Address = fmt.Sprintf("https://127.0.0.1:%d", port)
+		config.HttpClient = client
+
+		// Set the above issued certificates as the client certificates
+		config.ConfigureTLS(&api.TLSConfig{
+			CACert:     caCertFile.Name(),
+			ClientCert: leafCertFile.Name(),
+			ClientKey:  leafCertKeyFile.Name(),
+		})
+
+		apiClient, err := api.NewClient(config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return apiClient
+	}
+
+	// Create a new api client with the desired TLS configuration
+	newClient := getAPIClient(cores[0].Listeners[0].Address.Port, cores[0].TLSConfig)
+
+	secret, err = newClient.Logical().Write("auth/cert/login", map[string]interface{}{
+		"name": "myvault-dot-com",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if secret.Auth == nil || secret.Auth.ClientToken == "" {
+		t.Fatalf("expected a successful authentication")
+	}
 }
 
 func TestBackend_NonCAExpiry(t *testing.T) {
@@ -620,9 +842,9 @@ func TestBackend_CertWrites(t *testing.T) {
 	tc := logicaltest.TestCase{
 		Backend: testFactory(t),
 		Steps: []logicaltest.TestStep{
-			testAccStepCert(t, "aaa", ca1, "foo", "", "", false),
-			testAccStepCert(t, "bbb", ca2, "foo", "", "", false),
-			testAccStepCert(t, "ccc", ca3, "foo", "", "", true),
+			testAccStepCert(t, "aaa", ca1, "foo", allowed{}, false),
+			testAccStepCert(t, "bbb", ca2, "foo", allowed{}, false),
+			testAccStepCert(t, "ccc", ca3, "foo", allowed{}, true),
 		},
 	}
 	tc.Steps = append(tc.Steps, testAccStepListCerts(t, []string{"aaa", "bbb"})...)
@@ -643,7 +865,7 @@ func TestBackend_basic_CA(t *testing.T) {
 	logicaltest.Test(t, logicaltest.TestCase{
 		Backend: testFactory(t),
 		Steps: []logicaltest.TestStep{
-			testAccStepCert(t, "web", ca, "foo", "", "", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{}, false),
 			testAccStepLogin(t, connState),
 			testAccStepCertLease(t, "web", ca, "foo"),
 			testAccStepCertTTL(t, "web", ca, "foo"),
@@ -652,9 +874,9 @@ func TestBackend_basic_CA(t *testing.T) {
 			testAccStepLogin(t, connState),
 			testAccStepCertNoLease(t, "web", ca, "foo"),
 			testAccStepLoginDefaultLease(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "*.example.com", "", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "*.example.com"}, false),
 			testAccStepLogin(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "*.invalid.com", "", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "*.invalid.com"}, false),
 			testAccStepLoginInvalid(t, connState),
 		},
 	})
@@ -703,20 +925,45 @@ func TestBackend_basic_singleCert(t *testing.T) {
 	logicaltest.Test(t, logicaltest.TestCase{
 		Backend: testFactory(t),
 		Steps: []logicaltest.TestStep{
-			testAccStepCert(t, "web", ca, "foo", "", "", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{}, false),
 			testAccStepLogin(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "example.com", "", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "example.com"}, false),
 			testAccStepLogin(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "invalid", "", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "invalid"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "", "1.2.3.4:invalid", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "1.2.3.4:invalid"}, false),
 			testAccStepLoginInvalid(t, connState),
 		},
 	})
 }
 
-// Test a self-signed client with custom extensions (root CA) that is trusted
-func TestBackend_extensions_singleCert(t *testing.T) {
+func TestBackend_common_name_singleCert(t *testing.T) {
+	connState, err := testConnState("test-fixtures/root/rootcacert.pem",
+		"test-fixtures/root/rootcakey.pem", "test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("error testing connection state: %v", err)
+	}
+	ca, err := ioutil.ReadFile("test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	logicaltest.Test(t, logicaltest.TestCase{
+		Backend: testFactory(t),
+		Steps: []logicaltest.TestStep{
+			testAccStepCert(t, "web", ca, "foo", allowed{}, false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{common_names: "example.com"}, false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{common_names: "invalid"}, false),
+			testAccStepLoginInvalid(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "1.2.3.4:invalid"}, false),
+			testAccStepLoginInvalid(t, connState),
+		},
+	})
+}
+
+// Test a self-signed client with custom ext (root CA) that is trusted
+func TestBackend_ext_singleCert(t *testing.T) {
 	connState, err := testConnState(
 		"test-fixtures/root/rootcawextcert.pem",
 		"test-fixtures/root/rootcawextkey.pem",
@@ -732,39 +979,132 @@ func TestBackend_extensions_singleCert(t *testing.T) {
 	logicaltest.Test(t, logicaltest.TestCase{
 		Backend: testFactory(t),
 		Steps: []logicaltest.TestStep{
-			testAccStepCert(t, "web", ca, "foo", "", "2.1.1.1:A UTF8String Extension", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "2.1.1.1:A UTF8String Extension"}, false),
 			testAccStepLogin(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "", "2.1.1.1:*,2.1.1.2:A UTF8*", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "2.1.1.1:*,2.1.1.2:A UTF8*"}, false),
 			testAccStepLogin(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "", "1.2.3.45:*", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "1.2.3.45:*"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "", "2.1.1.1:The Wrong Value", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "2.1.1.1:The Wrong Value"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "", "2.1.1.1:*,2.1.1.2:The Wrong Value", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "2.1.1.1:*,2.1.1.2:The Wrong Value"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "", "2.1.1.1:", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "2.1.1.1:"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "", "2.1.1.1:,2.1.1.2:*", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{ext: "2.1.1.1:,2.1.1.2:*"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "example.com", "2.1.1.1:A UTF8String Extension", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "example.com", ext: "2.1.1.1:A UTF8String Extension"}, false),
 			testAccStepLogin(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "example.com", "2.1.1.1:*,2.1.1.2:A UTF8*", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "example.com", ext: "2.1.1.1:*,2.1.1.2:A UTF8*"}, false),
 			testAccStepLogin(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "example.com", "1.2.3.45:*", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "example.com", ext: "1.2.3.45:*"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "example.com", "2.1.1.1:The Wrong Value", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "example.com", ext: "2.1.1.1:The Wrong Value"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "example.com", "2.1.1.1:*,2.1.1.2:The Wrong Value", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "example.com", ext: "2.1.1.1:*,2.1.1.2:The Wrong Value"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "invalid", "2.1.1.1:A UTF8String Extension", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "invalid", ext: "2.1.1.1:A UTF8String Extension"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "invalid", "2.1.1.1:*,2.1.1.2:A UTF8*", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "invalid", ext: "2.1.1.1:*,2.1.1.2:A UTF8*"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "invalid", "1.2.3.45:*", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "invalid", ext: "1.2.3.45:*"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "invalid", "2.1.1.1:The Wrong Value", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "invalid", ext: "2.1.1.1:The Wrong Value"}, false),
 			testAccStepLoginInvalid(t, connState),
-			testAccStepCert(t, "web", ca, "foo", "invalid", "2.1.1.1:*,2.1.1.2:The Wrong Value", false),
+			testAccStepCert(t, "web", ca, "foo", allowed{names: "invalid", ext: "2.1.1.1:*,2.1.1.2:The Wrong Value"}, false),
+			testAccStepLoginInvalid(t, connState),
+		},
+	})
+}
+
+// Test a self-signed client with URI alt names (root CA) that is trusted
+func TestBackend_dns_singleCert(t *testing.T) {
+	connState, err := testConnState(
+		"test-fixtures/root/rootcawdnscert.pem",
+		"test-fixtures/root/rootcawdnskey.pem",
+		"test-fixtures/root/rootcacert.pem",
+	)
+	if err != nil {
+		t.Fatalf("error testing connection state: %v", err)
+	}
+	ca, err := ioutil.ReadFile("test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	logicaltest.Test(t, logicaltest.TestCase{
+		Backend: testFactory(t),
+		Steps: []logicaltest.TestStep{
+			testAccStepCert(t, "web", ca, "foo", allowed{dns: "example.com"}, false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{dns: "*ample.com"}, false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{dns: "notincert.com"}, false),
+			testAccStepLoginInvalid(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{dns: "abc"}, false),
+			testAccStepLoginInvalid(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{dns: "*.example.com"}, false),
+			testAccStepLoginInvalid(t, connState),
+		},
+	})
+}
+
+// Test a self-signed client with URI alt names (root CA) that is trusted
+func TestBackend_email_singleCert(t *testing.T) {
+	connState, err := testConnState(
+		"test-fixtures/root/rootcawemailcert.pem",
+		"test-fixtures/root/rootcawemailkey.pem",
+		"test-fixtures/root/rootcacert.pem",
+	)
+	if err != nil {
+		t.Fatalf("error testing connection state: %v", err)
+	}
+	ca, err := ioutil.ReadFile("test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	logicaltest.Test(t, logicaltest.TestCase{
+		Backend: testFactory(t),
+		Steps: []logicaltest.TestStep{
+			testAccStepCert(t, "web", ca, "foo", allowed{emails: "valid@example.com"}, false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{emails: "*@example.com"}, false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{emails: "invalid@notincert.com"}, false),
+			testAccStepLoginInvalid(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{emails: "abc"}, false),
+			testAccStepLoginInvalid(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{emails: "*.example.com"}, false),
+			testAccStepLoginInvalid(t, connState),
+		},
+	})
+}
+
+// Test a self-signed client with URI alt names (root CA) that is trusted
+func TestBackend_uri_singleCert(t *testing.T) {
+	connState, err := testConnState(
+		"test-fixtures/root/rootcawuricert.pem",
+		"test-fixtures/root/rootcawurikey.pem",
+		"test-fixtures/root/rootcacert.pem",
+	)
+	if err != nil {
+		t.Fatalf("error testing connection state: %v", err)
+	}
+	ca, err := ioutil.ReadFile("test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	logicaltest.Test(t, logicaltest.TestCase{
+		Backend: testFactory(t),
+		Steps: []logicaltest.TestStep{
+			testAccStepCert(t, "web", ca, "foo", allowed{uris: "spiffe://example.com/*"}, false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{uris: "spiffe://example.com/host"}, false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{uris: "spiffe://example.com/invalid"}, false),
+			testAccStepLoginInvalid(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{uris: "abc"}, false),
+			testAccStepLoginInvalid(t, connState),
+			testAccStepCert(t, "web", ca, "foo", allowed{uris: "http://www.google.com"}, false),
 			testAccStepLoginInvalid(t, connState),
 		},
 	})
@@ -784,9 +1124,9 @@ func TestBackend_mixed_constraints(t *testing.T) {
 	logicaltest.Test(t, logicaltest.TestCase{
 		Backend: testFactory(t),
 		Steps: []logicaltest.TestStep{
-			testAccStepCert(t, "1unconstrained", ca, "foo", "", "", false),
-			testAccStepCert(t, "2matching", ca, "foo", "*.example.com,whatever", "", false),
-			testAccStepCert(t, "3invalid", ca, "foo", "invalid", "", false),
+			testAccStepCert(t, "1unconstrained", ca, "foo", allowed{}, false),
+			testAccStepCert(t, "2matching", ca, "foo", allowed{names: "*.example.com,whatever"}, false),
+			testAccStepCert(t, "3invalid", ca, "foo", allowed{names: "invalid"}, false),
 			testAccStepLogin(t, connState),
 			// Assumes CertEntries are processed in alphabetical order (due to store.List), so we only match 2matching if 1unconstrained doesn't match
 			testAccStepLoginWithName(t, connState, "2matching"),
@@ -808,6 +1148,132 @@ func TestBackend_untrusted(t *testing.T) {
 			testAccStepLoginInvalid(t, connState),
 		},
 	})
+}
+
+func TestBackend_validCIDR(t *testing.T) {
+	config := logical.TestBackendConfig()
+	storage := &logical.InmemStorage{}
+	config.StorageView = storage
+
+	b, err := Factory(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	connState, err := testConnState("test-fixtures/keys/cert.pem",
+		"test-fixtures/keys/key.pem", "test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("error testing connection state: %v", err)
+	}
+	ca, err := ioutil.ReadFile("test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	name := "web"
+
+	addCertReq := &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "certs/" + name,
+		Data: map[string]interface{}{
+			"certificate":         string(ca),
+			"policies":            "foo",
+			"display_name":        name,
+			"allowed_names":       "",
+			"required_extensions": "",
+			"lease":               1000,
+			"bound_cidrs":         []string{"127.0.0.1/32", "128.252.0.0/16"},
+		},
+		Storage:    storage,
+		Connection: &logical.Connection{ConnState: &connState},
+	}
+
+	_, err = b.HandleRequest(context.Background(), addCertReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	loginReq := &logical.Request{
+		Operation:       logical.UpdateOperation,
+		Path:            "login",
+		Unauthenticated: true,
+		Data: map[string]interface{}{
+			"name": name,
+		},
+		Storage:    storage,
+		Connection: &logical.Connection{ConnState: &connState},
+	}
+
+	// override the remote address with an IPV4 that is authorized
+	loginReq.Connection.RemoteAddr = "127.0.0.1/32"
+
+	_, err = b.HandleRequest(context.Background(), loginReq)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func TestBackend_invalidCIDR(t *testing.T) {
+	config := logical.TestBackendConfig()
+	storage := &logical.InmemStorage{}
+	config.StorageView = storage
+
+	b, err := Factory(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	connState, err := testConnState("test-fixtures/keys/cert.pem",
+		"test-fixtures/keys/key.pem", "test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("error testing connection state: %v", err)
+	}
+	ca, err := ioutil.ReadFile("test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	name := "web"
+
+	addCertReq := &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "certs/" + name,
+		Data: map[string]interface{}{
+			"certificate":         string(ca),
+			"policies":            "foo",
+			"display_name":        name,
+			"allowed_names":       "",
+			"required_extensions": "",
+			"lease":               1000,
+			"bound_cidrs":         []string{"127.0.0.1/32", "128.252.0.0/16"},
+		},
+		Storage:    storage,
+		Connection: &logical.Connection{ConnState: &connState},
+	}
+
+	_, err = b.HandleRequest(context.Background(), addCertReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	loginReq := &logical.Request{
+		Operation:       logical.UpdateOperation,
+		Path:            "login",
+		Unauthenticated: true,
+		Data: map[string]interface{}{
+			"name": name,
+		},
+		Storage:    storage,
+		Connection: &logical.Connection{ConnState: &connState},
+	}
+
+	// override the remote address with an IPV4 that isn't authorized
+	loginReq.Connection.RemoteAddr = "127.0.0.1/8"
+
+	_, err = b.HandleRequest(context.Background(), loginReq)
+	if err == nil {
+		t.Fatal("expected \"ERROR: permission denied\"")
+	}
 }
 
 func testAccStepAddCRL(t *testing.T, crl []byte, connState tls.ConnectionState) logicaltest.TestStep {
@@ -965,19 +1431,32 @@ func testAccStepListCerts(
 	}
 }
 
+type allowed struct {
+	names        string // allowed names in the certificate, looks at common, name, dns, email [depricated]
+	common_names string // allowed common names in the certificate
+	dns          string // allowed dns names in the SAN extension of the certificate
+	emails       string // allowed email names in SAN extension of the certificate
+	uris         string // allowed uris in SAN extension of the certificate
+	ext          string // required extensions in the certificate
+}
+
 func testAccStepCert(
-	t *testing.T, name string, cert []byte, policies string, allowedNames string, requiredExtensions string, expectError bool) logicaltest.TestStep {
+	t *testing.T, name string, cert []byte, policies string, testData allowed, expectError bool) logicaltest.TestStep {
 	return logicaltest.TestStep{
 		Operation: logical.UpdateOperation,
 		Path:      "certs/" + name,
 		ErrorOk:   expectError,
 		Data: map[string]interface{}{
-			"certificate":         string(cert),
-			"policies":            policies,
-			"display_name":        name,
-			"allowed_names":       allowedNames,
-			"required_extensions": requiredExtensions,
-			"lease":               1000,
+			"certificate":          string(cert),
+			"policies":             policies,
+			"display_name":         name,
+			"allowed_names":        testData.names,
+			"allowed_common_names": testData.common_names,
+			"allowed_dns_sans":     testData.dns,
+			"allowed_email_sans":   testData.emails,
+			"allowed_uri_sans":     testData.uris,
+			"required_extensions":  testData.ext,
+			"lease":                1000,
 		},
 		Check: func(resp *logical.Response) error {
 			if resp == nil && expectError {
@@ -1062,8 +1541,7 @@ func testConnState(certPath, keyPath, rootCertPath string) (tls.ConnectionState,
 		InsecureSkipVerify: false,
 		RootCAs:            rootCAs,
 	}
-	dialConf := new(tls.Config)
-	*dialConf = *listenConf
+	dialConf := listenConf.Clone()
 	// start a server
 	list, err := tls.Listen("tcp", "127.0.0.1:0", listenConf)
 	if err != nil {
@@ -1194,7 +1672,7 @@ func Test_Renew(t *testing.T) {
 	req.Auth.Metadata = resp.Auth.Metadata
 	req.Auth.LeaseOptions = resp.Auth.LeaseOptions
 	req.Auth.Policies = resp.Auth.Policies
-	req.Auth.IssueTime = time.Now()
+	req.Auth.TokenPolicies = req.Auth.Policies
 	req.Auth.Period = resp.Auth.Period
 
 	// Normal renewal
@@ -1221,7 +1699,7 @@ func Test_Renew(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	// Put the policies back, this shold be okay
+	// Put the policies back, this should be okay
 	fd.Raw["policies"] = "bar,foo"
 	resp, err = b.pathCertWrite(context.Background(), req, fd)
 	if err != nil {

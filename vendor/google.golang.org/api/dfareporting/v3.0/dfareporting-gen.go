@@ -1312,7 +1312,8 @@ type AccountUserProfile struct {
 	// field that can be left blank.
 	SubaccountId int64 `json:"subaccountId,omitempty,string"`
 
-	// TraffickerType: Trafficker type of this user profile.
+	// TraffickerType: Trafficker type of this user profile. This is a
+	// read-only field.
 	//
 	// Possible values:
 	//   "EXTERNAL_TRAFFICKER"
@@ -1542,6 +1543,7 @@ type Ad struct {
 	//   "APP_INTERSTITIAL"
 	//   "DISPLAY"
 	//   "DISPLAY_INTERSTITIAL"
+	//   "IN_STREAM_AUDIO"
 	//   "IN_STREAM_VIDEO"
 	Compatibility string `json:"compatibility,omitempty"`
 
@@ -1767,6 +1769,7 @@ type AdSlot struct {
 	//   "APP_INTERSTITIAL"
 	//   "DISPLAY"
 	//   "DISPLAY_INTERSTITIAL"
+	//   "IN_STREAM_AUDIO"
 	//   "IN_STREAM_VIDEO"
 	Compatibility string `json:"compatibility,omitempty"`
 
@@ -3828,7 +3831,7 @@ type Creative struct {
 	CommercialId string `json:"commercialId,omitempty"`
 
 	// CompanionCreatives: List of companion creatives assigned to an
-	// in-Stream videocreative. Acceptable values include IDs of existing
+	// in-Stream video creative. Acceptable values include IDs of existing
 	// flash and image creatives. Applicable to the following creative
 	// types: all VPAID and all INSTREAM_VIDEO with dynamicAssetSelection
 	// set to false.
@@ -3856,6 +3859,7 @@ type Creative struct {
 	//   "APP_INTERSTITIAL"
 	//   "DISPLAY"
 	//   "DISPLAY_INTERSTITIAL"
+	//   "IN_STREAM_AUDIO"
 	//   "IN_STREAM_VIDEO"
 	Compatibility []string `json:"compatibility,omitempty"`
 
@@ -4091,6 +4095,7 @@ type Creative struct {
 	//   "FLASH_INPAGE"
 	//   "HTML5_BANNER"
 	//   "IMAGE"
+	//   "INSTREAM_AUDIO"
 	//   "INSTREAM_VIDEO"
 	//   "INSTREAM_VIDEO_REDIRECT"
 	//   "INTERNAL_REDIRECT"
@@ -5858,9 +5863,11 @@ type DateRange struct {
 	// report is run.
 	//
 	// Possible values:
+	//   "LAST_14_DAYS"
 	//   "LAST_24_MONTHS"
 	//   "LAST_30_DAYS"
 	//   "LAST_365_DAYS"
+	//   "LAST_60_DAYS"
 	//   "LAST_7_DAYS"
 	//   "LAST_90_DAYS"
 	//   "MONTH_TO_DATE"
@@ -6829,6 +6836,7 @@ type EncryptionInfo struct {
 	//   "DBM_PARTNER"
 	//   "DCM_ACCOUNT"
 	//   "DCM_ADVERTISER"
+	//   "DFP_NETWORK_CODE"
 	//   "ENCRYPTION_ENTITY_TYPE_UNKNOWN"
 	EncryptionEntityType string `json:"encryptionEntityType,omitempty"`
 
@@ -9681,6 +9689,7 @@ type Placement struct {
 	//   "APP_INTERSTITIAL"
 	//   "DISPLAY"
 	//   "DISPLAY_INTERSTITIAL"
+	//   "IN_STREAM_AUDIO"
 	//   "IN_STREAM_VIDEO"
 	Compatibility string `json:"compatibility,omitempty"`
 
@@ -16628,6 +16637,7 @@ func (c *AdsListCall) CampaignIds(campaignIds ...int64) *AdsListCall {
 //   "APP_INTERSTITIAL"
 //   "DISPLAY"
 //   "DISPLAY_INTERSTITIAL"
+//   "IN_STREAM_AUDIO"
 //   "IN_STREAM_VIDEO"
 func (c *AdsListCall) Compatibility(compatibility string) *AdsListCall {
 	c.urlParams_.Set("compatibility", compatibility)
@@ -16944,9 +16954,11 @@ func (c *AdsListCall) Do(opts ...googleapi.CallOption) (*AdsListResponse, error)
 	//         "APP_INTERSTITIAL",
 	//         "DISPLAY",
 	//         "DISPLAY_INTERSTITIAL",
+	//         "IN_STREAM_AUDIO",
 	//         "IN_STREAM_VIDEO"
 	//       ],
 	//       "enumDescriptions": [
+	//         "",
 	//         "",
 	//         "",
 	//         "",
@@ -24358,11 +24370,12 @@ func (c *CreativeAssetsInsertCall) doRequest(alt string) (*http.Response, error)
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
+	gensupport.SetGetBody(req, getBody)
 	googleapi.Expand(req.URL, map[string]string{
 		"profileId":    strconv.FormatInt(c.profileId, 10),
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),
@@ -27767,6 +27780,7 @@ func (c *CreativesListCall) StudioCreativeId(studioCreativeId int64) *CreativesL
 //   "FLASH_INPAGE"
 //   "HTML5_BANNER"
 //   "IMAGE"
+//   "INSTREAM_AUDIO"
 //   "INSTREAM_VIDEO"
 //   "INSTREAM_VIDEO_REDIRECT"
 //   "INTERNAL_REDIRECT"
@@ -28017,6 +28031,7 @@ func (c *CreativesListCall) Do(opts ...googleapi.CallOption) (*CreativesListResp
 	//         "FLASH_INPAGE",
 	//         "HTML5_BANNER",
 	//         "IMAGE",
+	//         "INSTREAM_AUDIO",
 	//         "INSTREAM_VIDEO",
 	//         "INSTREAM_VIDEO_REDIRECT",
 	//         "INTERNAL_REDIRECT",
@@ -28034,6 +28049,7 @@ func (c *CreativesListCall) Do(opts ...googleapi.CallOption) (*CreativesListResp
 	//         "VPAID_NON_LINEAR_VIDEO"
 	//       ],
 	//       "enumDescriptions": [
+	//         "",
 	//         "",
 	//         "",
 	//         "",
@@ -39428,6 +39444,7 @@ func (c *PlacementsListCall) CampaignIds(campaignIds ...int64) *PlacementsListCa
 //   "APP_INTERSTITIAL"
 //   "DISPLAY"
 //   "DISPLAY_INTERSTITIAL"
+//   "IN_STREAM_AUDIO"
 //   "IN_STREAM_VIDEO"
 func (c *PlacementsListCall) Compatibilities(compatibilities ...string) *PlacementsListCall {
 	c.urlParams_.SetMulti("compatibilities", append([]string{}, compatibilities...))
@@ -39748,9 +39765,11 @@ func (c *PlacementsListCall) Do(opts ...googleapi.CallOption) (*PlacementsListRe
 	//         "APP_INTERSTITIAL",
 	//         "DISPLAY",
 	//         "DISPLAY_INTERSTITIAL",
+	//         "IN_STREAM_AUDIO",
 	//         "IN_STREAM_VIDEO"
 	//       ],
 	//       "enumDescriptions": [
+	//         "",
 	//         "",
 	//         "",
 	//         "",
@@ -45567,7 +45586,10 @@ type SizesListCall struct {
 	header_      http.Header
 }
 
-// List: Retrieves a list of sizes, possibly filtered.
+// List: Retrieves a list of sizes, possibly filtered. Retrieved sizes
+// are globally unique and may include values not currently in use by
+// your account. Due to this, the list of sizes returned by this method
+// may differ from the list seen in the Trafficking UI.
 func (r *SizesService) List(profileId int64) *SizesListCall {
 	c := &SizesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.profileId = profileId
@@ -45700,7 +45722,7 @@ func (c *SizesListCall) Do(opts ...googleapi.CallOption) (*SizesListResponse, er
 	}
 	return ret, nil
 	// {
-	//   "description": "Retrieves a list of sizes, possibly filtered.",
+	//   "description": "Retrieves a list of sizes, possibly filtered. Retrieved sizes are globally unique and may include values not currently in use by your account. Due to this, the list of sizes returned by this method may differ from the list seen in the Trafficking UI.",
 	//   "httpMethod": "GET",
 	//   "id": "dfareporting.sizes.list",
 	//   "parameterOrder": [

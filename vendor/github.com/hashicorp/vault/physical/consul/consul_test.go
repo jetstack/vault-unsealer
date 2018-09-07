@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/mgutz/logxi/v1"
+	log "github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/vault/helper/logformat"
+	"github.com/hashicorp/vault/helper/logging"
 	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/physical"
 	dockertest "gopkg.in/ory-am/dockertest.v2"
@@ -36,7 +36,7 @@ func testConsulBackend(t *testing.T) *ConsulBackend {
 }
 
 func testConsulBackendConfig(t *testing.T, conf *consulConf) *ConsulBackend {
-	logger := logformat.NewVaultLogger(log.LevelTrace)
+	logger := logging.NewVaultLogger(log.Debug)
 
 	be, err := NewConsulBackend(*conf, logger)
 	if err != nil {
@@ -93,7 +93,7 @@ func TestConsul_ServiceTags(t *testing.T) {
 		"max_parallel":         "4",
 		"disable_registration": "false",
 	}
-	logger := logformat.NewVaultLogger(log.LevelTrace)
+	logger := logging.NewVaultLogger(log.Debug)
 
 	be, err := NewConsulBackend(consulConfig, logger)
 	if err != nil {
@@ -114,6 +114,51 @@ func TestConsul_ServiceTags(t *testing.T) {
 	actual = c.fetchServiceTags(true)
 	if !strutil.EquivalentSlices(actual, append(expected, "active")) {
 		t.Fatalf("bad: expected:%s actual:%s", append(expected, "active"), actual)
+	}
+}
+
+func TestConsul_ServiceAddress(t *testing.T) {
+	tests := []struct {
+		consulConfig   map[string]string
+		serviceAddrNil bool
+	}{
+		{
+			consulConfig: map[string]string{
+				"service_address": "",
+			},
+		},
+		{
+			consulConfig: map[string]string{
+				"service_address": "vault.example.com",
+			},
+		},
+		{
+			serviceAddrNil: true,
+		},
+	}
+
+	for _, test := range tests {
+		logger := logging.NewVaultLogger(log.Debug)
+
+		be, err := NewConsulBackend(test.consulConfig, logger)
+		if err != nil {
+			t.Fatalf("expected Consul to initialize: %v", err)
+		}
+
+		c, ok := be.(*ConsulBackend)
+		if !ok {
+			t.Fatalf("Expected ConsulBackend")
+		}
+
+		if test.serviceAddrNil {
+			if c.serviceAddress != nil {
+				t.Fatalf("expected service address to be nil")
+			}
+		} else {
+			if c.serviceAddress == nil {
+				t.Fatalf("did not expect service address to be nil")
+			}
+		}
 	}
 }
 
@@ -181,7 +226,7 @@ func TestConsul_newConsulBackend(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		logger := logformat.NewVaultLogger(log.LevelTrace)
+		logger := logging.NewVaultLogger(log.Debug)
 
 		be, err := NewConsulBackend(test.consulConfig, logger)
 		if test.fail {
@@ -343,36 +388,63 @@ func TestConsul_NotifySealedStateChange(t *testing.T) {
 }
 
 func TestConsul_serviceID(t *testing.T) {
-	passingTests := []struct {
+	tests := []struct {
 		name         string
 		redirectAddr string
 		serviceName  string
 		expected     string
+		valid        bool
 	}{
 		{
 			name:         "valid host w/o slash",
 			redirectAddr: "http://127.0.0.1:8200",
 			serviceName:  "sea-tech-astronomy",
 			expected:     "sea-tech-astronomy:127.0.0.1:8200",
+			valid:        true,
 		},
 		{
 			name:         "valid host w/ slash",
 			redirectAddr: "http://127.0.0.1:8200/",
 			serviceName:  "sea-tech-astronomy",
 			expected:     "sea-tech-astronomy:127.0.0.1:8200",
+			valid:        true,
 		},
 		{
 			name:         "valid https host w/ slash",
 			redirectAddr: "https://127.0.0.1:8200/",
 			serviceName:  "sea-tech-astronomy",
 			expected:     "sea-tech-astronomy:127.0.0.1:8200",
+			valid:        true,
+		},
+		{
+			name:         "invalid host name",
+			redirectAddr: "https://127.0.0.1:8200/",
+			serviceName:  "sea_tech_astronomy",
+			expected:     "",
+			valid:        false,
 		},
 	}
 
-	for _, test := range passingTests {
-		c := testConsulBackendConfig(t, &consulConf{
+	logger := logging.NewVaultLogger(log.Debug)
+
+	for _, test := range tests {
+		be, err := NewConsulBackend(consulConf{
 			"service": test.serviceName,
-		})
+		}, logger)
+		if !test.valid {
+			if err == nil {
+				t.Fatalf("expected an error initializing for name %q", test.serviceName)
+			}
+			continue
+		}
+		if test.valid && err != nil {
+			t.Fatalf("expected Consul to initialize: %v", err)
+		}
+
+		c, ok := be.(*ConsulBackend)
+		if !ok {
+			t.Fatalf("Expected ConsulBackend")
+		}
 
 		if err := c.setRedirectAddr(test.redirectAddr); err != nil {
 			t.Fatalf("bad: %s %v", test.name, err)
@@ -410,7 +482,7 @@ func TestConsulBackend(t *testing.T) {
 		client.KV().DeleteTree(randPath, nil)
 	}()
 
-	logger := logformat.NewVaultLogger(log.LevelTrace)
+	logger := logging.NewVaultLogger(log.Debug)
 
 	b, err := NewConsulBackend(map[string]string{
 		"address":      conf.Address,
@@ -451,7 +523,7 @@ func TestConsulHABackend(t *testing.T) {
 		client.KV().DeleteTree(randPath, nil)
 	}()
 
-	logger := logformat.NewVaultLogger(log.LevelTrace)
+	logger := logging.NewVaultLogger(log.Debug)
 
 	b, err := NewConsulBackend(map[string]string{
 		"address":      conf.Address,

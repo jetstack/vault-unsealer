@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/vault/logical"
@@ -34,17 +35,16 @@ func Backend() *backend {
 		Paths: []*framework.Path{
 			pathConfigRoot(),
 			pathConfigLease(&b),
-			pathRoles(),
+			pathRoles(&b),
 			pathListRoles(&b),
 			pathUser(&b),
-			pathSTS(&b),
 		},
 
 		Secrets: []*framework.Secret{
 			secretAccessKeys(&b),
 		},
 
-		WALRollback:       walRollback,
+		WALRollback:       b.walRollback,
 		WALRollbackMinAge: 5 * time.Minute,
 		BackendType:       logical.TypeLogical,
 	}
@@ -54,6 +54,9 @@ func Backend() *backend {
 
 type backend struct {
 	*framework.Backend
+
+	// Mutex to protect access to reading and writing policies
+	roleMutex sync.RWMutex
 }
 
 const backendHelp = `

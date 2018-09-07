@@ -24,17 +24,42 @@ func RespondErrorCommon(req *Request, resp *Response, err error) (int, error) {
 		// Basically: if we have empty "keys" or no keys at all, 404. This
 		// provides consistency with GET.
 		case req.Operation == ListOperation && resp.WrapInfo == nil:
-			if resp == nil || len(resp.Data) == 0 {
+			if resp == nil {
+				return http.StatusNotFound, nil
+			}
+			if len(resp.Data) == 0 {
+				if len(resp.Warnings) > 0 {
+					return 0, nil
+				}
 				return http.StatusNotFound, nil
 			}
 			keysRaw, ok := resp.Data["keys"]
 			if !ok || keysRaw == nil {
+				// If we don't have keys but have other data, return as-is
+				if len(resp.Data) > 0 || len(resp.Warnings) > 0 {
+					return 0, nil
+				}
 				return http.StatusNotFound, nil
 			}
-			keys, ok := keysRaw.([]string)
-			if !ok {
+
+			var keys []string
+			switch keysRaw.(type) {
+			case []interface{}:
+				keys = make([]string, len(keysRaw.([]interface{})))
+				for i, el := range keysRaw.([]interface{}) {
+					s, ok := el.(string)
+					if !ok {
+						return http.StatusInternalServerError, nil
+					}
+					keys[i] = s
+				}
+
+			case []string:
+				keys = keysRaw.([]string)
+			default:
 				return http.StatusInternalServerError, nil
 			}
+
 			if len(keys) == 0 {
 				return http.StatusNotFound, nil
 			}
@@ -80,6 +105,8 @@ func RespondErrorCommon(req *Request, resp *Response, err error) (int, error) {
 			statusCode = http.StatusNotFound
 		case errwrap.Contains(err, ErrInvalidRequest.Error()):
 			statusCode = http.StatusBadRequest
+		case errwrap.Contains(err, ErrUpstreamRateLimited.Error()):
+			statusCode = http.StatusBadGateway
 		}
 	}
 
@@ -94,6 +121,13 @@ func RespondErrorCommon(req *Request, resp *Response, err error) (int, error) {
 // conditions in a way that can be shared across http's respondError and other
 // locations.
 func AdjustErrorStatusCode(status *int, err error) {
+	// Handle nested errors
+	if t, ok := err.(*multierror.Error); ok {
+		for _, e := range t.Errors {
+			AdjustErrorStatusCode(status, e)
+		}
+	}
+
 	// Adjust status code when sealed
 	if errwrap.Contains(err, consts.ErrSealed.Error()) {
 		*status = http.StatusServiceUnavailable

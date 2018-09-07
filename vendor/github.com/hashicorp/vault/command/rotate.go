@@ -21,7 +21,7 @@ func (c *OperatorRotateCommand) Synopsis() string {
 
 func (c *OperatorRotateCommand) Help() string {
 	helpText := `
-Usage: vault rotate [options]
+Usage: vault operator rotate [options]
 
   Rotates the underlying encryption key which is used to secure data written
   to the storage backend. This installs a new key in the key ring. This new
@@ -34,7 +34,7 @@ Usage: vault rotate [options]
 
   Rotate Vault's encryption key:
 
-      $ vault rotate
+      $ vault operator rotate
 
   For a full list of examples, please see the documentation.
 
@@ -44,7 +44,7 @@ Usage: vault rotate [options]
 }
 
 func (c *OperatorRotateCommand) Flags() *FlagSets {
-	return c.flagSet(FlagSetHTTP)
+	return c.flagSet(FlagSetHTTP | FlagSetOutputFormat)
 }
 
 func (c *OperatorRotateCommand) AutocompleteArgs() complete.Predictor {
@@ -89,8 +89,13 @@ func (c *OperatorRotateCommand) Run(args []string) int {
 		return 2
 	}
 
-	c.UI.Output("Success! Rotated key")
-	c.UI.Output("")
-	c.UI.Output(printKeyStatus(status))
-	return 0
+	switch Format(c.UI) {
+	case "table":
+		c.UI.Output("Success! Rotated key")
+		c.UI.Output("")
+		c.UI.Output(printKeyStatus(status))
+		return 0
+	default:
+		return OutputData(c.UI, status)
+	}
 }

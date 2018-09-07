@@ -3,11 +3,20 @@ package approle
 import (
 	"context"
 	"sync"
+	"time"
 
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/helper/salt"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
+)
+
+const (
+	secretIDPrefix              = "secret_id/"
+	secretIDLocalPrefix         = "secret_id_local/"
+	secretIDAccessorPrefix      = "accessor/"
+	secretIDAccessorLocalPrefix = "accessor_local/"
 )
 
 type backend struct {
@@ -22,7 +31,7 @@ type backend struct {
 	view logical.Storage
 
 	// Guard to clean-up the expired SecretID entries
-	tidySecretIDCASGuard uint32
+	tidySecretIDCASGuard *uint32
 
 	// Locks to make changes to role entries. These will be initialized to a
 	// predefined number of locks when the backend is created, and will be
@@ -48,6 +57,8 @@ type backend struct {
 	// secretIDListingLock is a dedicated lock for listing SecretIDAccessors
 	// for all the SecretIDs issued against an approle
 	secretIDListingLock sync.RWMutex
+
+	testTidyDelay time.Duration
 }
 
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
@@ -77,6 +88,8 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 
 		// Create locks to modify the generated SecretIDAccessors
 		secretIDAccessorLocks: locksutil.CreateLocks(),
+
+		tidySecretIDCASGuard: new(uint32),
 	}
 
 	// Attach the paths and secrets that are to be handled by the backend
@@ -88,6 +101,10 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 		PathsSpecial: &logical.Paths{
 			Unauthenticated: []string{
 				"login",
+			},
+			LocalStorage: []string{
+				secretIDLocalPrefix,
+				secretIDAccessorLocalPrefix,
 			},
 		},
 		Paths: framework.PathAppend(
@@ -103,7 +120,7 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 	return b, nil
 }
 
-func (b *backend) Salt() (*salt.Salt, error) {
+func (b *backend) Salt(ctx context.Context) (*salt.Salt, error) {
 	b.saltMutex.RLock()
 	if b.salt != nil {
 		defer b.saltMutex.RUnlock()
@@ -115,7 +132,7 @@ func (b *backend) Salt() (*salt.Salt, error) {
 	if b.salt != nil {
 		return b.salt, nil
 	}
-	salt, err := salt.NewSalt(b.view, &salt.Config{
+	salt, err := salt.NewSalt(ctx, b.view, &salt.Config{
 		HashFunc: salt.SHA256Hash,
 		Location: salt.DefaultLocation,
 	})
@@ -142,7 +159,9 @@ func (b *backend) invalidate(_ context.Context, key string) {
 // to delay the removal of SecretIDs by a minute.
 func (b *backend) periodicFunc(ctx context.Context, req *logical.Request) error {
 	// Initiate clean-up of expired SecretID entries
-	b.tidySecretID(ctx, req.Storage)
+	if b.System().LocalMount() || !b.System().ReplicationState().HasState(consts.ReplicationPerformanceSecondary) {
+		b.tidySecretID(ctx, req)
+	}
 	return nil
 }
 

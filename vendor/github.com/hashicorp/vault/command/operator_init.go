@@ -1,13 +1,11 @@
 package command
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"runtime"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/helper/pgpkeys"
 	"github.com/mitchellh/cli"
@@ -53,7 +51,7 @@ func (c *OperatorInitCommand) Help() string {
 Usage: vault operator init [options]
 
   Initializes a Vault server. Initialization is the process by which Vault's
-  storage backend is prepared to receive data. Since Vault server's share the
+  storage backend is prepared to receive data. Since Vault servers share the
   same storage backend in HA mode, you only need to initialize one Vault to
   initialize the storage backend.
 
@@ -127,7 +125,7 @@ func (c *OperatorInitCommand) Flags() *FlagSets {
 			"public GPG keys OR a comma-separated list of Keybase usernames using " +
 			"the format \"keybase:<username>\". When supplied, the generated " +
 			"unseal keys will be encrypted and base64-encoded in the order " +
-			"specified in this list. The number of entires must match -key-shares, " +
+			"specified in this list. The number of entries must match -key-shares, " +
 			"unless -store-shares are used.",
 	})
 
@@ -198,15 +196,6 @@ func (c *OperatorInitCommand) Flags() *FlagSets {
 			"is only used in HSM mode.",
 	})
 
-	f.IntVar(&IntVar{
-		Name:       "stored-shares",
-		Target:     &c.flagStoredShares,
-		Default:    0, // No default, because we need to check if was supplied
-		Completion: complete.PredictAnything,
-		Usage: "Number of unseal keys to store on an HSM. This must be equal to " +
-			"-key-shares. This is only used in HSM mode.",
-	})
-
 	// Deprecations
 	// TODO: remove in 0.9.0
 	f.BoolVar(&BoolVar{
@@ -220,6 +209,15 @@ func (c *OperatorInitCommand) Flags() *FlagSets {
 		Name:    "auto", // prefer -consul-auto
 		Target:  &c.flagAuto,
 		Default: false,
+		Hidden:  true,
+		Usage:   "",
+	})
+
+	// Kept to keep scripts passing the flag working, but not used
+	f.IntVar(&IntVar{
+		Name:    "stored-shares",
+		Target:  &c.flagStoredShares,
+		Default: 0,
 		Hidden:  true,
 		Usage:   "",
 	})
@@ -246,15 +244,24 @@ func (c *OperatorInitCommand) Run(args []string) int {
 	// Deprecations
 	// TODO: remove in 0.9.0
 	if c.flagAuto {
-		c.UI.Warn(wrapAtLength("WARNING! -auto is deprecated. Please use " +
-			"-consul-auto instead. This will be removed in Vault 0.11 " +
-			"(or later)."))
+		if Format(c.UI) == "table" {
+			c.UI.Warn(wrapAtLength("WARNING! -auto is deprecated. Please use " +
+				"-consul-auto instead. This will be removed in Vault 0.12."))
+		}
 		c.flagConsulAuto = true
 	}
 	if c.flagCheck {
-		c.UI.Warn(wrapAtLength("WARNING! -check is deprecated. Please use " +
-			"-status instead. This will be removed in Vault 0.11 (or later)."))
+		if Format(c.UI) == "table" {
+			c.UI.Warn(wrapAtLength("WARNING! -check is deprecated. Please use " +
+				"-status instead. This will be removed in Vault 0.12."))
+		}
 		c.flagStatus = true
+	}
+
+	args = f.Args()
+	if len(args) > 0 {
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 0, got %d)", len(args)))
+		return 1
 	}
 
 	// Build the initial init request
@@ -385,7 +392,7 @@ func (c *OperatorInitCommand) consulAuto(client *api.Client, req *api.InitReques
 		// Update the client to connect to this Vault server
 		client.SetAddress(vaultAddr)
 
-		// Let the client know that initialization is perfomed on the
+		// Let the client know that initialization is performed on the
 		// discovered node.
 		c.UI.Output(wrapAtLength(fmt.Sprintf(
 			"Discovered an initialized Vault node at %q with Consul service name "+
@@ -405,8 +412,8 @@ func (c *OperatorInitCommand) consulAuto(client *api.Client, req *api.InitReques
 		// requiring the client to update VAULT_ADDR and to run init again.
 		c.UI.Output(wrapAtLength(fmt.Sprintf(
 			"Discovered %d uninitialized Vault servers with Consul service name "+
-				"%q. To initialize these Vatuls, set any one of the following "+
-				"environment variables and run \"vault init\":",
+				"%q. To initialize these Vaults, set any one of the following "+
+				"environment variables and run \"vault operator init\":",
 			len(uninitedVaults), c.flagConsulService)))
 		c.UI.Output("")
 
@@ -434,15 +441,10 @@ func (c *OperatorInitCommand) init(client *api.Client, req *api.InitRequest) int
 		return 2
 	}
 
-	switch c.flagFormat {
-	case "yaml", "yml":
-		return c.initOutputYAML(req, resp)
-	case "json":
-		return c.initOutputJSON(req, resp)
+	switch Format(c.UI) {
 	case "table":
 	default:
-		c.UI.Error(fmt.Sprintf("Unknown format: %s", c.flagFormat))
-		return 1
+		return OutputData(c.UI, newMachineInit(req, resp))
 	}
 
 	for i, key := range resp.Keys {
@@ -463,11 +465,11 @@ func (c *OperatorInitCommand) init(client *api.Client, req *api.InitRequest) int
 	c.UI.Output("")
 	c.UI.Output(fmt.Sprintf("Initial Root Token: %s", resp.RootToken))
 
-	if req.StoredShares < 1 {
+	if len(resp.Keys) > 0 {
 		c.UI.Output("")
 		c.UI.Output(wrapAtLength(fmt.Sprintf(
-			"Vault initialized with %d key shares an a key threshold of %d. Please "+
-				"securely distributed the key shares printed above. When the Vault is "+
+			"Vault initialized with %d key shares and a key threshold of %d. Please "+
+				"securely distribute the key shares printed above. When the Vault is "+
 				"re-sealed, restarted, or stopped, you must supply at least %d of "+
 				"these keys to unseal it before it can start servicing requests.",
 			req.SecretShares,
@@ -484,8 +486,8 @@ func (c *OperatorInitCommand) init(client *api.Client, req *api.InitRequest) int
 		c.UI.Output("")
 		c.UI.Output(wrapAtLength(
 			"It is possible to generate new unseal keys, provided you have a quorum " +
-				"of existing unseal keys shares. See \"vault rekey\" for more " +
-				"information."))
+				"of existing unseal keys shares. See \"vault operator rekey\" for " +
+				"more information."))
 	} else {
 		c.UI.Output("")
 		c.UI.Output("Success! Vault is initialized")
@@ -501,26 +503,6 @@ func (c *OperatorInitCommand) init(client *api.Client, req *api.InitRequest) int
 	}
 
 	return 0
-}
-
-// initOutputYAML outputs the init output as YAML.
-func (c *OperatorInitCommand) initOutputYAML(req *api.InitRequest, resp *api.InitResponse) int {
-	b, err := yaml.Marshal(newMachineInit(req, resp))
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error marshaling YAML: %s", err))
-		return 2
-	}
-	return PrintRaw(c.UI, strings.TrimSpace(string(b)))
-}
-
-// initOutputJSON outputs the init output as JSON.
-func (c *OperatorInitCommand) initOutputJSON(req *api.InitRequest, resp *api.InitResponse) int {
-	b, err := json.Marshal(newMachineInit(req, resp))
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error marshaling JSON: %s", err))
-		return 2
-	}
-	return PrintRaw(c.UI, strings.TrimSpace(string(b)))
 }
 
 // status inspects the init status of vault and returns an appropriate error

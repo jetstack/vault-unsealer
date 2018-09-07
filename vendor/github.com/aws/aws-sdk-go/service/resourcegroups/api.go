@@ -3,6 +3,8 @@
 package resourcegroups
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -12,7 +14,7 @@ const opCreateGroup = "CreateGroup"
 
 // CreateGroupRequest generates a "aws/request.Request" representing the
 // client's request for the CreateGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -104,7 +106,7 @@ const opDeleteGroup = "DeleteGroup"
 
 // DeleteGroupRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -200,7 +202,7 @@ const opGetGroup = "GetGroup"
 
 // GetGroupRequest generates a "aws/request.Request" representing the
 // client's request for the GetGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -295,7 +297,7 @@ const opGetGroupQuery = "GetGroupQuery"
 
 // GetGroupQueryRequest generates a "aws/request.Request" representing the
 // client's request for the GetGroupQuery operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -390,7 +392,7 @@ const opGetTags = "GetTags"
 
 // GetTagsRequest generates a "aws/request.Request" representing the
 // client's request for the GetTags operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -486,7 +488,7 @@ const opListGroupResources = "ListGroupResources"
 
 // ListGroupResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListGroupResources operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -511,8 +513,8 @@ const opListGroupResources = "ListGroupResources"
 func (c *ResourceGroups) ListGroupResourcesRequest(input *ListGroupResourcesInput) (req *request.Request, output *ListGroupResourcesOutput) {
 	op := &request.Operation{
 		Name:       opListGroupResources,
-		HTTPMethod: "GET",
-		HTTPPath:   "/groups/{GroupName}/resource-identifiers",
+		HTTPMethod: "POST",
+		HTTPPath:   "/groups/{GroupName}/resource-identifiers-list",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"NextToken"},
 			OutputTokens:    []string{"NextToken"},
@@ -642,7 +644,7 @@ const opListGroups = "ListGroups"
 
 // ListGroupsRequest generates a "aws/request.Request" representing the
 // client's request for the ListGroups operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -667,8 +669,8 @@ const opListGroups = "ListGroups"
 func (c *ResourceGroups) ListGroupsRequest(input *ListGroupsInput) (req *request.Request, output *ListGroupsOutput) {
 	op := &request.Operation{
 		Name:       opListGroups,
-		HTTPMethod: "GET",
-		HTTPPath:   "/groups",
+		HTTPMethod: "POST",
+		HTTPPath:   "/groups-list",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"NextToken"},
 			OutputTokens:    []string{"NextToken"},
@@ -790,7 +792,7 @@ const opSearchResources = "SearchResources"
 
 // SearchResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the SearchResources operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -944,7 +946,7 @@ const opTag = "Tag"
 
 // TagRequest generates a "aws/request.Request" representing the
 // client's request for the Tag operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1040,7 +1042,7 @@ const opUntag = "Untag"
 
 // UntagRequest generates a "aws/request.Request" representing the
 // client's request for the Untag operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1135,7 +1137,7 @@ const opUpdateGroup = "UpdateGroup"
 
 // UpdateGroupRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGroup operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1231,7 +1233,7 @@ const opUpdateGroupQuery = "UpdateGroupQuery"
 
 // UpdateGroupQueryRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateGroupQuery operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1322,7 +1324,6 @@ func (c *ResourceGroups) UpdateGroupQueryWithContext(ctx aws.Context, input *Upd
 	return out, req.Send()
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/CreateGroupInput
 type CreateGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1333,7 +1334,7 @@ type CreateGroupInput struct {
 
 	// The name of the group, which is the identifier of the group in other operations.
 	// A resource group name cannot be updated after it is created. A resource group
-	// name can have a maximum of 127 characters, including letters, numbers, hyphens,
+	// name can have a maximum of 128 characters, including letters, numbers, hyphens,
 	// dots, and underscores. The name cannot start with AWS or aws; these are reserved.
 	// A resource group name must be unique within your account.
 	//
@@ -1347,8 +1348,8 @@ type CreateGroupInput struct {
 	ResourceQuery *ResourceQuery `type:"structure" required:"true"`
 
 	// The tags to add to the group. A tag is a string-to-string map of key-value
-	// pairs. Tag keys can have a maximum character length of 127 characters, and
-	// tag values can have a maximum length of 255 characters.
+	// pairs. Tag keys can have a maximum character length of 128 characters, and
+	// tag values can have a maximum length of 256 characters.
 	Tags map[string]*string `type:"map"`
 }
 
@@ -1410,7 +1411,6 @@ func (s *CreateGroupInput) SetTags(v map[string]*string) *CreateGroupInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/CreateGroupOutput
 type CreateGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1452,7 +1452,6 @@ func (s *CreateGroupOutput) SetTags(v map[string]*string) *CreateGroupOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/DeleteGroupInput
 type DeleteGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1494,7 +1493,6 @@ func (s *DeleteGroupInput) SetGroupName(v string) *DeleteGroupInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/DeleteGroupOutput
 type DeleteGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1518,7 +1516,6 @@ func (s *DeleteGroupOutput) SetGroup(v *Group) *DeleteGroupOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/GetGroupInput
 type GetGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1560,7 +1557,6 @@ func (s *GetGroupInput) SetGroupName(v string) *GetGroupInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/GetGroupOutput
 type GetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1584,7 +1580,6 @@ func (s *GetGroupOutput) SetGroup(v *Group) *GetGroupOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/GetGroupQueryInput
 type GetGroupQueryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1626,7 +1621,6 @@ func (s *GetGroupQueryInput) SetGroupName(v string) *GetGroupQueryInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/GetGroupQueryOutput
 type GetGroupQueryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1650,7 +1644,6 @@ func (s *GetGroupQueryOutput) SetGroupQuery(v *GroupQuery) *GetGroupQueryOutput 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/GetTagsInput
 type GetTagsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1690,7 +1683,6 @@ func (s *GetTagsInput) SetArn(v string) *GetTagsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/GetTagsOutput
 type GetTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1724,7 +1716,6 @@ func (s *GetTagsOutput) SetTags(v map[string]*string) *GetTagsOutput {
 }
 
 // A resource group.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/Group
 type Group struct {
 	_ struct{} `type:"structure"`
 
@@ -1772,7 +1763,6 @@ func (s *Group) SetName(v string) *Group {
 
 // The underlying resource query of a resource group. Resources that match query
 // results are part of the group.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/GroupQuery
 type GroupQuery struct {
 	_ struct{} `type:"structure"`
 
@@ -1811,9 +1801,16 @@ func (s *GroupQuery) SetResourceQuery(v *ResourceQuery) *GroupQuery {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/ListGroupResourcesInput
 type ListGroupResourcesInput struct {
 	_ struct{} `type:"structure"`
+
+	// Filters, formatted as ResourceFilter objects, that you want to apply to a
+	// ListGroupResources operation.
+	//
+	//    * resource-type - Filter resources by their type. Specify up to five resource
+	//    types in the format AWS::ServiceCode::ResourceType. For example, AWS::EC2::Instance,
+	//    or AWS::S3::Bucket.
+	Filters []*ResourceFilter `type:"list"`
 
 	// The name of the resource group.
 	//
@@ -1852,11 +1849,27 @@ func (s *ListGroupResourcesInput) Validate() error {
 	if s.MaxResults != nil && *s.MaxResults < 1 {
 		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
 	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListGroupResourcesInput) SetFilters(v []*ResourceFilter) *ListGroupResourcesInput {
+	s.Filters = v
+	return s
 }
 
 // SetGroupName sets the GroupName field's value.
@@ -1877,7 +1890,6 @@ func (s *ListGroupResourcesInput) SetNextToken(v string) *ListGroupResourcesInpu
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/ListGroupResourcesOutput
 type ListGroupResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1912,7 +1924,6 @@ func (s *ListGroupResourcesOutput) SetResourceIdentifiers(v []*ResourceIdentifie
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/ListGroupsInput
 type ListGroupsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1961,7 +1972,6 @@ func (s *ListGroupsInput) SetNextToken(v string) *ListGroupsInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/ListGroupsOutput
 type ListGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1995,8 +2005,65 @@ func (s *ListGroupsOutput) SetNextToken(v string) *ListGroupsOutput {
 	return s
 }
 
+// A filter name and value pair that is used to obtain more specific results
+// from a list of resources.
+type ResourceFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the filter. Filter names are case-sensitive.
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true" enum:"ResourceFilterName"`
+
+	// One or more filter values. Allowed filter values vary by resource filter
+	// name, and are case-sensitive.
+	//
+	// Values is a required field
+	Values []*string `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ResourceFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ResourceFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ResourceFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ResourceFilter"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Values == nil {
+		invalidParams.Add(request.NewErrParamRequired("Values"))
+	}
+	if s.Values != nil && len(s.Values) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Values", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *ResourceFilter) SetName(v string) *ResourceFilter {
+	s.Name = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *ResourceFilter) SetValues(v []*string) *ResourceFilter {
+	s.Values = v
+	return s
+}
+
 // The ARN of a resource, and its resource type.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/ResourceIdentifier
 type ResourceIdentifier struct {
 	_ struct{} `type:"structure"`
 
@@ -2030,7 +2097,6 @@ func (s *ResourceIdentifier) SetResourceType(v string) *ResourceIdentifier {
 }
 
 // The query that is used to define a resource group or a search for resources.
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/ResourceQuery
 type ResourceQuery struct {
 	_ struct{} `type:"structure"`
 
@@ -2090,7 +2156,6 @@ func (s *ResourceQuery) SetType(v string) *ResourceQuery {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/SearchResourcesInput
 type SearchResourcesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2159,7 +2224,6 @@ func (s *SearchResourcesInput) SetResourceQuery(v *ResourceQuery) *SearchResourc
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/SearchResourcesOutput
 type SearchResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2194,7 +2258,6 @@ func (s *SearchResourcesOutput) SetResourceIdentifiers(v []*ResourceIdentifier) 
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/TagInput
 type TagInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2204,8 +2267,8 @@ type TagInput struct {
 	Arn *string `location:"uri" locationName:"Arn" type:"string" required:"true"`
 
 	// The tags to add to the specified resource. A tag is a string-to-string map
-	// of key-value pairs. Tag keys can have a maximum character length of 127 characters,
-	// and tag values can have a maximum length of 255 characters.
+	// of key-value pairs. Tag keys can have a maximum character length of 128 characters,
+	// and tag values can have a maximum length of 256 characters.
 	//
 	// Tags is a required field
 	Tags map[string]*string `type:"map" required:"true"`
@@ -2249,7 +2312,6 @@ func (s *TagInput) SetTags(v map[string]*string) *TagInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/TagOutput
 type TagOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2282,7 +2344,6 @@ func (s *TagOutput) SetTags(v map[string]*string) *TagOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/UntagInput
 type UntagInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2335,7 +2396,6 @@ func (s *UntagInput) SetKeys(v []*string) *UntagInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/UntagOutput
 type UntagOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2368,7 +2428,6 @@ func (s *UntagOutput) SetKeys(v []*string) *UntagOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/UpdateGroupInput
 type UpdateGroupInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2421,7 +2480,6 @@ func (s *UpdateGroupInput) SetGroupName(v string) *UpdateGroupInput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/UpdateGroupOutput
 type UpdateGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2445,7 +2503,6 @@ func (s *UpdateGroupOutput) SetGroup(v *Group) *UpdateGroupOutput {
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/UpdateGroupQueryInput
 type UpdateGroupQueryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2507,7 +2564,6 @@ func (s *UpdateGroupQueryInput) SetResourceQuery(v *ResourceQuery) *UpdateGroupQ
 	return s
 }
 
-// See also, https://docs.aws.amazon.com/goto/WebAPI/resource-groups-2017-11-27/UpdateGroupQueryOutput
 type UpdateGroupQueryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2534,4 +2590,9 @@ func (s *UpdateGroupQueryOutput) SetGroupQuery(v *GroupQuery) *UpdateGroupQueryO
 const (
 	// QueryTypeTagFilters10 is a QueryType enum value
 	QueryTypeTagFilters10 = "TAG_FILTERS_1_0"
+)
+
+const (
+	// ResourceFilterNameResourceType is a ResourceFilterName enum value
+	ResourceFilterNameResourceType = "resource-type"
 )

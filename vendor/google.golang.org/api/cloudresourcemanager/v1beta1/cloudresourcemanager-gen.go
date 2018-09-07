@@ -1,4 +1,4 @@
-// Package cloudresourcemanager provides access to the Google Cloud Resource Manager API.
+// Package cloudresourcemanager provides access to the Cloud Resource Manager API.
 //
 // See https://cloud.google.com/resource-manager
 //
@@ -187,7 +187,6 @@ func (s *Ancestor) MarshalJSON() ([]byte, error) {
 type AuditConfig struct {
 	// AuditLogConfigs: The configuration for logging of each type of
 	// permission.
-	// Next ID: 4
 	AuditLogConfigs []*AuditLogConfig `json:"auditLogConfigs,omitempty"`
 
 	// Service: Specifies a service that will be enabled for audit
@@ -284,6 +283,15 @@ func (s *AuditLogConfig) MarshalJSON() ([]byte, error) {
 
 // Binding: Associates `members` with a `role`.
 type Binding struct {
+	// Condition: Unimplemented. The condition that is associated with this
+	// binding.
+	// NOTE: an unsatisfied condition will not allow user access via
+	// current
+	// binding. Different bindings, including their conditions, are
+	// examined
+	// independently.
+	Condition *Expr `json:"condition,omitempty"`
+
 	// Members: Specifies the identities requesting access for a Cloud
 	// Platform resource.
 	// `members` can have the following values:
@@ -298,7 +306,7 @@ type Binding struct {
 	//
 	// * `user:{emailid}`: An email address that represents a specific
 	// Google
-	//    account. For example, `alice@gmail.com` or `joe@example.com`.
+	//    account. For example, `alice@gmail.com` .
 	//
 	//
 	// * `serviceAccount:{emailid}`: An email address that represents a
@@ -320,12 +328,10 @@ type Binding struct {
 	Members []string `json:"members,omitempty"`
 
 	// Role: Role that is assigned to `members`.
-	// For example, `roles/viewer`, `roles/editor`, or
-	// `roles/owner`.
-	// Required
+	// For example, `roles/viewer`, `roles/editor`, or `roles/owner`.
 	Role string `json:"role,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "Members") to
+	// ForceSendFields is a list of field names (e.g. "Condition") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -333,7 +339,7 @@ type Binding struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "Members") to include in
+	// NullFields is a list of field names (e.g. "Condition") to include in
 	// API requests with the JSON null value. By default, fields with empty
 	// values are omitted from API requests. However, any field with an
 	// empty value appearing in NullFields will be sent to the server as
@@ -364,6 +370,60 @@ type Empty struct {
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
 	googleapi.ServerResponse `json:"-"`
+}
+
+// Expr: Represents an expression text. Example:
+//
+//     title: "User account presence"
+//     description: "Determines whether the request has a user account"
+//     expression: "size(request.user) > 0"
+type Expr struct {
+	// Description: An optional description of the expression. This is a
+	// longer text which
+	// describes the expression, e.g. when hovered over it in a UI.
+	Description string `json:"description,omitempty"`
+
+	// Expression: Textual representation of an expression in
+	// Common Expression Language syntax.
+	//
+	// The application context of the containing message determines
+	// which
+	// well-known feature set of CEL is supported.
+	Expression string `json:"expression,omitempty"`
+
+	// Location: An optional string indicating the location of the
+	// expression for error
+	// reporting, e.g. a file name and a position in the file.
+	Location string `json:"location,omitempty"`
+
+	// Title: An optional title for the expression, i.e. a short string
+	// describing
+	// its purpose. This can be used e.g. in UIs which allow to enter
+	// the
+	// expression.
+	Title string `json:"title,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Description") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Description") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *Expr) MarshalJSON() ([]byte, error) {
+	type NoMethod Expr
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // FolderOperation: Metadata describing a long running folder operation
@@ -625,11 +685,14 @@ type Organization struct {
 	// @OutputOnly
 	CreationTime string `json:"creationTime,omitempty"`
 
-	// DisplayName: A friendly string to be used to refer to the
-	// Organization in the UI.
-	// Assigned by the server, set to the primary domain of the G
-	// Suite
-	// customer that owns the organization.
+	// DisplayName: A human-readable string that refers to the Organization
+	// in the
+	// GCP Console UI. This string is set by the server and cannot
+	// be
+	// changed. The string will be set to the primary domain (for
+	// example,
+	// "google.com") of the G Suite customer that owns the
+	// organization.
 	// @OutputOnly
 	DisplayName string `json:"displayName,omitempty"`
 
@@ -656,7 +719,6 @@ type Organization struct {
 	// on creation. This
 	// should be omitted when creating a new Organization.
 	// This field is read-only.
-	// This field is deprecated and will be removed in v1. Use name instead.
 	OrganizationId string `json:"organizationId,omitempty"`
 
 	// Owner: The owner of this Organization. The owner should be specified
@@ -700,8 +762,8 @@ func (s *Organization) MarshalJSON() ([]byte, error) {
 // descendants will
 // be deleted.
 type OrganizationOwner struct {
-	// DirectoryCustomerId: The Google for Work customer id used in the
-	// Directory API.
+	// DirectoryCustomerId: The G Suite customer id used in the Directory
+	// API.
 	DirectoryCustomerId string `json:"directoryCustomerId,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "DirectoryCustomerId")
@@ -733,7 +795,7 @@ func (s *OrganizationOwner) MarshalJSON() ([]byte, error) {
 // specify access control policies for Cloud Platform resources.
 //
 //
-// A `Policy` consists of a list of `bindings`. A `Binding` binds a list
+// A `Policy` consists of a list of `bindings`. A `binding` binds a list
 // of
 // `members` to a `role`, where the members can be user accounts, Google
 // groups,
@@ -741,7 +803,7 @@ func (s *OrganizationOwner) MarshalJSON() ([]byte, error) {
 // permissions
 // defined by IAM.
 //
-// **Example**
+// **JSON Example**
 //
 //     {
 //       "bindings": [
@@ -752,7 +814,7 @@ func (s *OrganizationOwner) MarshalJSON() ([]byte, error) {
 //             "group:admins@example.com",
 //             "domain:google.com",
 //
-// "serviceAccount:my-other-app@appspot.gserviceaccount.com",
+// "serviceAccount:my-other-app@appspot.gserviceaccount.com"
 //           ]
 //         },
 //         {
@@ -761,6 +823,20 @@ func (s *OrganizationOwner) MarshalJSON() ([]byte, error) {
 //         }
 //       ]
 //     }
+//
+// **YAML Example**
+//
+//     bindings:
+//     - members:
+//       - user:mike@example.com
+//       - group:admins@example.com
+//       - domain:google.com
+//       - serviceAccount:my-other-app@appspot.gserviceaccount.com
+//       role: roles/owner
+//     - members:
+//       - user:sean@example.com
+//       role: roles/viewer
+//
 //
 // For a description of IAM and its features, see the
 // [IAM developer's guide](https://cloud.google.com/iam/docs).
@@ -1464,7 +1540,7 @@ func (r *OrganizationsService) List() *OrganizationsListCall {
 //
 // Organizations may be filtered by `owner.directoryCustomerId` or
 // by
-// `domain`, where the domain is a Google for Work domain, for
+// `domain`, where the domain is a G Suite domain, for
 // example:
 //
 // |Filter|Description|
@@ -1596,7 +1672,7 @@ func (c *OrganizationsListCall) Do(opts ...googleapi.CallOption) (*ListOrganizat
 	//   "parameterOrder": [],
 	//   "parameters": {
 	//     "filter": {
-	//       "description": "An optional query string used to filter the Organizations to return in\nthe response. Filter rules are case-insensitive.\n\n\nOrganizations may be filtered by `owner.directoryCustomerId` or by\n`domain`, where the domain is a Google for Work domain, for example:\n\n|Filter|Description|\n|------|-----------|\n|owner.directorycustomerid:123456789|Organizations with `owner.directory_customer_id` equal to `123456789`.|\n|domain:google.com|Organizations corresponding to the domain `google.com`.|\n\nThis field is optional.",
+	//       "description": "An optional query string used to filter the Organizations to return in\nthe response. Filter rules are case-insensitive.\n\n\nOrganizations may be filtered by `owner.directoryCustomerId` or by\n`domain`, where the domain is a G Suite domain, for example:\n\n|Filter|Description|\n|------|-----------|\n|owner.directorycustomerid:123456789|Organizations with `owner.directory_customer_id` equal to `123456789`.|\n|domain:google.com|Organizations corresponding to the domain `google.com`.|\n\nThis field is optional.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -2079,7 +2155,20 @@ type ProjectsCreateCall struct {
 //
 // Several APIs are activated automatically for the Project,
 // including
-// Google Cloud Storage.
+// Google Cloud Storage. The parent is identified by a
+// specified
+// ResourceId, which must include both an ID and a type, such
+// as
+// project, folder, or organization.
+//
+// This method does not associate the new project with a billing
+// account.
+// You can set or update the billing account associated with a project
+// using
+// the
+// [`projects.updateBillingInfo`]
+// (/billing/reference/rest/v1/projects/up
+// dateBillingInfo) method.
 func (r *ProjectsService) Create(project *Project) *ProjectsCreateCall {
 	c := &ProjectsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.project = project
@@ -2176,7 +2265,7 @@ func (c *ProjectsCreateCall) Do(opts ...googleapi.CallOption) (*Project, error) 
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates a Project resource.\n\nInitially, the Project resource is owned by its creator exclusively.\nThe creator can later grant permission to others to read or update the\nProject.\n\nSeveral APIs are activated automatically for the Project, including\nGoogle Cloud Storage.",
+	//   "description": "Creates a Project resource.\n\nInitially, the Project resource is owned by its creator exclusively.\nThe creator can later grant permission to others to read or update the\nProject.\n\nSeveral APIs are activated automatically for the Project, including\nGoogle Cloud Storage. The parent is identified by a specified\nResourceId, which must include both an ID and a type, such as\nproject, folder, or organization.\n\nThis method does not associate the new project with a billing account.\nYou can set or update the billing account associated with a project using\nthe [`projects.updateBillingInfo`]\n(/billing/reference/rest/v1/projects/updateBillingInfo) method.",
 	//   "flatPath": "v1beta1/projects",
 	//   "httpMethod": "POST",
 	//   "id": "cloudresourcemanager.projects.create",
@@ -2214,11 +2303,8 @@ type ProjectsDeleteCall struct {
 
 // Delete: Marks the Project identified by the specified
 // `project_id` (for example, `my-project-123`) for deletion.
-// This method will only affect the Project if the following criteria
-// are met:
-//
-// + The Project does not have a billing account associated with it.
-// + The Project has a lifecycle state of
+// This method will only affect the Project if it has a lifecycle state
+// of
 // ACTIVE.
 //
 // This method changes the Project's lifecycle state from
@@ -2326,7 +2412,7 @@ func (c *ProjectsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 	}
 	return ret, nil
 	// {
-	//   "description": "Marks the Project identified by the specified\n`project_id` (for example, `my-project-123`) for deletion.\nThis method will only affect the Project if the following criteria are met:\n\n+ The Project does not have a billing account associated with it.\n+ The Project has a lifecycle state of\nACTIVE.\n\nThis method changes the Project's lifecycle state from\nACTIVE\nto DELETE_REQUESTED.\nThe deletion starts at an unspecified time, at which point the project is\nno longer accessible.\n\nUntil the deletion completes, you can check the lifecycle state\nchecked by retrieving the Project with GetProject,\nand the Project remains visible to ListProjects.\nHowever, you cannot update the project.\n\nAfter the deletion completes, the Project is not retrievable by\nthe  GetProject and\nListProjects methods.\n\nThe caller must have modify permissions for this Project.",
+	//   "description": "Marks the Project identified by the specified\n`project_id` (for example, `my-project-123`) for deletion.\nThis method will only affect the Project if it has a lifecycle state of\nACTIVE.\n\nThis method changes the Project's lifecycle state from\nACTIVE\nto DELETE_REQUESTED.\nThe deletion starts at an unspecified time, at which point the project is\nno longer accessible.\n\nUntil the deletion completes, you can check the lifecycle state\nchecked by retrieving the Project with GetProject,\nand the Project remains visible to ListProjects.\nHowever, you cannot update the project.\n\nAfter the deletion completes, the Project is not retrievable by\nthe  GetProject and\nListProjects methods.\n\nThe caller must have modify permissions for this Project.",
 	//   "flatPath": "v1beta1/projects/{projectId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "cloudresourcemanager.projects.delete",

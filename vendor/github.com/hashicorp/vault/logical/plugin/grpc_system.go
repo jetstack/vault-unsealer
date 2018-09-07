@@ -123,6 +123,38 @@ func (s *gRPCSystemViewClient) MlockEnabled() bool {
 	return reply.Enabled
 }
 
+func (s *gRPCSystemViewClient) LocalMount() bool {
+	reply, err := s.client.LocalMount(context.Background(), &pb.Empty{})
+	if err != nil {
+		return false
+	}
+
+	return reply.Local
+}
+
+func (s *gRPCSystemViewClient) EntityInfo(entityID string) (*logical.Entity, error) {
+	reply, err := s.client.EntityInfo(context.Background(), &pb.EntityInfoArgs{
+		EntityID: entityID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if reply.Err != "" {
+		return nil, errors.New(reply.Err)
+	}
+
+	return reply.Entity, nil
+}
+
+func (s *gRPCSystemViewClient) PluginEnv(ctx context.Context) (*logical.PluginEnvironment, error) {
+	reply, err := s.client.PluginEnv(ctx, &pb.Empty{})
+	if err != nil {
+		return nil, err
+	}
+
+	return reply.PluginEnvironment, nil
+}
+
 type gRPCSystemViewServer struct {
 	impl logical.SystemView
 }
@@ -198,5 +230,36 @@ func (s *gRPCSystemViewServer) MlockEnabled(ctx context.Context, _ *pb.Empty) (*
 	enabled := s.impl.MlockEnabled()
 	return &pb.MlockEnabledReply{
 		Enabled: enabled,
+	}, nil
+}
+
+func (s *gRPCSystemViewServer) LocalMount(ctx context.Context, _ *pb.Empty) (*pb.LocalMountReply, error) {
+	local := s.impl.LocalMount()
+	return &pb.LocalMountReply{
+		Local: local,
+	}, nil
+}
+
+func (s *gRPCSystemViewServer) EntityInfo(ctx context.Context, args *pb.EntityInfoArgs) (*pb.EntityInfoReply, error) {
+	entity, err := s.impl.EntityInfo(args.EntityID)
+	if err != nil {
+		return &pb.EntityInfoReply{
+			Err: pb.ErrToString(err),
+		}, nil
+	}
+	return &pb.EntityInfoReply{
+		Entity: entity,
+	}, nil
+}
+
+func (s *gRPCSystemViewServer) PluginEnv(ctx context.Context, _ *pb.Empty) (*pb.PluginEnvReply, error) {
+	pluginEnv, err := s.impl.PluginEnv(ctx)
+	if err != nil {
+		return &pb.PluginEnvReply{
+			Err: pb.ErrToString(err),
+		}, nil
+	}
+	return &pb.PluginEnvReply{
+		PluginEnvironment: pluginEnv,
 	}, nil
 }

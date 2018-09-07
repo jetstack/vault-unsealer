@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ func (pc *PushConfig) toProto() *pb.PushConfig {
 	}
 }
 
-// Subscription config contains the configuration of a subscription.
+// SubscriptionConfig describes the configuration of a subscription.
 type SubscriptionConfig struct {
 	Topic      *Topic
 	PushConfig PushConfig
@@ -144,6 +144,9 @@ type SubscriptionConfig struct {
 	// acknowledged messages, otherwise only unacknowledged messages are retained.
 	// Defaults to 7 days. Cannot be longer than 7 days or shorter than 10 minutes.
 	RetentionDuration time.Duration
+
+	// The set of labels for the subscription.
+	Labels map[string]string
 }
 
 func (cfg *SubscriptionConfig) toProto(name string) *pb.Subscription {
@@ -165,6 +168,7 @@ func (cfg *SubscriptionConfig) toProto(name string) *pb.Subscription {
 		AckDeadlineSeconds:       trunc32(int64(cfg.AckDeadline.Seconds())),
 		RetainAckedMessages:      cfg.RetainAckedMessages,
 		MessageRetentionDuration: retentionDuration,
+		Labels: cfg.Labels,
 	}
 }
 
@@ -186,6 +190,7 @@ func protoToSubscriptionConfig(pbSub *pb.Subscription, c *Client) (SubscriptionC
 		},
 		RetainAckedMessages: pbSub.RetainAckedMessages,
 		RetentionDuration:   rd,
+		Labels:              pbSub.Labels,
 	}, nil
 }
 
@@ -197,7 +202,7 @@ type ReceiveSettings struct {
 	//
 	// The Subscription will automatically extend the ack deadline of all
 	// fetched Messages for the duration specified. Automatic deadline
-	// extension may be disabled by specifying a duration less than 1.
+	// extension may be disabled by specifying a duration less than 0.
 	MaxExtension time.Duration
 
 	// MaxOutstandingMessages is the maximum number of unprocessed messages
@@ -225,6 +230,9 @@ type ReceiveSettings struct {
 	// processed concurrently, set MaxOutstandingMessages.
 	NumGoroutines int
 }
+
+// This is a var so that tests can change it.
+var minAckDeadline = 10 * time.Second
 
 // DefaultReceiveSettings holds the default values for ReceiveSettings.
 var DefaultReceiveSettings = ReceiveSettings{
@@ -277,6 +285,12 @@ type SubscriptionConfigToUpdate struct {
 
 	// If non-zero, RetentionDuration is changed.
 	RetentionDuration time.Duration
+
+	// If non-nil, the current set of labels is completely
+	// replaced by the new set.
+	// This field has beta status. It is not subject to the stability guarantee
+	// and may change.
+	Labels map[string]string
 }
 
 // Update changes an existing subscription according to the fields set in cfg.
@@ -313,6 +327,10 @@ func (s *Subscription) updateRequest(cfg *SubscriptionConfigToUpdate) *pb.Update
 	if cfg.RetentionDuration != 0 {
 		psub.MessageRetentionDuration = ptypes.DurationProto(cfg.RetentionDuration)
 		paths = append(paths, "message_retention_duration")
+	}
+	if cfg.Labels != nil {
+		psub.Labels = cfg.Labels
+		paths = append(paths, "labels")
 	}
 	return &pb.UpdateSubscriptionRequest{
 		Subscription: psub,
@@ -389,7 +407,7 @@ var errReceiveInProgress = errors.New("pubsub: Receive already in progress for t
 // The context passed to f will be canceled when ctx is Done or there is a
 // fatal service error.
 //
-// Receive will automatically extend the ack deadline of all fetched Messages for the
+// Receive will automatically extend the ack deadline of all fetched Messages up to the
 // period specified by s.ReceiveSettings.MaxExtension.
 //
 // Each Subscription may have only one invocation of Receive active at a time.
@@ -403,13 +421,6 @@ func (s *Subscription) Receive(ctx context.Context, f func(context.Context, *Mes
 	s.mu.Unlock()
 	defer func() { s.mu.Lock(); s.receiveActive = false; s.mu.Unlock() }()
 
-	config, err := s.Config(ctx)
-	if err != nil {
-		if grpc.Code(err) == codes.Canceled {
-			return nil
-		}
-		return err
-	}
 	maxCount := s.ReceiveSettings.MaxOutstandingMessages
 	if maxCount == 0 {
 		maxCount = DefaultReceiveSettings.MaxOutstandingMessages
@@ -431,9 +442,9 @@ func (s *Subscription) Receive(ctx context.Context, f func(context.Context, *Mes
 	}
 	// TODO(jba): add tests that verify that ReceiveSettings are correctly processed.
 	po := &pullOptions{
-		maxExtension: maxExt,
-		maxPrefetch:  trunc32(int64(maxCount)),
-		ackDeadline:  config.AckDeadline,
+		minAckDeadline: minAckDeadline,
+		maxExtension:   maxExt,
+		maxPrefetch:    trunc32(int64(maxCount)),
 	}
 	fc := newFlowController(maxCount, maxBytes)
 
@@ -495,9 +506,9 @@ func (s *Subscription) receive(ctx context.Context, po *pullOptions, fc *flowCon
 			}
 			old := msg.doneFunc
 			msgLen := len(msg.Data)
-			msg.doneFunc = func(ackID string, ack bool) {
+			msg.doneFunc = func(ackID string, ack bool, receiveTime time.Time) {
 				defer fc.release(msgLen)
-				old(ackID, ack)
+				old(ackID, ack, receiveTime)
 			}
 			wg.Add(1)
 			go func() {
@@ -510,9 +521,7 @@ func (s *Subscription) receive(ctx context.Context, po *pullOptions, fc *flowCon
 
 // TODO(jba): remove when we delete messageIterator.
 type pullOptions struct {
-	maxExtension time.Duration
-	maxPrefetch  int32
-	// ackDeadline is the default ack deadline for the subscription. Not
-	// configurable.
-	ackDeadline time.Duration
+	minAckDeadline time.Duration
+	maxExtension   time.Duration
+	maxPrefetch    int32
 }

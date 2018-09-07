@@ -24,8 +24,8 @@ same entry.
 
 ```text
 $ vault login -method=userpass \
-    username=foo \
-    password=bar
+    username=mitchellh \
+    password=foo
 ```
 
 ### Via the API
@@ -34,7 +34,7 @@ $ vault login -method=userpass \
 $ curl \
     --request POST \
     --data '{"password": "foo"}' \
-    https://vault.rocks/v1/auth/userpass/login/mitchellh
+    http://127.0.0.1:8200/v1/auth/userpass/login/mitchellh
 ```
 
 The response will contain the token at `auth.client_token`:
@@ -85,6 +85,5 @@ management tool.
 
 ## API
 
-The Userpass auth method has a full HTTP API. Please see the
-[Userpass auth method API](/api/auth/userpass/index.html) for more
-details.
+The Userpass auth method has a full HTTP API. Please see the [Userpass auth
+method API](/api/auth/userpass/index.html) for more details.

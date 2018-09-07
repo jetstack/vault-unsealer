@@ -49,9 +49,6 @@ const basePath = "https://serviceconsumermanagement.googleapis.com/"
 const (
 	// View and manage your data across Google Cloud Platform services
 	CloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
-
-	// Manage your Google API service configuration
-	ServiceManagementScope = "https://www.googleapis.com/auth/service.management"
 )
 
 func New(client *http.Client) (*APIService, error) {
@@ -112,7 +109,7 @@ type ServicesTenancyUnitsService struct {
 }
 
 // AddTenantProjectRequest: Request to add a newly created and
-// configured tenant project to tenancy
+// configured tenant project to a tenancy
 // unit.
 type AddTenantProjectRequest struct {
 	// ProjectConfig: Configuration of the new tenant project that will be
@@ -461,22 +458,9 @@ func (s *Authentication) MarshalJSON() ([]byte, error) {
 // will be
 // ignored.
 type AuthenticationRule struct {
-	// AllowWithoutCredential: Whether to allow requests without a
-	// credential. The credential can be
-	// an OAuth token, Google cookies (first-party auth) or
-	// EndUserCreds.
-	//
-	// For requests without credentials, if the service control environment
-	// is
-	// specified, each incoming request **must** be associated with a
-	// service
-	// consumer. This can be done by passing an API key that belongs to a
-	// consumer
-	// project.
+	// AllowWithoutCredential: If true, the service accepts API keys without
+	// any other credential.
 	AllowWithoutCredential bool `json:"allowWithoutCredential,omitempty"`
-
-	// CustomAuth: Configuration for custom authentication.
-	CustomAuth *CustomAuthRequirements `json:"customAuth,omitempty"`
 
 	// Oauth: The requirements for OAuth credentials.
 	Oauth *OAuthRequirements `json:"oauth,omitempty"`
@@ -767,8 +751,8 @@ func (s *Billing) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// BillingConfig: Describes billing configuration for new a Tenant
-// Project
+// BillingConfig: Describes billing configuration for a new tenant
+// project.
 type BillingConfig struct {
 	// BillingAccount: Name of the billing account.
 	// For example `billingAccounts/012345-567890-ABCDEF`.
@@ -858,8 +842,35 @@ type CancelOperationRequest struct {
 // and
 // `google.rpc.context.OriginContext`.
 //
-// Available context types are defined in package
+// Available context types are defined in
+// package
 // `google.rpc.context`.
+//
+// This also provides mechanism to whitelist any protobuf message
+// extension that
+// can be sent in grpc metadata using
+// “x-goog-ext-<extension_id>-bin”
+// and
+// “x-goog-ext-<extension_id>-jspb” format. For example, list any
+// service
+// specific protobuf types that can appear in grpc metadata as follows
+// in your
+// yaml file:
+//
+// Example:
+//
+//     context:
+//       rules:
+//        - selector:
+// "google.example.library.v1.LibraryService.CreateBook"
+//          allowed_request_extensions:
+//          - google.foo.v1.NewExtension
+//          allowed_response_extensions:
+//          - google.foo.v1.NewExtension
+//
+// You can also specify extension ID instead of fully qualified
+// extension name
+// here.
 type Context struct {
 	// Rules: A list of RPC context rules that apply to individual API
 	// methods.
@@ -895,6 +906,16 @@ func (s *Context) MarshalJSON() ([]byte, error) {
 // for an individual API
 // element.
 type ContextRule struct {
+	// AllowedRequestExtensions: A list of full type names or extension IDs
+	// of extensions allowed in grpc
+	// side channel from client to backend.
+	AllowedRequestExtensions []string `json:"allowedRequestExtensions,omitempty"`
+
+	// AllowedResponseExtensions: A list of full type names or extension IDs
+	// of extensions allowed in grpc
+	// side channel from backend to client.
+	AllowedResponseExtensions []string `json:"allowedResponseExtensions,omitempty"`
+
 	// Provided: A list of full type names of provided contexts.
 	Provided []string `json:"provided,omitempty"`
 
@@ -906,20 +927,22 @@ type ContextRule struct {
 	// Refer to selector for syntax details.
 	Selector string `json:"selector,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "Provided") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
+	// ForceSendFields is a list of field names (e.g.
+	// "AllowedRequestExtensions") to unconditionally include in API
+	// requests. By default, fields with empty values are omitted from API
+	// requests. However, any non-pointer, non-interface field appearing in
+	// ForceSendFields will be sent to the server regardless of whether the
+	// field is empty or not. This may be used to include empty fields in
+	// Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "Provided") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
+	// NullFields is a list of field names (e.g. "AllowedRequestExtensions")
+	// to include in API requests with the JSON null value. By default,
+	// fields with empty values are omitted from API requests. However, any
+	// field with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
 	NullFields []string `json:"-"`
 }
 
@@ -967,16 +990,16 @@ func (s *Control) MarshalJSON() ([]byte, error) {
 // consumer of a service.
 type CreateTenancyUnitRequest struct {
 	// TenancyUnitId: Optional producer provided identifier of the tenancy
-	// unit
-	// Must be no longer than 40 characters and preferably URI friendly
-	// If it is not provided, UID for the tenancy unit will be auto
-	// generated
+	// unit.
+	// Must be no longer than 40 characters and preferably URI friendly.
+	// If it is not provided, a UID for the tenancy unit will be auto
+	// generated.
 	// It must be unique across a service.
 	// If the tenancy unit already exists for the service and consumer
 	// pair,
-	// CreateTenancyUnit will return existing tenancy unit if provided
-	// identifier
-	// is identical or empty, otherwise the call will fail.
+	// `CreateTenancyUnit` will return the existing tenancy unit if the
+	// provided
+	// identifier is identical or empty, otherwise the call will fail.
 	TenancyUnitId string `json:"tenancyUnitId,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "TenancyUnitId") to
@@ -998,39 +1021,6 @@ type CreateTenancyUnitRequest struct {
 
 func (s *CreateTenancyUnitRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod CreateTenancyUnitRequest
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// CustomAuthRequirements: Configuration for a custom authentication
-// provider.
-type CustomAuthRequirements struct {
-	// Provider: A configuration string containing connection information
-	// for the
-	// authentication provider, typically formatted as a SmartService
-	// string
-	// (go/smartservice).
-	Provider string `json:"provider,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Provider") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Provider") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *CustomAuthRequirements) MarshalJSON() ([]byte, error) {
-	type NoMethod CustomAuthRequirements
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1200,11 +1190,7 @@ func (s *CustomHttpPattern) MarshalJSON() ([]byte, error) {
 // Text can be excluded from doc using the following
 // notation:
 // <pre><code>&#40;-- internal comment --&#41;</code></pre>
-// Comments can be made conditional using a visibility label. The
-// below
-// text will be only rendered if the `BETA` label is
-// available:
-// <pre><code>&#40;--BETA: comment for BETA users --&#41;</code></pre>
+//
 // A few directives are available in documentation. Note that
 // directives must appear on a single line to be properly
 // identified. The `include` directive includes a markdown file from
@@ -2006,6 +1992,12 @@ type HttpRule struct {
 	// Put: Used for updating a resource.
 	Put string `json:"put,omitempty"`
 
+	// ResponseBody: Optional. The name of the response field whose value is
+	// mapped to the HTTP
+	// body of response. Other response fields are ignored. When
+	// not set, the response message will be used as HTTP body of response.
+	ResponseBody string `json:"responseBody,omitempty"`
+
 	// RestCollection: DO NOT USE. This is an experimental field.
 	//
 	// Optional. The REST collection name is by default derived from the
@@ -2164,7 +2156,7 @@ type ListTenancyUnitsResponse struct {
 	// NextPageToken: Pagination token for large results.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// TenancyUnits: Tenancy Units matching the request.
+	// TenancyUnits: Tenancy units matching the request.
 	TenancyUnits []*TenancyUnit `json:"tenancyUnits,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -2574,6 +2566,10 @@ type MetricDescriptor struct {
 	// for responses that failed.
 	Labels []*LabelDescriptor `json:"labels,omitempty"`
 
+	// Metadata: Optional. Metadata which can be used to guide usage of the
+	// metric.
+	Metadata *MetricDescriptorMetadata `json:"metadata,omitempty"`
+
 	// MetricKind: Whether the metric records instantaneous values, changes
 	// to a value, etc.
 	// Some combinations of `metric_kind` and `value_type` might not be
@@ -2596,13 +2592,14 @@ type MetricDescriptor struct {
 
 	// Type: The metric type, including its DNS name prefix. The type is
 	// not
-	// URL-encoded.  All user-defined custom metric types have the DNS
+	// URL-encoded.  All user-defined metric types have the DNS
 	// name
-	// `custom.googleapis.com`.  Metric types should use a natural
-	// hierarchical
-	// grouping. For example:
+	// `custom.googleapis.com` or `external.googleapis.com`.  Metric types
+	// should
+	// use a natural hierarchical grouping. For example:
 	//
 	//     "custom.googleapis.com/invoice/paid/amount"
+	//     "external.googleapis.com/prometheus/up"
 	//     "appengine.googleapis.com/http/server/response_latencies"
 	Type string `json:"type,omitempty"`
 
@@ -2648,8 +2645,6 @@ type MetricDescriptor struct {
 	//
 	// **Grammar**
 	//
-	// The grammar includes the dimensionless unit `1`, such as `1/s`.
-	//
 	// The grammar also includes these connectors:
 	//
 	// * `/`    division (as an infix operator, e.g. `1/s`).
@@ -2659,7 +2654,7 @@ type MetricDescriptor struct {
 	//
 	//     Expression = Component { "." Component } { "/" Component } ;
 	//
-	//     Component = [ PREFIX ] UNIT [ Annotation ]
+	//     Component = ( [ PREFIX ] UNIT | "%" ) [ Annotation ]
 	//               | Annotation
 	//               | "1"
 	//               ;
@@ -2673,6 +2668,10 @@ type MetricDescriptor struct {
 	//    `{requests}/s == 1/s`, `By{transmitted}/s == By/s`.
 	// * `NAME` is a sequence of non-blank printable ASCII characters not
 	//    containing '{' or '}'.
+	// * `1` represents dimensionless value 1, such as in `1/s`.
+	// * `%` represents dimensionless value 1/100, and annotates values
+	// giving
+	//    a percentage.
 	Unit string `json:"unit,omitempty"`
 
 	// ValueType: Whether the measurement is an integer, a floating-point
@@ -2711,6 +2710,100 @@ type MetricDescriptor struct {
 
 func (s *MetricDescriptor) MarshalJSON() ([]byte, error) {
 	type NoMethod MetricDescriptor
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// MetricDescriptorMetadata: Additional annotations that can be used to
+// guide the usage of a metric.
+type MetricDescriptorMetadata struct {
+	// IngestDelay: The delay of data points caused by ingestion. Data
+	// points older than this
+	// age are guaranteed to be ingested and available to be read,
+	// excluding
+	// data loss due to errors.
+	IngestDelay string `json:"ingestDelay,omitempty"`
+
+	// LaunchStage: The launch stage of the metric definition.
+	//
+	// Possible values:
+	//   "LAUNCH_STAGE_UNSPECIFIED" - Do not use this default value.
+	//   "EARLY_ACCESS" - Early Access features are limited to a closed
+	// group of testers. To use
+	// these features, you must sign up in advance and sign a Trusted
+	// Tester
+	// agreement (which includes confidentiality provisions). These features
+	// may
+	// be unstable, changed in backward-incompatible ways, and are
+	// not
+	// guaranteed to be released.
+	//   "ALPHA" - Alpha is a limited availability test for releases before
+	// they are cleared
+	// for widespread use. By Alpha, all significant design issues are
+	// resolved
+	// and we are in the process of verifying functionality. Alpha
+	// customers
+	// need to apply for access, agree to applicable terms, and have
+	// their
+	// projects whitelisted. Alpha releases don’t have to be feature
+	// complete,
+	// no SLAs are provided, and there are no technical support obligations,
+	// but
+	// they will be far enough along that customers can actually use them
+	// in
+	// test environments or for limited-use tests -- just like they would
+	// in
+	// normal production cases.
+	//   "BETA" - Beta is the point at which we are ready to open a release
+	// for any
+	// customer to use. There are no SLA or technical support obligations in
+	// a
+	// Beta release. Products will be complete from a feature perspective,
+	// but
+	// may have some open outstanding issues. Beta releases are suitable
+	// for
+	// limited production use cases.
+	//   "GA" - GA features are open to all developers and are considered
+	// stable and
+	// fully qualified for production use.
+	//   "DEPRECATED" - Deprecated features are scheduled to be shut down
+	// and removed. For more
+	// information, see the “Deprecation Policy” section of our [Terms
+	// of
+	// Service](https://cloud.google.com/terms/)
+	// and the [Google Cloud Platform Subject to the
+	// Deprecation
+	// Policy](https://cloud.google.com/terms/deprecation) documentation.
+	LaunchStage string `json:"launchStage,omitempty"`
+
+	// SamplePeriod: The sampling period of metric data points. For metrics
+	// which are written
+	// periodically, consecutive data points are stored at this time
+	// interval,
+	// excluding data loss due to errors. Metrics with a higher granularity
+	// have
+	// a smaller sampling period.
+	SamplePeriod string `json:"samplePeriod,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "IngestDelay") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "IngestDelay") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *MetricDescriptorMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod MetricDescriptorMetadata
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -3324,7 +3417,7 @@ func (s *Page) MarshalJSON() ([]byte, error) {
 // this level)
 type PolicyBinding struct {
 	// Members: Uses the same format as in IAM policy.
-	// `member` must include both prefix and id. E.g.,
+	// `member` must include both prefix and ID. For example,
 	// `user:{emailId}`,
 	// `serviceAccount:{emailId}`, `group:{emailId}`.
 	Members []string `json:"members,omitempty"`
@@ -3745,7 +3838,7 @@ type Service struct {
 	// assigned
 	// by the client for tracking purpose. If empty, the server may choose
 	// to
-	// generate one instead.
+	// generate one instead. Must be no longer than 60 characters.
 	Id string `json:"id,omitempty"`
 
 	// Logging: Logging configuration.
@@ -3812,9 +3905,6 @@ type Service struct {
 	// Usage: Configuration controlling usage of this service.
 	Usage *Usage `json:"usage,omitempty"`
 
-	// Visibility: API visibility configuration.
-	Visibility *Visibility `json:"visibility,omitempty"`
-
 	// ForceSendFields is a list of field names (e.g. "Apis") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -3848,11 +3938,13 @@ type ServiceAccountConfig struct {
 	// "<account-id>@<tenant-project-id>.iam.gserviceaccount.com".
 	// This account id has to be unique within tenant project and
 	// producers
-	// have to guarantee it.
+	// have to guarantee it. And it must be 6-30 characters long, and
+	// matches the
+	// regular expression `[a-z]([-a-z0-9]*[a-z0-9])`.
 	AccountId string `json:"accountId,omitempty"`
 
-	// TenantProjectRoles: Roles for the service account above on tenant
-	// project.
+	// TenantProjectRoles: Roles for the associated service account for the
+	// tenant project.
 	TenantProjectRoles []string `json:"tenantProjectRoles,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AccountId") to
@@ -4215,9 +4307,9 @@ func (s *SystemParameters) MarshalJSON() ([]byte, error) {
 
 // TenancyUnit: Representation of a tenancy unit.
 type TenancyUnit struct {
-	// Consumer: @OutputOnly Cloud resource One Platform Name of the
-	// consumer of this
-	// service. For example 'projects/123456'.
+	// Consumer: @OutputOnly Cloud resource name of the consumer of this
+	// service.
+	// For example 'projects/123456'.
 	Consumer string `json:"consumer,omitempty"`
 
 	// CreateTime: @OutputOnly The time this tenancy unit was created.
@@ -4235,7 +4327,7 @@ type TenancyUnit struct {
 	Service string `json:"service,omitempty"`
 
 	// TenantResources: Resources constituting the tenancy unit.
-	// There can be at most 512 tenant resources in a tenancy units.
+	// There can be at most 512 tenant resources in a tenancy unit.
 	TenantResources []*TenantResource `json:"tenantResources,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -4275,10 +4367,8 @@ func (s *TenancyUnit) MarshalJSON() ([]byte, error) {
 // project
 // removal.
 type TenantProjectConfig struct {
-	// BillingConfig: Billing account properties.
-	// It may be specified explicitly, or created from the specified
-	// group
-	// during provisioning
+	// BillingConfig: Billing account properties.  Billing account must be
+	// specified.
 	BillingConfig *BillingConfig `json:"billingConfig,omitempty"`
 
 	// Folder: Folder where project in this tenancy unit must be
@@ -4302,7 +4392,7 @@ type TenantProjectConfig struct {
 	// on this project
 	// during provisioning.  If any of these services can not be
 	// activated,
-	// addTenantProject method will fail.
+	// request will fail.
 	// For example: 'compute.googleapis.com','cloudfunctions.googleapis.com'
 	Services []string `json:"services,omitempty"`
 
@@ -4335,15 +4425,18 @@ func (s *TenantProjectConfig) MarshalJSON() ([]byte, error) {
 
 // TenantProjectPolicy: Describes policy settings that need to be
 // applied to a newly
-// created Tenant Project.
+// created tenant project.
 type TenantProjectPolicy struct {
-	// PolicyBindings: Additional policy bindings to be applied on the
-	// tenant
-	// project.
-	// At least one owner must be set in the bindings. Among the list of
-	// members
-	// as owners, at least one of them must be either `user` or `group`
-	// based.
+	// PolicyBindings: Policy bindings to be applied to the tenant project,
+	// in addition to the
+	// 'roles/owner' role granted to the Service Consumer Management
+	// service
+	// account.
+	// At least one binding must have the role `roles/owner`. Among the list
+	// of
+	// members for `roles/owner`, at least one of them must be either `user`
+	// or
+	// `group` type.
 	PolicyBindings []*PolicyBinding `json:"policyBindings,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "PolicyBindings") to
@@ -4373,7 +4466,7 @@ func (s *TenantProjectPolicy) MarshalJSON() ([]byte, error) {
 // TenantResource: Resource constituting the TenancyUnit.
 type TenantResource struct {
 	// Resource: @OutputOnly Identifier of the tenant resource.
-	// For cloud projects it is in the form 'projects/{number}'.
+	// For cloud projects, it is in the form 'projects/{number}'.
 	// For example 'projects/123456'.
 	Resource string `json:"resource,omitempty"`
 
@@ -4595,119 +4688,6 @@ func (s *UsageRule) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// Visibility: `Visibility` defines restrictions for the visibility of
-// service
-// elements.  Restrictions are specified using visibility labels
-// (e.g., TRUSTED_TESTER) that are elsewhere linked to users and
-// projects.
-//
-// Users and projects can have access to more than one visibility label.
-// The
-// effective visibility for multiple labels is the union of each
-// label's
-// elements, plus any unrestricted elements.
-//
-// If an element and its parents have no restrictions, visibility
-// is
-// unconditionally granted.
-//
-// Example:
-//
-//     visibility:
-//       rules:
-//       - selector: google.calendar.Calendar.EnhancedSearch
-//         restriction: TRUSTED_TESTER
-//       - selector: google.calendar.Calendar.Delegate
-//         restriction: GOOGLE_INTERNAL
-//
-// Here, all methods are publicly visible except for the restricted
-// methods
-// EnhancedSearch and Delegate.
-type Visibility struct {
-	// Rules: A list of visibility rules that apply to individual API
-	// elements.
-	//
-	// **NOTE:** All service configuration rules follow "last one wins"
-	// order.
-	Rules []*VisibilityRule `json:"rules,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Rules") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Rules") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *Visibility) MarshalJSON() ([]byte, error) {
-	type NoMethod Visibility
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// VisibilityRule: A visibility rule provides visibility configuration
-// for an individual API
-// element.
-type VisibilityRule struct {
-	// Restriction: A comma-separated list of visibility labels that apply
-	// to the `selector`.
-	// Any of the listed labels can be used to grant the visibility.
-	//
-	// If a rule has multiple labels, removing one of the labels but not all
-	// of
-	// them can break clients.
-	//
-	// Example:
-	//
-	//     visibility:
-	//       rules:
-	//       - selector: google.calendar.Calendar.EnhancedSearch
-	//         restriction: GOOGLE_INTERNAL, TRUSTED_TESTER
-	//
-	// Removing GOOGLE_INTERNAL from this restriction will break clients
-	// that
-	// rely on this method and only had access to it through
-	// GOOGLE_INTERNAL.
-	Restriction string `json:"restriction,omitempty"`
-
-	// Selector: Selects methods, messages, fields, enums, etc. to which
-	// this rule applies.
-	//
-	// Refer to selector for syntax details.
-	Selector string `json:"selector,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Restriction") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Restriction") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *VisibilityRule) MarshalJSON() ([]byte, error) {
-	type NoMethod VisibilityRule
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
 // method id "serviceconsumermanagement.operations.cancel":
 
 type OperationsCancelCall struct {
@@ -4854,8 +4834,7 @@ func (c *OperationsCancelCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/service.management"
+	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }
 
@@ -4986,8 +4965,7 @@ func (c *OperationsDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) 
 	//     "$ref": "Empty"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/service.management"
+	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }
 
@@ -5130,8 +5108,7 @@ func (c *OperationsGetCall) Do(opts ...googleapi.CallOption) (*Operation, error)
 	//     "$ref": "Operation"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/service.management"
+	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }
 
@@ -5323,8 +5300,7 @@ func (c *OperationsListCall) Do(opts ...googleapi.CallOption) (*ListOperationsRe
 	//     "$ref": "ListOperationsResponse"
 	//   },
 	//   "scopes": [
-	//     "https://www.googleapis.com/auth/cloud-platform",
-	//     "https://www.googleapis.com/auth/service.management"
+	//     "https://www.googleapis.com/auth/cloud-platform"
 	//   ]
 	// }
 
@@ -5371,9 +5347,11 @@ func (r *ServicesService) Search(parent string) *ServicesSearchCall {
 
 // PageSize sets the optional parameter "pageSize": The maximum number
 // of results returned by this request. Currently, the
-// default maximum is set to 1000. If page_size is not provided or
-// provided a
-// number larger than 1000, it will be automatically set to 1000.
+// default maximum is set to 1000. If page_size is not provided or the
+// size
+// provided is a number larger than 1000, it will be automatically set
+// to
+// 1000.
 func (c *ServicesSearchCall) PageSize(pageSize int64) *ServicesSearchCall {
 	c.urlParams_.Set("pageSize", fmt.Sprint(pageSize))
 	return c
@@ -5395,7 +5373,7 @@ func (c *ServicesSearchCall) PageToken(pageToken string) *ServicesSearchCall {
 // is the
 // name of the field you want to compare. Supported fields
 // are
-// `tenant_resources.tag` and`tenant_resources.resource`.
+// `tenant_resources.tag` and `tenant_resources.resource`.
 //
 // For example, to search tenancy units that contain at least one
 // tenant
@@ -5521,7 +5499,7 @@ func (c *ServicesSearchCall) Do(opts ...googleapi.CallOption) (*SearchTenancyUni
 	//   ],
 	//   "parameters": {
 	//     "pageSize": {
-	//       "description": "The maximum number of results returned by this request. Currently, the\ndefault maximum is set to 1000. If page_size is not provided or provided a\nnumber larger than 1000, it will be automatically set to 1000.\n\nOptional.",
+	//       "description": "The maximum number of results returned by this request. Currently, the\ndefault maximum is set to 1000. If page_size is not provided or the size\nprovided is a number larger than 1000, it will be automatically set to\n1000.\n\nOptional.",
 	//       "format": "int32",
 	//       "location": "query",
 	//       "type": "integer"
@@ -5539,7 +5517,7 @@ func (c *ServicesSearchCall) Do(opts ...googleapi.CallOption) (*SearchTenancyUni
 	//       "type": "string"
 	//     },
 	//     "query": {
-	//       "description": "Set a query `{expression}` for querying tenancy units. Your `{expression}`\nmust be in the format: `field_name=literal_string`. The `field_name` is the\nname of the field you want to compare. Supported fields are\n`tenant_resources.tag` and`tenant_resources.resource`.\n\nFor example, to search tenancy units that contain at least one tenant\nresource with given tag 'xyz', use query `tenant_resources.tag=xyz`.\nTo search tenancy units that contain at least one tenant resource with\ngiven resource name 'projects/123456', use query\n`tenant_resources.resource=projects/123456`.\n\nMultiple expressions can be joined with `AND`s. Tenancy units must match\nall expressions to be included in the result set. For example,\n`tenant_resources.tag=xyz AND tenant_resources.resource=projects/123456`\n\nOptional.",
+	//       "description": "Set a query `{expression}` for querying tenancy units. Your `{expression}`\nmust be in the format: `field_name=literal_string`. The `field_name` is the\nname of the field you want to compare. Supported fields are\n`tenant_resources.tag` and `tenant_resources.resource`.\n\nFor example, to search tenancy units that contain at least one tenant\nresource with given tag 'xyz', use query `tenant_resources.tag=xyz`.\nTo search tenancy units that contain at least one tenant resource with\ngiven resource name 'projects/123456', use query\n`tenant_resources.resource=projects/123456`.\n\nMultiple expressions can be joined with `AND`s. Tenancy units must match\nall expressions to be included in the result set. For example,\n`tenant_resources.tag=xyz AND tenant_resources.resource=projects/123456`\n\nOptional.",
 	//       "location": "query",
 	//       "type": "string"
 	//     }
@@ -5588,12 +5566,12 @@ type ServicesTenancyUnitsAddProjectCall struct {
 }
 
 // AddProject: Add a new tenant project to the tenancy unit.
-// There can be at most 512 tenant projects in a tenancy units.
-// If there are previously failed AddTenantProject calls, you might need
-// to
-// call RemoveTenantProject first to clean them before you can make
+// There can be at most 512 tenant projects in a tenancy unit.
+// If there are previously failed `AddTenantProject` calls, you might
+// need to
+// call `RemoveTenantProject` first to clean them before you can make
 // another
-// AddTenantProject with the same tag.
+// `AddTenantProject` with the same tag.
 // Operation<response: Empty>.
 func (r *ServicesTenancyUnitsService) AddProject(parent string, addtenantprojectrequest *AddTenantProjectRequest) *ServicesTenancyUnitsAddProjectCall {
 	c := &ServicesTenancyUnitsAddProjectCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -5688,7 +5666,7 @@ func (c *ServicesTenancyUnitsAddProjectCall) Do(opts ...googleapi.CallOption) (*
 	}
 	return ret, nil
 	// {
-	//   "description": "Add a new tenant project to the tenancy unit.\nThere can be at most 512 tenant projects in a tenancy units.\nIf there are previously failed AddTenantProject calls, you might need to\ncall RemoveTenantProject first to clean them before you can make another\nAddTenantProject with the same tag.\nOperation\u003cresponse: Empty\u003e.",
+	//   "description": "Add a new tenant project to the tenancy unit.\nThere can be at most 512 tenant projects in a tenancy unit.\nIf there are previously failed `AddTenantProject` calls, you might need to\ncall `RemoveTenantProject` first to clean them before you can make another\n`AddTenantProject` with the same tag.\nOperation\u003cresponse: Empty\u003e.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}:addProject",
 	//   "httpMethod": "POST",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.addProject",
@@ -5863,9 +5841,9 @@ type ServicesTenancyUnitsDeleteCall struct {
 	header_    http.Header
 }
 
-// Delete: Delete tenancy unit.  Before the tenancy unit is deleted,
+// Delete: Delete a tenancy unit.  Before the tenancy unit is deleted,
 // there should be
-// no tenant resource in it.
+// no tenant resources in it.
 // Operation<response: Empty>.
 func (r *ServicesTenancyUnitsService) Delete(name string) *ServicesTenancyUnitsDeleteCall {
 	c := &ServicesTenancyUnitsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -5954,7 +5932,7 @@ func (c *ServicesTenancyUnitsDeleteCall) Do(opts ...googleapi.CallOption) (*Oper
 	}
 	return ret, nil
 	// {
-	//   "description": "Delete tenancy unit.  Before the tenancy unit is deleted, there should be\nno tenant resource in it.\nOperation\u003cresponse: Empty\u003e.",
+	//   "description": "Delete a tenancy unit.  Before the tenancy unit is deleted, there should be\nno tenant resources in it.\nOperation\u003cresponse: Empty\u003e.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits/{tenancyUnitsId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.delete",
@@ -5992,12 +5970,12 @@ type ServicesTenancyUnitsListCall struct {
 	header_      http.Header
 }
 
-// List: Find tenancy unit for a service and consumer.
-// This method should not be used in producers' runtime path, e.g.
-// finding
-// the tenant project number when creating VMs. Producers should
-// persist
-// the tenant project information after the project is created.
+// List: Find the tenancy unit for a service and consumer.
+// This method should not be used in producers' runtime path, for
+// example
+// finding the tenant project number when creating VMs. Producers
+// should
+// persist the tenant project information after the project is created.
 func (r *ServicesTenancyUnitsService) List(parent string) *ServicesTenancyUnitsListCall {
 	c := &ServicesTenancyUnitsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -6122,7 +6100,7 @@ func (c *ServicesTenancyUnitsListCall) Do(opts ...googleapi.CallOption) (*ListTe
 	}
 	return ret, nil
 	// {
-	//   "description": "Find tenancy unit for a service and consumer.\nThis method should not be used in producers' runtime path, e.g. finding\nthe tenant project number when creating VMs. Producers should persist\nthe tenant project information after the project is created.",
+	//   "description": "Find the tenancy unit for a service and consumer.\nThis method should not be used in producers' runtime path, for example\nfinding the tenant project number when creating VMs. Producers should\npersist the tenant project information after the project is created.",
 	//   "flatPath": "v1/services/{servicesId}/{servicesId1}/{servicesId2}/tenancyUnits",
 	//   "httpMethod": "GET",
 	//   "id": "serviceconsumermanagement.services.tenancyUnits.list",

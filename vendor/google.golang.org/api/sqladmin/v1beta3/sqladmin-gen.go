@@ -1,4 +1,4 @@
-// Package sqladmin provides access to the Cloud SQL Administration API.
+// Package sqladmin provides access to the Cloud SQL Admin API.
 //
 // See https://cloud.google.com/sql/docs/reference/latest
 //
@@ -162,6 +162,11 @@ type BackupConfiguration struct {
 
 	// Kind: This is always sql#backupConfiguration.
 	Kind string `json:"kind,omitempty"`
+
+	// ReplicationLogArchivingEnabled: Whether replication log archiving is
+	// enabled. Replication log archiving is required for the point-in-time
+	// recovery (PITR) feature. PostgreSQL instances only.
+	ReplicationLogArchivingEnabled bool `json:"replicationLogArchivingEnabled,omitempty"`
 
 	// StartTime: Start time for the daily backup configuration in UTC
 	// timezone in the 24 hour format - HH:MM.
@@ -343,6 +348,12 @@ type CloneContext struct {
 
 	// Kind: This is always sql#cloneContext.
 	Kind string `json:"kind,omitempty"`
+
+	// PitrTimestampMs: The epoch timestamp, in milliseconds, of the time to
+	// which a point-in-time recovery (PITR) is performed. PostgreSQL
+	// instances only. For MySQL instances, use the binLogCoordinates
+	// property.
+	PitrTimestampMs int64 `json:"pitrTimestampMs,omitempty,string"`
 
 	// SourceInstanceName: Name of the Cloud SQL instance to be cloned.
 	SourceInstanceName string `json:"sourceInstanceName,omitempty"`

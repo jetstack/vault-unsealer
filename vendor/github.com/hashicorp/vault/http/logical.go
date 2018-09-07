@@ -1,6 +1,8 @@
 package http
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -26,51 +28,79 @@ func buildLogicalRequest(core *vault.Core, w http.ResponseWriter, r *http.Reques
 		return nil, http.StatusNotFound, nil
 	}
 
+	var data map[string]interface{}
+
 	// Determine the operation
 	var op logical.Operation
 	switch r.Method {
 	case "DELETE":
 		op = logical.DeleteOperation
+
 	case "GET":
 		op = logical.ReadOperation
-		// Need to call ParseForm to get query params loaded
 		queryVals := r.URL.Query()
+		var list bool
+		var err error
 		listStr := queryVals.Get("list")
 		if listStr != "" {
-			list, err := strconv.ParseBool(listStr)
+			list, err = strconv.ParseBool(listStr)
 			if err != nil {
 				return nil, http.StatusBadRequest, nil
 			}
 			if list {
 				op = logical.ListOperation
+				if !strings.HasSuffix(path, "/") {
+					path += "/"
+				}
 			}
 		}
+
+		if !list {
+			getData := map[string]interface{}{}
+
+			for k, v := range r.URL.Query() {
+				// Skip the help key as this is a reserved parameter
+				if k == "help" {
+					continue
+				}
+
+				switch {
+				case len(v) == 0:
+				case len(v) == 1:
+					getData[k] = v[0]
+				default:
+					getData[k] = v
+				}
+			}
+
+			if len(getData) > 0 {
+				data = getData
+			}
+		}
+
 	case "POST", "PUT":
 		op = logical.UpdateOperation
+		// Parse the request if we can
+		if op == logical.UpdateOperation {
+			err := parseRequest(r, w, &data)
+			if err == io.EOF {
+				data = nil
+				err = nil
+			}
+			if err != nil {
+				return nil, http.StatusBadRequest, err
+			}
+		}
+
 	case "LIST":
 		op = logical.ListOperation
-	case "OPTIONS":
-	default:
-		return nil, http.StatusMethodNotAllowed, nil
-	}
-
-	if op == logical.ListOperation {
 		if !strings.HasSuffix(path, "/") {
 			path += "/"
 		}
-	}
 
-	// Parse the request if we can
-	var data map[string]interface{}
-	if op == logical.UpdateOperation {
-		err := parseRequest(r, w, &data)
-		if err == io.EOF {
-			data = nil
-			err = nil
-		}
-		if err != nil {
-			return nil, http.StatusBadRequest, err
-		}
+	case "OPTIONS":
+	default:
+		return nil, http.StatusMethodNotAllowed, nil
 	}
 
 	var err error
@@ -96,7 +126,15 @@ func buildLogicalRequest(core *vault.Core, w http.ResponseWriter, r *http.Reques
 	return req, 0, nil
 }
 
-func handleLogical(core *vault.Core, injectDataIntoTopLevel bool, prepareRequestCallback PrepareRequestFunc) http.Handler {
+func handleLogical(core *vault.Core, prepareRequestCallback PrepareRequestFunc) http.Handler {
+	return handleLogicalInternal(core, false, prepareRequestCallback)
+}
+
+func handleLogicalWithInjector(core *vault.Core, prepareRequestCallback PrepareRequestFunc) http.Handler {
+	return handleLogicalInternal(core, true, prepareRequestCallback)
+}
+
+func handleLogicalInternal(core *vault.Core, injectDataIntoTopLevel bool, prepareRequestCallback PrepareRequestFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req, statusCode, err := buildLogicalRequest(core, w, r)
 		if err != nil || statusCode != 0 {
@@ -125,11 +163,11 @@ func handleLogical(core *vault.Core, injectDataIntoTopLevel bool, prepareRequest
 		}
 
 		// Build the proper response
-		respondLogical(w, r, req, injectDataIntoTopLevel, resp)
+		respondLogical(w, r, req, resp, injectDataIntoTopLevel)
 	})
 }
 
-func respondLogical(w http.ResponseWriter, r *http.Request, req *logical.Request, injectDataIntoTopLevel bool, resp *logical.Response) {
+func respondLogical(w http.ResponseWriter, r *http.Request, req *logical.Request, resp *logical.Response, injectDataIntoTopLevel bool) {
 	var httpResp *logical.HTTPResponse
 	var ret interface{}
 
@@ -200,8 +238,21 @@ func respondRaw(w http.ResponseWriter, r *http.Request, resp *logical.Response) 
 		retErr(w, "no status code given")
 		return
 	}
-	status, ok := statusRaw.(int)
-	if !ok {
+
+	var status int
+	switch statusRaw.(type) {
+	case int:
+		status = statusRaw.(int)
+	case float64:
+		status = int(statusRaw.(float64))
+	case json.Number:
+		s64, err := statusRaw.(json.Number).Float64()
+		if err != nil {
+			retErr(w, "cannot decode status code")
+			return
+		}
+		status = int(s64)
+	default:
 		retErr(w, "cannot decode status code")
 		return
 	}
@@ -229,16 +280,28 @@ func respondRaw(w http.ResponseWriter, r *http.Request, resp *logical.Response) 
 		// Get the body
 		bodyRaw, ok := resp.Data[logical.HTTPRawBody]
 		if !ok {
-			retErr(w, "no body given")
-			return
+			goto WRITE_RESPONSE
 		}
-		body, ok = bodyRaw.([]byte)
-		if !ok {
+
+		switch bodyRaw.(type) {
+		case string:
+			// This is best effort. The value may already be base64-decoded so
+			// if it doesn't work we just use as-is
+			bodyDec, err := base64.StdEncoding.DecodeString(bodyRaw.(string))
+			if err == nil {
+				body = bodyDec
+			} else {
+				body = []byte(bodyRaw.(string))
+			}
+		case []byte:
+			body = bodyRaw.([]byte)
+		default:
 			retErr(w, "cannot decode body")
 			return
 		}
 	}
 
+WRITE_RESPONSE:
 	// Write the response
 	if contentType != "" {
 		w.Header().Set("Content-Type", contentType)

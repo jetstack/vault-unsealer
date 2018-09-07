@@ -24,7 +24,7 @@ relatively simple:
 ```hcl
 storage "consul" {
   address = "127.0.0.1:8500"
-  path    = "vault"
+  path    = "vault/"
 }
 
 listener "tcp" {
@@ -72,7 +72,7 @@ $ vault server -config=config.hcl
 ==> Vault server started! Log data will stream in below:
 ```
 
--> If you get a warning message about mlock not begin supported, that is okay.
+-> If you get a warning message about mlock not being supported, that is okay.
  However, you should run Vault on a system that supports mlock for maximum
  security.
 
@@ -111,7 +111,7 @@ server_.
 
 During initialization, the encryption keys are generated, unseal keys are
 created, and the initial root token is setup. To initialize Vault use `vault
-init`. This is an _unauthenticated_ request, but it only works on brand new
+operator init`. This is an _unauthenticated_ request, but it only works on brand new
 Vaults with no data:
 
 ```text
@@ -124,8 +124,8 @@ Unseal Key 5: cI8yglWJX+jPf/yQG7Sg6SPWzy0WyrBPvaFTOAYkPJTx
 
 Initial Root Token: 62421926-81b9-b202-86f8-8850176c0cf3
 
-Vault initialized with 5 key shares an a key threshold of 3. Please securely
-distributed the key shares printed above. When the Vault is re-sealed,
+Vault initialized with 5 key shares and a key threshold of 3. Please securely
+distribute the key shares printed above. When the Vault is re-sealed,
 restarted, or stopped, you must supply at least 3 of these keys to unseal it
 before it can start servicing requests.
 
@@ -133,7 +133,7 @@ Vault does not store the generated master key. Without at least 3 key to
 reconstruct the master key, Vault will remain permanently sealed!
 
 It is possible to generate new unseal keys, provided you have a quorum of
-existing unseal keys shares. See "vault rekey" for more information.
+existing unseal keys shares. See "vault operator rekey" for more information.
 ```
 
 Initialization outputs two incredibly important pieces of information:
@@ -191,17 +191,17 @@ nature of the algorithm, Vault doesn't know if it has the _correct_ key until
 the threshold is reached.
 
 Also notice that the unseal process is stateful. You can go to another computer,
-use `vault unseal`, and as long as it's pointing to the same server, that other
-computer can continue the unseal process. This is incredibly important to the
-design of the unseal process: multiple people with multiple keys are required to
-unseal the Vault. The Vault can be unsealed from multiple computers and the keys
-should never be together. A single malicious operator does not have enough keys
-to be malicious.
+use `vault operator unseal`, and as long as it's pointing to the same server,
+that other computer can continue the unseal process. This is incredibly
+important to the design of the unseal process: multiple people with multiple
+keys are required to unseal the Vault. The Vault can be unsealed from multiple
+computers and the keys should never be together. A single malicious operator
+does not have enough keys to be malicious.
 
-Continue with `vault unseal` to complete unsealing the Vault. To unseal the
-vault you must use three _different_ keys, the same key repeated will not work.
-As you use keys, as long as they are correct, you should soon see output like
-this:
+Continue with `vault operator unseal` to complete unsealing the Vault. To unseal
+the vault you must use three _different_ keys, the same key repeated will not
+work. As you use keys, as long as they are correct, you should soon see output
+like this:
 
 ```text
 $ vault operator unseal
@@ -249,9 +249,9 @@ token_renewable    false
 token_policies     [root]
 ```
 
-As a root user, you can reseal the Vault with `vault seal`. A single operator is
-allowed to do this. This lets a single operator lock down the Vault in an
-emergency without consulting other operators.
+As a root user, you can reseal the Vault with `vault operator seal`. A single
+operator is allowed to do this. This lets a single operator lock down the
+Vault in an emergency without consulting other operators.
 
 When the Vault is sealed again, it clears all of its state (including the
 encryption key) from memory. The Vault is secure and locked down from access.

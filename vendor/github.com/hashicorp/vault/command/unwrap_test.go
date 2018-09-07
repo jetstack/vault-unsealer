@@ -65,18 +65,6 @@ func TestUnwrapCommand_Run(t *testing.T) {
 			"not present in secret",
 			1,
 		},
-		{
-			"format",
-			[]string{"-format", "json"},
-			"{",
-			0,
-		},
-		{
-			"format_bad",
-			[]string{"-format", "nope-not-real"},
-			"Invalid output format",
-			1,
-		},
 	}
 
 	t.Run("validations", func(t *testing.T) {
@@ -151,7 +139,7 @@ func TestUnwrapCommand_Run(t *testing.T) {
 		cmd.client = client
 		cmd.client.SetToken(wrappedToken)
 
-		// Intentionally don't pass the token here - it shoudl use the local token
+		// Intentionally don't pass the token here - it should use the local token
 		code := cmd.Run([]string{})
 		if exp := 0; code != exp {
 			t.Errorf("expected %d to be %d", code, exp)

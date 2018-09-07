@@ -1,4 +1,4 @@
-// Package script provides access to the Google Apps Script API.
+// Package script provides access to the Apps Script API.
 //
 // See https://developers.google.com/apps-script/api/
 //
@@ -61,6 +61,9 @@ const (
 
 	// View and manage the provisioning of users on your domain
 	AdminDirectoryUserScope = "https://www.googleapis.com/auth/admin.directory.user"
+
+	// View and manage your Google Docs documents
+	DocumentsScope = "https://www.googleapis.com/auth/documents"
 
 	// View and manage the files in your Google Drive
 	DriveScope = "https://www.googleapis.com/auth/drive"
@@ -248,12 +251,6 @@ type Deployment struct {
 
 	// EntryPoints: The deployment's entry points.
 	EntryPoints []*EntryPoint `json:"entryPoints,omitempty"`
-
-	// FunctionSet: Script's defined set of functions.
-	FunctionSet *GoogleAppsScriptTypeFunctionSet `json:"functionSet,omitempty"`
-
-	// ScopeSet: Set of scopes required by the deployment.
-	ScopeSet *GoogleAppsScriptTypeScopeSet `json:"scopeSet,omitempty"`
 
 	// UpdateTime: Last modified date time stamp.
 	UpdateTime string `json:"updateTime,omitempty"`
@@ -811,7 +808,7 @@ func (s *GoogleAppsScriptTypeFunctionSet) MarshalJSON() ([]byte, error) {
 // the script editor, a trigger, an application, or using the Apps
 // Script API.
 // This is distinct from the `Operation`
-// resource, which only represents exeuctions started via the Apps
+// resource, which only represents executions started via the Apps
 // Script API.
 type GoogleAppsScriptTypeProcess struct {
 	// Duration: Duration the execution spent executing.
@@ -834,6 +831,7 @@ type GoogleAppsScriptTypeProcess struct {
 	//   "FAILED" - The process failed.
 	//   "TIMED_OUT" - The process timed out.
 	//   "UNKNOWN" - Process status unknown.
+	//   "DELAYED" - The process is delayed, waiting for quota.
 	ProcessStatus string `json:"processStatus,omitempty"`
 
 	// ProcessType: The executions type.
@@ -847,6 +845,9 @@ type GoogleAppsScriptTypeProcess struct {
 	//   "TRIGGER" - The process was started from an event-based trigger.
 	//   "WEBAPP" - The process was started from a web app entry point.
 	//   "EDITOR" - The process was started using the Apps Script IDE.
+	//   "SIMPLE_TRIGGER" - The process was started from a G Suite simple
+	// trigger.
+	//   "MENU" - The process was started from a G Suite menu item.
 	ProcessType string `json:"processType,omitempty"`
 
 	// ProjectName: Name of the script being executed.
@@ -884,71 +885,6 @@ type GoogleAppsScriptTypeProcess struct {
 
 func (s *GoogleAppsScriptTypeProcess) MarshalJSON() ([]byte, error) {
 	type NoMethod GoogleAppsScriptTypeProcess
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleAppsScriptTypeScope: Represents an authorization scope.
-type GoogleAppsScriptTypeScope struct {
-	// Authorizer: Who authorized the scope.
-	//
-	// Possible values:
-	//   "SCOPE_AUTHORIZER_UNSPECIFIED" - Authorizer unspecified.
-	//   "AUTHORIZED_BY_DEVELOPER" - Developer authorized scope.
-	//   "AUTHORIZED_BY_END_USER" - End user authorized scope.
-	Authorizer string `json:"authorizer,omitempty"`
-
-	// Name: The scope's identifying string.
-	Name string `json:"name,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Authorizer") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Authorizer") to include in
-	// API requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleAppsScriptTypeScope) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleAppsScriptTypeScope
-	raw := NoMethod(*s)
-	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
-}
-
-// GoogleAppsScriptTypeScopeSet: A set of scopes. No duplicates are
-// permitted.
-type GoogleAppsScriptTypeScopeSet struct {
-	// Values: List of scope values in the set.
-	Values []*GoogleAppsScriptTypeScope `json:"values,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "Values") to
-	// unconditionally include in API requests. By default, fields with
-	// empty values are omitted from API requests. However, any non-pointer,
-	// non-interface field appearing in ForceSendFields will be sent to the
-	// server regardless of whether the field is empty or not. This may be
-	// used to include empty fields in Patch requests.
-	ForceSendFields []string `json:"-"`
-
-	// NullFields is a list of field names (e.g. "Values") to include in API
-	// requests with the JSON null value. By default, fields with empty
-	// values are omitted from API requests. However, any field with an
-	// empty value appearing in NullFields will be sent to the server as
-	// null. It is an error if a field in this list has a non-empty value.
-	// This may be used to include null fields in Patch requests.
-	NullFields []string `json:"-"`
-}
-
-func (s *GoogleAppsScriptTypeScopeSet) MarshalJSON() ([]byte, error) {
-	type NoMethod GoogleAppsScriptTypeScopeSet
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
@@ -1299,14 +1235,13 @@ func (s *MetricsValue) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// Operation: A representation of a execution of an Apps Script function
-// that is started using run. The execution response does not arrive
+// Operation: A representation of an execution of an Apps Script
+// function started with run. The execution response does not arrive
 // until the function finishes executing. The maximum execution runtime
 // is listed in the [Apps Script quotas
 // guide](/apps-script/guides/services/quotas#current_limitations).
-// <p>After the execution is started, it can have one of four
-// outcomes:</p> <ul> <li> If the script function returns successfully,
-// the
+// <p>After execution has started, it can have one of four outcomes:</p>
+// <ul> <li> If the script function returns successfully, the
 //   response field contains an
 //   ExecutionResponse object
 //   with the function's return value in the object's `result`
@@ -1466,9 +1401,10 @@ func (s *ScriptStackTraceElement) MarshalJSON() ([]byte, error) {
 // Script itself) throws an exception, the response body's error field
 // contains this `Status` object.
 type Status struct {
-	// Code: The status code. For this API, this value either: <ul> <li> 3,
-	// indicating an `INVALID_ARGUMENT` error, or</li> <li> 1, indicating a
-	// `CANCELLED` execution.</li> </ul>
+	// Code: The status code. For this API, this value either: <ul> <li> 10,
+	// indicating a `SCRIPT_TIMEOUT` error,</li> <li> 3, indicating an
+	// `INVALID_ARGUMENT` error, or</li> <li> 1, indicating a `CANCELLED`
+	// execution.</li> </ul>
 	Code int64 `json:"code,omitempty"`
 
 	// Details: An array that contains a single ExecutionError object that
@@ -1476,9 +1412,8 @@ type Status struct {
 	Details []googleapi.RawMessage `json:"details,omitempty"`
 
 	// Message: A developer-facing error message, which is in English. Any
-	// user-facing error message is localized and sent in the
-	// [google.rpc.Status.details](google.rpc.Status.details) field, or
-	// localized by the client.
+	// user-facing error message is localized and sent in the details field,
+	// or localized by the client.
 	Message string `json:"message,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Code") to
@@ -1647,7 +1582,7 @@ func (c *ProcessesListCall) UserProcessFilterFunctionName(userProcessFilterFunct
 // UserProcessFilterProjectName sets the optional parameter
 // "userProcessFilter.projectName": Optional field used to limit
 // returned processes to those originating from
-// projects with a specific project name.
+// projects with project names containing a specific string.
 func (c *ProcessesListCall) UserProcessFilterProjectName(userProcessFilterProjectName string) *ProcessesListCall {
 	c.urlParams_.Set("userProcessFilter.projectName", userProcessFilterProjectName)
 	return c
@@ -1685,6 +1620,7 @@ func (c *ProcessesListCall) UserProcessFilterStartTime(userProcessFilterStartTim
 //   "FAILED"
 //   "TIMED_OUT"
 //   "UNKNOWN"
+//   "DELAYED"
 func (c *ProcessesListCall) UserProcessFilterStatuses(userProcessFilterStatuses ...string) *ProcessesListCall {
 	c.urlParams_.SetMulti("userProcessFilter.statuses", append([]string{}, userProcessFilterStatuses...))
 	return c
@@ -1703,6 +1639,8 @@ func (c *ProcessesListCall) UserProcessFilterStatuses(userProcessFilterStatuses 
 //   "TRIGGER"
 //   "WEBAPP"
 //   "EDITOR"
+//   "SIMPLE_TRIGGER"
+//   "MENU"
 func (c *ProcessesListCall) UserProcessFilterTypes(userProcessFilterTypes ...string) *ProcessesListCall {
 	c.urlParams_.SetMulti("userProcessFilter.types", append([]string{}, userProcessFilterTypes...))
 	return c
@@ -1849,7 +1787,7 @@ func (c *ProcessesListCall) Do(opts ...googleapi.CallOption) (*ListUserProcesses
 	//       "type": "string"
 	//     },
 	//     "userProcessFilter.projectName": {
-	//       "description": "Optional field used to limit returned processes to those originating from\nprojects with a specific project name.",
+	//       "description": "Optional field used to limit returned processes to those originating from\nprojects with project names containing a specific string.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -1874,7 +1812,8 @@ func (c *ProcessesListCall) Do(opts ...googleapi.CallOption) (*ListUserProcesses
 	//         "CANCELED",
 	//         "FAILED",
 	//         "TIMED_OUT",
-	//         "UNKNOWN"
+	//         "UNKNOWN",
+	//         "DELAYED"
 	//       ],
 	//       "location": "query",
 	//       "repeated": true,
@@ -1889,7 +1828,9 @@ func (c *ProcessesListCall) Do(opts ...googleapi.CallOption) (*ListUserProcesses
 	//         "TIME_DRIVEN",
 	//         "TRIGGER",
 	//         "WEBAPP",
-	//         "EDITOR"
+	//         "EDITOR",
+	//         "SIMPLE_TRIGGER",
+	//         "MENU"
 	//       ],
 	//       "location": "query",
 	//       "repeated": true,
@@ -2030,6 +1971,7 @@ func (c *ProcessesListScriptProcessesCall) ScriptProcessFilterStartTime(scriptPr
 //   "FAILED"
 //   "TIMED_OUT"
 //   "UNKNOWN"
+//   "DELAYED"
 func (c *ProcessesListScriptProcessesCall) ScriptProcessFilterStatuses(scriptProcessFilterStatuses ...string) *ProcessesListScriptProcessesCall {
 	c.urlParams_.SetMulti("scriptProcessFilter.statuses", append([]string{}, scriptProcessFilterStatuses...))
 	return c
@@ -2048,6 +1990,8 @@ func (c *ProcessesListScriptProcessesCall) ScriptProcessFilterStatuses(scriptPro
 //   "TRIGGER"
 //   "WEBAPP"
 //   "EDITOR"
+//   "SIMPLE_TRIGGER"
+//   "MENU"
 func (c *ProcessesListScriptProcessesCall) ScriptProcessFilterTypes(scriptProcessFilterTypes ...string) *ProcessesListScriptProcessesCall {
 	c.urlParams_.SetMulti("scriptProcessFilter.types", append([]string{}, scriptProcessFilterTypes...))
 	return c
@@ -2214,7 +2158,8 @@ func (c *ProcessesListScriptProcessesCall) Do(opts ...googleapi.CallOption) (*Li
 	//         "CANCELED",
 	//         "FAILED",
 	//         "TIMED_OUT",
-	//         "UNKNOWN"
+	//         "UNKNOWN",
+	//         "DELAYED"
 	//       ],
 	//       "location": "query",
 	//       "repeated": true,
@@ -2229,7 +2174,9 @@ func (c *ProcessesListScriptProcessesCall) Do(opts ...googleapi.CallOption) (*Li
 	//         "TIME_DRIVEN",
 	//         "TRIGGER",
 	//         "WEBAPP",
-	//         "EDITOR"
+	//         "EDITOR",
+	//         "SIMPLE_TRIGGER",
+	//         "MENU"
 	//       ],
 	//       "location": "query",
 	//       "repeated": true,
@@ -4335,6 +4282,7 @@ func (c *ScriptsRunCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
 	//     "https://www.google.com/m8/feeds",
 	//     "https://www.googleapis.com/auth/admin.directory.group",
 	//     "https://www.googleapis.com/auth/admin.directory.user",
+	//     "https://www.googleapis.com/auth/documents",
 	//     "https://www.googleapis.com/auth/drive",
 	//     "https://www.googleapis.com/auth/forms",
 	//     "https://www.googleapis.com/auth/forms.currentonly",

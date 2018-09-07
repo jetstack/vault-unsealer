@@ -25,7 +25,7 @@ of Vault.
 
 ```
 $ curl \
-    https://vault.rocks/v1/sys/leader
+    http://127.0.0.1:8200/v1/sys/leader
 ```
 
 ### Sample Response
@@ -35,6 +35,8 @@ $ curl \
   "ha_enabled": true,
   "is_self": false,
   "leader_address": "https://127.0.0.1:8200/",
-  "leader_cluster_address": "https://127.0.0.1:8201/"
+  "leader_cluster_address": "https://127.0.0.1:8201/",
+  "performance_standby": false,
+  "performance_standby_last_remote_wal": 0
 }
 ```

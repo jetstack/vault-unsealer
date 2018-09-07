@@ -6,35 +6,21 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/crypto/ssh/terminal"
-
+	"github.com/fatih/color"
 	"github.com/hashicorp/vault/api"
+	"github.com/hashicorp/vault/command/config"
 	"github.com/hashicorp/vault/command/token"
 	"github.com/mitchellh/cli"
 )
 
 // DefaultTokenHelper returns the token helper that is configured for Vault.
 func DefaultTokenHelper() (token.TokenHelper, error) {
-	config, err := LoadConfig("")
-	if err != nil {
-		return nil, err
-	}
-
-	path := config.TokenHelper
-	if path == "" {
-		return &token.InternalTokenHelper{}, nil
-	}
-
-	path, err = token.ExternalTokenHelperPath(path)
-	if err != nil {
-		return nil, err
-	}
-	return &token.ExternalTokenHelper{BinaryPath: path}, nil
+	return config.DefaultTokenHelper()
 }
 
 // RawField extracts the raw field from the given data and returns it as a
 // string for printing purposes.
-func RawField(secret *api.Secret, field string) (string, bool) {
+func RawField(secret *api.Secret, field string) interface{} {
 	var val interface{}
 	switch {
 	case secret.Auth != nil:
@@ -48,6 +34,10 @@ func RawField(secret *api.Secret, field string) (string, bool) {
 		case "token_renewable":
 			val = secret.Auth.Renewable
 		case "token_policies":
+			val = secret.Auth.TokenPolicies
+		case "identity_policies":
+			val = secret.Auth.IdentityPolicies
+		case "policies":
 			val = secret.Auth.Policies
 		default:
 			val = secret.Data[field]
@@ -73,39 +63,77 @@ func RawField(secret *api.Secret, field string) (string, bool) {
 
 	default:
 		switch field {
+		case "lease_duration":
+			val = secret.LeaseDuration
+		case "lease_id":
+			val = secret.LeaseID
+		case "request_id":
+			val = secret.RequestID
+		case "renewable":
+			val = secret.Renewable
 		case "refresh_interval":
 			val = secret.LeaseDuration
+		case "data":
+			var ok bool
+			val, ok = secret.Data["data"]
+			if !ok {
+				val = secret.Data
+			}
 		default:
 			val = secret.Data[field]
 		}
 	}
 
-	str := fmt.Sprintf("%v", val)
-	return str, val != nil
+	return val
 }
 
 // PrintRawField prints raw field from the secret.
-func PrintRawField(ui cli.Ui, secret *api.Secret, field string) int {
-	str, ok := RawField(secret, field)
-	if !ok {
+func PrintRawField(ui cli.Ui, data interface{}, field string) int {
+	var val interface{}
+	switch data.(type) {
+	case *api.Secret:
+		val = RawField(data.(*api.Secret), field)
+	case map[string]interface{}:
+		val = data.(map[string]interface{})[field]
+	}
+
+	if val == nil {
 		ui.Error(fmt.Sprintf("Field %q not present in secret", field))
 		return 1
 	}
 
-	return PrintRaw(ui, str)
+	format := Format(ui)
+	if format == "" || format == "table" {
+		return PrintRaw(ui, fmt.Sprintf("%v", val))
+	}
+
+	// Handle specific format flags as best as possible
+	formatter, ok := Formatters[format]
+	if !ok {
+		ui.Error(fmt.Sprintf("Invalid output format: %s", format))
+		return 1
+	}
+
+	b, err := formatter.Format(val)
+	if err != nil {
+		ui.Error(fmt.Sprintf("Error formatting output: %s", err))
+		return 1
+	}
+
+	return PrintRaw(ui, string(b))
 }
 
 // PrintRaw prints a raw value to the terminal. If the process is being "piped"
 // to something else, the "raw" value is printed without a newline character.
 // Otherwise the value is printed as normal.
 func PrintRaw(ui cli.Ui, str string) int {
-	if terminal.IsTerminal(int(os.Stdout.Fd())) {
+	if !color.NoColor {
 		ui.Output(str)
 	} else {
 		// The cli.Ui prints a CR, which is not wanted since the user probably wants
 		// just the raw value.
 		w := getWriterFromUI(ui)
-		fmt.Fprintf(w, str)
+		fmt.Fprint(w, str)
 	}
 	return 0
 }
@@ -115,6 +143,8 @@ func PrintRaw(ui cli.Ui, str string) int {
 // type, this falls back to os.Stdout.
 func getWriterFromUI(ui cli.Ui) io.Writer {
 	switch t := ui.(type) {
+	case *VaultUI:
+		return getWriterFromUI(t.Ui)
 	case *cli.BasicUi:
 		return t.Writer
 	case *cli.ColoredUi:

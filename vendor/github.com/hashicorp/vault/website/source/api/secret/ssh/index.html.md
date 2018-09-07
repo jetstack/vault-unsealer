@@ -47,7 +47,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/keys/my-key
+    http://127.0.0.1:8200/v1/ssh/keys/my-key
 ```
 
 ## Delete Key
@@ -70,7 +70,7 @@ This endpoint deletes a named key.
 $ curl \
     --header "X-Vault-Token: ..." \
     --request DELETE \
-    https://vault.rocks/v1/ssh/keys/my-key
+    http://127.0.0.1:8200/v1/ssh/keys/my-key
 ```
 
 ## Create Role
@@ -106,8 +106,9 @@ This endpoint creates or updates a named role.
     in `allowed_users`.
 
 - `cidr_list` `(string: "")` – Specifies a comma separated list of CIDR blocks
-  for which the role is applicable for.CIDR blocks can belong to more than one
-  role.
+  for which the role is applicable for. It is possible that a same set of CIDR
+  blocks are part of multiple roles. This is a required parameter, unless the
+  role is registered under the `/config/zeroaddress` endpoint.
 
 - `exclude_cidr_list` `(string: "")` – Specifies a comma-separated list of CIDR
   blocks. IP addresses belonging to these blocks are not accepted by the role.
@@ -217,7 +218,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/roles/my-role
+    http://127.0.0.1:8200/v1/ssh/roles/my-role
 ```
 
 ## Read Role
@@ -238,7 +239,7 @@ This endpoint queries a named role.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/ssh/roles/my-role
+    http://127.0.0.1:8200/v1/ssh/roles/my-role
 ```
 
 ### Sample Response
@@ -300,7 +301,7 @@ returned, not any values.
 $ curl \
     --header "X-Vault-Token: ..." \
     --request LIST \
-    https://vault.rocks/v1/ssh/roles
+    http://127.0.0.1:8200/v1/ssh/roles
 ```
 
 ### Sample Response
@@ -345,7 +346,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request DELETE \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/roles/my-role
+    http://127.0.0.1:8200/v1/ssh/roles/my-role
 ```
 
 ## List Zero-Address Roles
@@ -361,7 +362,7 @@ This endpoint returns the list of configured zero-address roles.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/ssh/config/zeroaddress
+    http://127.0.0.1:8200/v1/ssh/config/zeroaddress
 ```
 
 ### Sample Response
@@ -410,7 +411,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/config/zeroaddress
+    http://127.0.0.1:8200/v1/ssh/config/zeroaddress
 ```
 
 ## Delete Zero-Address Role
@@ -427,7 +428,7 @@ This endpoint deletes the zero-address roles configuration.
 $ curl \
     --header "X-Vault-Token: ..." \
     --request DELETE \
-    https://vault.rocks/v1/ssh/config/zeroaddress
+    http://127.0.0.1:8200/v1/ssh/config/zeroaddress
 ```
 
 ## Generate SSH Credentials
@@ -463,7 +464,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/creds/my-role
+    http://127.0.0.1:8200/v1/ssh/creds/my-role
 ```
 
 ### Sample Response
@@ -539,7 +540,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/lookup
+    http://127.0.0.1:8200/v1/ssh/lookup
 ```
 
 ### Sample Response
@@ -591,7 +592,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/verify
+    http://127.0.0.1:8200/v1/ssh/verify
 
 ### Sample Response
 
@@ -646,7 +647,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/config/ca
+    http://127.0.0.1:8200/v1/ssh/config/ca
 ```
 
 ### Sample Response
@@ -681,7 +682,7 @@ This endpoint deletes the CA information for the backend via an SSH key pair.
 $ curl \
     --header "X-Vault-Token: ..." \
     --request DELETE \
-    https://vault.rocks/v1/ssh/config/ca
+    http://127.0.0.1:8200/v1/ssh/config/ca
 ```
 
 ## Read Public Key (Unauthenticated)
@@ -696,7 +697,7 @@ endpoint.
 ### Sample Request
 
 ```
-$ curl https://vault.rocks/v1/ssh/public_key
+$ curl http://127.0.0.1:8200/v1/ssh/public_key
 ```
 
 ### Sample Response
@@ -718,7 +719,7 @@ This endpoint reads the configured/generated public key.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/ssh/config/ca
+    http://127.0.0.1:8200/v1/ssh/config/ca
 ```
 
 ### Sample Response
@@ -787,7 +788,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/ssh/sign/my-key
+    http://127.0.0.1:8200/v1/ssh/sign/my-key
 ```
 
 ### Sample Response

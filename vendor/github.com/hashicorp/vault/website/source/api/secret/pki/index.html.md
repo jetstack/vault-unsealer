@@ -62,7 +62,7 @@ This is an unauthenticated endpoint.
 
 ```
 $ curl \
-    https://vault.rocks/v1/pki/ca/pem
+    http://127.0.0.1:8200/v1/pki/ca/pem
 ```
 
 ### Sample Response
@@ -87,7 +87,7 @@ This is an unauthenticated endpoint.
 
 ```
 $ curl \
-    https://vault.rocks/v1/pki/ca_chain
+    http://127.0.0.1:8200/v1/pki/ca_chain
 ```
 
 ### Sample Response
@@ -121,7 +121,7 @@ This is an unauthenticated endpoint.
 
 ```
 $ curl \
-    https://vault.rocks/v1/pki/cert/crl
+    http://127.0.0.1:8200/v1/pki/cert/crl
 ```
 
 ### Sample Response
@@ -148,7 +148,7 @@ This endpoint returns a list of the current certificates by serial number only.
 $ curl \
     --header "X-Vault-Token: ..." \
     --request LIST \
-    https://vault.rocks/v1/pki/certs
+    http://127.0.0.1:8200/v1/pki/certs
 ```
 
 ### Sample Response
@@ -225,7 +225,7 @@ marked valid.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/pki/config/crl
+    http://127.0.0.1:8200/v1/pki/config/crl
 ```
 
 ### Sample Response
@@ -236,6 +236,7 @@ $ curl \
   "renewable": false,
   "lease_duration": 0,
   "data": {
+      "disable": false,
       "expiry": "72h"
     },
   "auth": null
@@ -245,7 +246,15 @@ $ curl \
 ## Set CRL Configuration
 
 This endpoint allows setting the duration for which the generated CRL should be
-marked valid.
+marked valid. If the CRL is disabled, it will return a signed but zero-length
+CRL for any request. If enabled, it will re-build the CRL.
+
+  ~> Note: Disabling the CRL does not affect whether revoked certificates are
+  stored internally. Certificates that have been revoked when a role's
+  certificate storage is enabled will continue to be marked and stored as
+  revoked until `tidy` has been run with the desired safety buffer. Re-enabling
+  CRL generation will then result in all such certificates becoming a part of
+  the CRL.
 
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
@@ -254,6 +263,7 @@ marked valid.
 ### Parameters
 
 - `expiry` `(string: "72h")` – Specifies the time until expiration.
+- `disable` `(bool: false)` – Disables or enables CRL building.
 
 ### Sample Payload
 
@@ -270,7 +280,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/config/crl
+    http://127.0.0.1:8200/v1/pki/config/crl
 ```
 
 ## Read URLs
@@ -286,7 +296,7 @@ This endpoint fetches the URLs to be encoded in generated certificates.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/pki/config/urls
+    http://127.0.0.1:8200/v1/pki/config/urls
 ```
 
 ### Sample Response
@@ -345,7 +355,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/config/urls
+    http://127.0.0.1:8200/v1/pki/config/urls
 ```
 
 ## Read CRL
@@ -366,7 +376,7 @@ This is an unauthenticated endpoint.
 
 ```
 $ curl \
-    https://vault.rocks/v1/pki/crl/pem
+    http://127.0.0.1:8200/v1/pki/crl/pem
 ```
 
 ### Sample Response
@@ -391,7 +401,7 @@ certificates being revoked.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/pki/crl/rotate
+    http://127.0.0.1:8200/v1/pki/crl/rotate
 ```
 
 ### Sample Response
@@ -435,6 +445,15 @@ can be set in a CSR are supported.
 - `ip_sans` `(string: "")` – Specifies the requested IP Subject Alternative
   Names, in a comma-delimited list.
 
+- `uri_sans` `(string: "")` – Specifies the requested URI Subject Alternative
+  Names, in a comma-delimited list.
+
+- `other_sans` `(string: "")` – Specifies custom OID/UTF8-string SANs. These
+  must match values specified on the role in `allowed_other_sans` (globbing
+  allowed). The format is the same as OpenSSL: `<oid>;<type>:<value>` where the
+  only current valid type is `UTF8`. This can be a comma-delimited list or a
+  JSON string slice.
+
 - `format` `(string: "")` – Specifies the format for returned data. This can be
   `pem`, `der`, or `pem_bundle`; defaults to `pem`. If `der`, the output is
   base64 encoded. If `pem_bundle`, the `csr` field will contain the private key
@@ -456,6 +475,34 @@ can be set in a CSR are supported.
   Useful if the CN is not a hostname or email address, but is instead some
   human-readable identifier.
 
+- `ou` `(string: "")` – Specifies the OU (OrganizationalUnit) values in the
+  subject field of the resulting CSR. This is a comma-separated string
+  or JSON array.
+
+- `organization` `(string: "")` – Specifies the O (Organization) values in the
+  subject field of the resulting CSR. This is a comma-separated string
+  or JSON array.
+
+- `country` `(string: "")` – Specifies the C (Country) values in the subject
+  field of the resulting CSR. This is a comma-separated string or JSON
+  array.
+
+- `locality` `(string: "")` – Specifies the L (Locality) values in the subject
+  field of the resulting CSR. This is a comma-separated string or JSON
+  array.
+
+- `province` `(string: "")` – Specifies the ST (Province) values in the subject
+  field of the resulting CSR. This is a comma-separated string or JSON
+  array.
+
+- `street_address` `(string: "")` – Specifies the Street Address values in the
+  subject field of the resulting CSR. This is a comma-separated string
+  or JSON array.
+
+- `postal_code` `(string: "")` – Specifies the Postal Code values in the
+  subject field of the resulting CSR. This is a comma-separated string
+  or JSON array.
+
 ### Sample Payload
 
 ```json
@@ -471,7 +518,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/intermediate/generate/internal
+    http://127.0.0.1:8200/v1/pki/intermediate/generate/internal
 ```
 
 ```json
@@ -503,7 +550,9 @@ hints on submitting.
 ## Parameters
 
 - `certificate` `(string: <required>)` – Specifies the certificate in PEM
-  format.
+  format. May optionally append additional CA certificates to populate the
+  whole chain, which will then enable returning the full chain from issue and
+  sign operations.
 
 ### Sample Payload
 
@@ -520,7 +569,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/intermediate/set-signed
+    http://127.0.0.1:8200/v1/pki/intermediate/set-signed
 ```
 
 ## Generate Certificate
@@ -552,6 +601,15 @@ need to request a new certificate.**
 - `ip_sans` `(string: "")` – Specifies requested IP Subject Alternative Names,
   in a comma-delimited list. Only valid if the role allows IP SANs (which is the
   default).
+
+- `uri_sans` `(string: "")` – Specifies the requested URI Subject Alternative
+  Names, in a comma-delimited list.
+
+- `other_sans` `(string: "")` – Specifies custom OID/UTF8-string SANs. These
+  must match values specified on the role in `allowed_other_sans` (globbing
+  allowed). The format is the same as OpenSSL: `<oid>;<type>:<value>` where the
+  only current valid type is `UTF8`. This can be a comma-delimited list or a
+  JSON string slice.
 
 - `ttl` `(string: "")` – Specifies requested Time To Live. Cannot be greater
   than the role's `max_ttl` value. If not provided, the role's `ttl` value will
@@ -590,7 +648,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/issue/my-role
+    http://127.0.0.1:8200/v1/pki/issue/my-role
 ```
 
 ### Sample Response
@@ -643,7 +701,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/revoke
+    http://127.0.0.1:8200/v1/pki/revoke
 ```
 
 ### Sample Response
@@ -720,6 +778,17 @@ request is denied.
   Alternative Names. No authorization checking is performed except to verify
   that the given values are valid IP addresses.
 
+- `allowed_uri_sans` `(string: "")` - Defines allowed URI Subject
+  Alternative Names. No authorization checking is performed except to verify
+  that the given values are valid URIs. This can be a comma-delimited list or
+  a JSON string slice. Values can contain glob patterns (e.g. 
+  `spiffe://hostname/*`).
+
+- `allowed_other_sans` `(string: "")` – Defines allowed custom OID/UTF8-string
+  SANs. This field supports globbing. The format is the same as OpenSSL:
+  `<oid>;<type>:<value>` where the only current valid type is `UTF8`. This can
+  be a comma-delimited list or a JSON string slice.
+
 - `server_flag` `(bool: true)` – Specifies if certificates are flagged for
   server use.
 
@@ -733,7 +802,10 @@ request is denied.
   flagged for email protection use.
 
 - `key_type` `(string: "rsa")` – Specifies the type of key to generate for
-  generated private keys. Currently, `rsa` and `ec` are supported.
+  generated private keys and the type of key expected for submitted CSRs.
+  Currently, `rsa` and `ec` are supported, or when signing CSRs `any` can be
+  specified to allow keys of either type and with any bit size (subject to >
+  1024 bits for RSA keys).
 
 - `key_bits` `(int: 2048)` – Specifies the number of bits to use for the
   generated keys. This will need to be changed for `ec` keys. See
@@ -744,6 +816,12 @@ request is denied.
   Specifies the allowed key usage constraint on issued certificates. Valid 
   values can be found at https://golang.org/pkg/crypto/x509/#KeyUsage - simply 
   drop the `KeyUsage` part of the value. Values are not case-sensitive. To 
+  specify no key usage constraints, set this to an empty list.
+
+- `ext_key_usage` `(list: [])` –
+  Specifies the allowed extended key usage constraint on issued certificates. Valid 
+  values can be found at https://golang.org/pkg/crypto/x509/#ExtKeyUsage - simply 
+  drop the `ExtKeyUsage` part of the value. Values are not case-sensitive. To 
   specify no key usage constraints, set this to an empty list.
 
 - `use_csr_common_name` `(bool: true)` – When used with the CSR signing
@@ -757,10 +835,32 @@ request is denied.
   `use_csr_common_name` for that.
 
 - `ou` `(string: "")` – Specifies the OU (OrganizationalUnit) values in the
-  subject field of issued certificates. This is a comma-separated string.
+  subject field of issued certificates. This is a comma-separated string or
+  JSON array.
 
 - `organization` `(string: "")` – Specifies the O (Organization) values in the
-  subject field of issued certificates. This is a comma-separated string.
+  subject field of issued certificates. This is a comma-separated string or
+  JSON array.
+
+- `country` `(string: "")` – Specifies the C (Country) values in the
+  subject field of issued certificates. This is a comma-separated string or
+  JSON array.
+
+- `locality` `(string: "")` – Specifies the L (Locality) values in the
+  subject field of issued certificates. This is a comma-separated string or
+  JSON array.
+
+- `province` `(string: "")` – Specifies the ST (Province) values in the
+  subject field of issued certificates. This is a comma-separated string or
+  JSON array.
+
+- `street_address` `(string: "")` – Specifies the Street Address values in the
+  subject field of issued certificates. This is a comma-separated string or
+  JSON array.
+
+- `postal_code` `(string: "")` – Specifies the Postal Code values in the
+  subject field of issued certificates. This is a comma-separated string or
+  JSON array.
 
 - `generate_lease` `(bool: false)` – Specifies  if certificates issued/signed
   against this role will have Vault leases attached to them. Certificates can be
@@ -773,11 +873,21 @@ request is denied.
   Vault.
 
 - `no_store` `(bool: false)` – If set, certificates issued/signed against this
-role will not be stored in the storage backend. This can improve performance
-when issuing large numbers of certificates. However, certificates issued
-in this way cannot be enumerated or revoked, so this option is recommended
-only for certificates that are non-sensitive, or extremely short-lived.
-This option implies a value of `false` for `generate_lease`.
+  role will not be stored in the storage backend. This can improve performance
+  when issuing large numbers of certificates. However, certificates issued in
+  this way cannot be enumerated or revoked, so this option is recommended only
+  for certificates that are non-sensitive, or extremely short-lived.  This
+  option implies a value of `false` for `generate_lease`.
+
+- `require_cn` `(bool: true)` - If set to false, makes the `common_name` field
+  optional while generating a certificate.
+
+- `policy_identifiers` `(list: [])` – A comma-separated string or list of policy
+  oids.
+
+- `basic_constraints_valid_for_non_ca` `(bool: false)` - Mark Basic Constraints
+  valid when issuing non-CA certificates.
+
 
 ### Sample Payload
 
@@ -795,7 +905,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/roles/my-role
+    http://127.0.0.1:8200/v1/pki/roles/my-role
 ```
 
 ## Read Role
@@ -816,7 +926,7 @@ This endpoint queries the role definition.
 ```
 $ curl \
     --header "X-Vault-Token: ..." \
-    https://vault.rocks/v1/pki/roles/my-role
+    http://127.0.0.1:8200/v1/pki/roles/my-role
 ```
 
 ### Sample Response
@@ -829,6 +939,7 @@ $ curl \
     "allow_localhost": true,
     "allow_subdomains": false,
     "allowed_domains": ["example.com", "foobar.com"],
+    "allow_uri_sans": ["example.com","spiffe://*"],
     "client_flag": true,
     "code_signing_flag": false,
     "key_bits": 2048,
@@ -855,7 +966,7 @@ returned, not any values.
 $ curl \
     --header "X-Vault-Token: ..." \
     --request LIST \
-    https://vault.rocks/v1/pki/roles
+    http://127.0.0.1:8200/v1/pki/roles
 ```
 
 ### Sample Response
@@ -892,7 +1003,7 @@ revoke certificates previously issued under this role.
 $ curl \
     --header "X-Vault-Token: ..." \
     --request DELETE \
-    https://vault.rocks/v1/pki/roles/my-role
+    http://127.0.0.1:8200/v1/pki/roles/my-role
 ```
 
 ## Generate Root
@@ -932,6 +1043,15 @@ existing cert/key with new values.
 - `ip_sans` `(string: "")` – Specifies the requested IP Subject Alternative
   Names, in a comma-delimited list.
 
+- `uri_sans` `(string: "")` – Specifies the requested URI Subject Alternative
+  Names, in a comma-delimited list.
+
+- `other_sans` `(string: "")` – Specifies custom OID/UTF8-string SANs. These
+  must match values specified on the role in `allowed_other_sans` (globbing
+  allowed). The format is the same as OpenSSL: `<oid>;<type>:<value>` where the
+  only current valid type is `UTF8`. This can be a comma-delimited list or a
+  JSON string slice.
+
 - `ttl` `(string: "")` – Specifies the requested Time To Live (after which the
   certificate will be expired). This cannot be larger than the engine's max (or,
   if not set, the system max).
@@ -966,9 +1086,36 @@ existing cert/key with new values.
 
 - `permitted_dns_domains` `(string: "")` – A comma separated string (or, string
   array) containing DNS domains for which certificates are allowed to be issued
-  or signed by this CA certificate. Supports subdomains via a `.` in front of
-  the domain, as per
+  or signed by this CA certificate. Note that subdomains are allowed, as per
   [RFC](https://tools.ietf.org/html/rfc5280#section-4.2.1.10).
+
+- `ou` `(string: "")` – Specifies the OU (OrganizationalUnit) values in the
+  subject field of the resulting certificate. This is a comma-separated string
+  or JSON array.
+
+- `organization` `(string: "")` – Specifies the O (Organization) values in the
+  subject field of the resulting certificate. This is a comma-separated string
+  or JSON array.
+
+- `country` `(string: "")` – Specifies the C (Country) values in the subject
+  field of the resulting certificate. This is a comma-separated string or JSON
+  array.
+
+- `locality` `(string: "")` – Specifies the L (Locality) values in the subject
+  field of the resulting certificate. This is a comma-separated string or JSON
+  array.
+
+- `province` `(string: "")` – Specifies the ST (Province) values in the subject
+  field of the resulting certificate. This is a comma-separated string or JSON
+  array.
+
+- `street_address` `(string: "")` – Specifies the Street Address values in the
+  subject field of the resulting certificate. This is a comma-separated string
+  or JSON array.
+
+- `postal_code` `(string: "")` – Specifies the Postal Code values in the
+  subject field of the resulting certificate. This is a comma-separated string
+  or JSON array.
 
 ### Sample Payload
 
@@ -985,7 +1132,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/root/generate/internal
+    http://127.0.0.1:8200/v1/pki/root/generate/internal
 ```
 
 ### Sample Response
@@ -1021,7 +1168,7 @@ _This endpoint requires sudo/root privileges._
 $ curl \
     --header "X-Vault-Token: ..." \
     --request DELETE \
-    https://vault.rocks/v1/pki/root
+    http://127.0.0.1:8200/v1/pki/root
 ```
 
 ## Sign Intermediate
@@ -1049,6 +1196,15 @@ verbatim.
 
 - `ip_sans` `(string: "")` – Specifies the requested IP Subject Alternative
   Names, in a comma-delimited list.
+
+- `uri_sans` `(string: "")` – Specifies the requested URI Subject Alternative
+  Names, in a comma-delimited list.
+
+- `other_sans` `(string: "")` – Specifies custom OID/UTF8-string SANs. These
+  must match values specified on the role in `allowed_other_sans` (globbing
+  allowed). The format is the same as OpenSSL: `<oid>;<type>:<value>` where the
+  only current valid type is `UTF8`. This can be a comma-delimited list or a
+  JSON string slice.
 
 - `ttl` `(string: "")` – Specifies the requested Time To Live (after which the
   certificate will be expired). This cannot be larger than the engine's max (or,
@@ -1086,6 +1242,35 @@ verbatim.
   the domain, as per
   [RFC](https://tools.ietf.org/html/rfc5280#section-4.2.1.10).
 
+- `ou` `(string: "")` – Specifies the OU (OrganizationalUnit) values in the
+  subject field of the resulting certificate. This is a comma-separated string
+  or JSON array.
+
+- `organization` `(string: "")` – Specifies the O (Organization) values in the
+  subject field of the resulting certificate. This is a comma-separated string
+  or JSON array.
+
+- `country` `(string: "")` – Specifies the C (Country) values in the subject
+  field of the resulting certificate. This is a comma-separated string or JSON
+  array.
+
+- `locality` `(string: "")` – Specifies the L (Locality) values in the subject
+  field of the resulting certificate. This is a comma-separated string or JSON
+  array.
+
+- `province` `(string: "")` – Specifies the ST (Province) values in the subject
+  field of the resulting certificate. This is a comma-separated string or JSON
+  array.
+
+- `street_address` `(string: "")` – Specifies the Street Address values in the
+  subject field of the resulting certificate. This is a comma-separated string
+  or JSON array.
+
+- `postal_code` `(string: "")` – Specifies the Postal Code values in the
+  subject field of the resulting certificate. This is a comma-separated string
+  or JSON array.
+
+
 ### Sample Payload
 
 ```json
@@ -1102,7 +1287,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/root/sign-intermediate
+    http://127.0.0.1:8200/v1/pki/root/sign-intermediate
 ```
 
 ### Sample Response
@@ -1162,7 +1347,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/root/sign-self-issued
+    http://127.0.0.1:8200/v1/pki/root/sign-self-issued
 ```
 
 ### Sample Response
@@ -1204,9 +1389,19 @@ root CA need be in a client's trust store.
   they will be parsed into their respective fields. If any requested names do
   not match role policy, the entire request will be denied.
 
+- `other_sans` `(string: "")` – Specifies custom OID/UTF8-string SANs. These
+  must match values specified on the role in `allowed_other_sans` (globbing
+  allowed). The format is the same as OpenSSL: `<oid>;<type>:<value>` where the
+  only current valid type is `UTF8`. This can be a comma-delimited list or a
+  JSON string slice.
+
 - `ip_sans` `(string: "")` – Specifies the requested IP Subject Alternative
   Names, in a comma-delimited list. Only valid if the role allows IP SANs (which
   is the default).
+
+- `uri_sans` `(string: "")` – Specifies the requested URI Subject Alternative
+  Names, in a comma-delimited list. If any requested URIs do not match role policy, 
+  the entire request will be denied.
 
 - `ttl` `(string: "")` – Specifies the requested Time To Live. Cannot be greater
   than the role's `max_ttl` value. If not provided, the role's `ttl` value will
@@ -1272,6 +1467,18 @@ have access.**
 
 - `csr` `(string: <required>)` – Specifies the PEM-encoded CSR.
 
+- `key_usage` `(list: ["DigitalSignature", "KeyAgreement", "KeyEncipherment"])` –
+  Specifies the allowed key usage constraint on issued certificates. Valid 
+  values can be found at https://golang.org/pkg/crypto/x509/#KeyUsage - simply 
+  drop the `KeyUsage` part of the value. Values are not case-sensitive. To 
+  specify no key usage constraints, set this to an empty list.
+
+- `ext_key_usage` `(list: [])` –
+  Specifies the allowed extended key usage constraint on issued certificates. Valid 
+  values can be found at https://golang.org/pkg/crypto/x509/#ExtKeyUsage - simply 
+  drop the `ExtKeyUsage` part of the value. Values are not case-sensitive. To 
+  specify no key usage constraints, set this to an empty list.
+
 - `ttl` `(string: "")` – Specifies the requested Time To Live. Cannot be greater
   than the engine's `max_ttl` value. If not provided, the engine's `ttl` value
   will be used, which defaults to system values if not explicitly set.
@@ -1297,7 +1504,7 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/sign-verbatim
+    http://127.0.0.1:8200/v1/pki/sign-verbatim
 ```
 
 ### Sample Response
@@ -1332,8 +1539,10 @@ expiration time.
 - `tidy_cert_store` `(bool: false)` Specifies whether to tidy up the certificate
   store.
 
-- `tidy_revocation_list` `(bool: false)` Specifies whether to tidy up the
-  revocation list (CRL).
+- `tidy_revoked_certs` `(bool: false)` Set to true to expire all revoked
+  certificates, even if their duration has not yet passed, removing them both
+  from the CRL and from storage. The CRL will be rotated if this causes any
+  values to be removed.
 
 - `safety_buffer` `(string: "")` Specifies  A duration (given as an integer
   number of seconds or a string; defaults to `72h`) used as a safety buffer to
@@ -1358,5 +1567,5 @@ $ curl \
     --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
-    https://vault.rocks/v1/pki/tidy
+    http://127.0.0.1:8200/v1/pki/tidy
 ```
