@@ -26,7 +26,7 @@ all: verify build docker_build
 
 build: go_build
 
-verify: go_verify
+verify: verify_vendor go_verify
 
 .builder_image:
 	docker pull ${BUILD_IMAGE_NAME}
@@ -57,6 +57,9 @@ docker_push: docker_build
 # Go targets
 #################
 go_verify: go_fmt go_vet go_test
+
+verify_vendor:
+	dep ensure -no-vendor -dry-run -v
 
 go_build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -X main.version=$(CI_COMMIT_TAG) -X main.commit=$(CI_COMMIT_SHA) -X main.date=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)' -o vault-unsealer_linux_amd64
