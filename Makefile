@@ -1,13 +1,7 @@
-GO_PKG = gitlab.jetstack.net/jetstack/vault-unsealer
-
 REGISTRY := quay.io/jetstack
 IMAGE_NAME := vault-unsealer
 BUILD_TAG := build
 IMAGE_TAGS := canary
-
-BUILD_IMAGE_NAME := golang:1.10.4
-
-GOPATH ?= /tmp/go
 
 CI_COMMIT_TAG ?= unknown
 CI_COMMIT_SHA ?= unknown
@@ -16,6 +10,8 @@ help:
 	# all 		- runs verify, build and docker_build targets
 	# test 		- runs go_test target
 	# build 	- runs go_build target
+	# docker  - build local version of vault-unsealer
+	# release - build application release in container and push it to repo
 	# verify 	- verifies generated files & scripts
 
 # Util targets
@@ -24,28 +20,22 @@ help:
 
 all: verify build docker_build
 
+test: go_test
+
 build: go_build
 
+docker: docker_build
+
+release: verify docker_build docker_push
+
 verify: go_verify
-
-.builder_image:
-	docker pull ${BUILD_IMAGE_NAME}
-
-# Builder image targets
-#######################
-docker_%: .builder_image
-	docker run -it \
-		-v ${GOPATH}/src:/go/src \
-		-v $(shell pwd):/go/src/${GO_PKG} \
-		-w /go/src/${GO_PKG} \
-		-e GOPATH=/go \
-		${BUILD_IMAGE_NAME} \
-		/bin/sh -c "make $*"
 
 # Docker targets
 ################
 docker_build:
-	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) .
+	docker build -t $(REGISTRY)/$(IMAGE_NAME):$(BUILD_TAG) --build-arg CI_COMMIT_TAG=${CI_COMMIT_TAG} \
+	--build-arg CI_COMMIT_SHA=${CI_COMMIT_SHA} --build-arg CI_DATE=$(shell date -u +%Y-%m-%dT%H:%M:%SZ) \
+	-f Dockerfile .
 
 docker_push: docker_build
 	set -e; \
@@ -59,7 +49,9 @@ docker_push: docker_build
 go_verify: go_fmt go_vet go_test
 
 go_build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -X main.version=$(CI_COMMIT_TAG) -X main.commit=$(CI_COMMIT_SHA) -X main.date=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)' -o vault-unsealer_linux_amd64
+	CGO_ENABLED=0 go build -a -tags netgo -ldflags '-w -X main.version=$(CI_COMMIT_TAG) \
+		-X main.commit=$(CI_COMMIT_SHA) -X main.date=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)' \
+		-o vault-unsealer
 
 go_test:
 	go test $$(go list ./... | grep -v '/vendor/')
