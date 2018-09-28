@@ -10,7 +10,7 @@ This is a CLI tool to help automate the setup and management of
 Hashicorp Vault.
 
 It will continuously attempt to unseal the target Vault instance, by retrieving
-unseal keys from a Google Cloud KMS keyring.
+unseal keys from a Google/AWS Cloud KMS keyring.
 
 Usage:
   vault-unsealer [command]
@@ -30,7 +30,7 @@ Flags:
       --google-cloud-storage-bucket string   The name of the Google Cloud Storage bucket to store values in
       --google-cloud-storage-prefix string   The prefix to use for values store in Google Cloud Storage
   -h, --help                                 help for vault-unsealer
-      --mode string                          Select the mode to use 'google-cloud-kms-gcs' => Google Cloud Storage with encryption using Google KMS; 'aws-kms-ssm' => AWS SSM parameter store using AWS KMS encryption (default "google-cloud-kms-gcs")
+      --mode string                          Select the mode to use 'google-cloud-kms-gcs' => Google Cloud Storage with encryption using Google KMS; 'aws-kms-ssm' => AWS SSM parameter store using AWS KMS encryption; 'aws-sec-ssm' => AWS SSM parameter mode using Secure strings and KMS key for encryption (default "google-cloud-kms-gcs")
       --secret-shares int                    Total count of secret shares that exist (default 1)
       --secret-threshold int                 Minimum required secret shares to unseal (default 1)
 

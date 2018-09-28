@@ -7,6 +7,7 @@ import (
 
 	"github.com/jetstack/vault-unsealer/pkg/kv"
 	"github.com/jetstack/vault-unsealer/pkg/kv/aws_kms"
+	"github.com/jetstack/vault-unsealer/pkg/kv/aws_sec_ssm"
 	"github.com/jetstack/vault-unsealer/pkg/kv/aws_ssm"
 	"github.com/jetstack/vault-unsealer/pkg/kv/cloudkms"
 	"github.com/jetstack/vault-unsealer/pkg/kv/gcs"
@@ -69,6 +70,13 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 		}
 
 		return kms, nil
+	case cfgModeValueAWSSECSSM:
+		ssm, err := aws_sec_ssm.New(cfg.GetString(cfgAWSSSMKeyPrefix), cfg.GetString(cfgAWSKMSKeyID))
+		if err != nil {
+			return nil, fmt.Errorf("error creating AWS SSM using Secure parameters kv store: %s", err.Error())
+		}
+
+		return ssm, nil
 
 	case cfgModeValueLocal:
 		return local.New(cfg.GetString(cfgLocalKeyDir))
@@ -76,4 +84,6 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 	default:
 		return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))
 	}
+
+	return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))
 }
