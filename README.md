@@ -53,3 +53,9 @@ make -C $(go env GOPATH)/src/github.com/jetstack/vault-unsealer build
 ```bash
 docker build -t vault-unsealer:<version> .
 ```
+
+## TODO
+
+1) Add support for kubernetes leader election
+
+  https://github.com/kubernetes/contrib/tree/master/election
