@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"strings"
+"fmt"
+"os"
+"strings"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+"github.com/spf13/cobra"
+"github.com/spf13/viper"
 )
 
 var appConfig *viper.Viper
@@ -16,6 +16,7 @@ const cfgSecretShares = "secret-shares"
 const cfgSecretThreshold = "secret-threshold"
 
 const cfgMode = "mode"
+const cfgModeValueAlicloudKMSOSS = "alicloud-kms-ssm"
 const cfgModeValueAWSKMSSSM = "aws-kms-ssm"
 const cfgModeValueGoogleCloudKMSGCS = "google-cloud-kms-gcs"
 const cfgModeValueLocal = "local"
@@ -30,6 +31,13 @@ const cfgGoogleCloudStoragePrefix = "google-cloud-storage-prefix"
 
 const cfgAWSKMSKeyID = "aws-kms-key-id"
 const cfgAWSSSMKeyPrefix = "aws-ssm-key-prefix"
+
+const cfgAlicloudKMSRegion = "alicloud-kms-region"
+const cfgAlicloudKMSKeyID = "alicloud-kms-id"
+
+const cfgAlicloudStorageEndpoint = "alicloud-storage-endpoint"
+const cfgAlicloudStorageBucket = "alicloud-storage-bucket"
+const cfgAlicloudStoragePrefix = "alicloud-storage-prefix"
 
 const cfgLocalKeyDir = "local-key-dir"
 
@@ -78,7 +86,7 @@ func init() {
 	configStringVar(
 		cfgMode,
 		cfgModeValueGoogleCloudKMSGCS,
-		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption; %s => Use local keys in path", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM, cfgModeValueLocal),
+		fmt.Sprintf("Select the mode to use '%s' => Google Cloud Storage with encryption using Google KMS; '%s' => AWS SSM parameter store using AWS KMS encryption; '%s' => Alicloud KMS parameter store using Alicloud KMS encryption; %s => Use local keys in path", cfgModeValueGoogleCloudKMSGCS, cfgModeValueAWSKMSSSM, cfgModeValueAlicloudKMSOSS, cfgModeValueLocal),
 	)
 
 	// Secret config
@@ -100,6 +108,15 @@ func init() {
 
 	// AWS SSM Parameter Storage flags
 	configStringVar("aws-ssm-key-prefix", "", "The Key Prefix for SSM Parameter store")
+
+	// Alicloud KMS flags
+	configStringVar(cfgAlicloudKMSRegion, "", "The Region string of the Alicloud KMS to encrypt values")
+	configStringVar(cfgAlicloudKMSKeyID, "", "The Key ID string of the Alicloud KMS key to encrypt values")
+
+	// Alicloud Storage flags
+	configStringVar(cfgAlicloudStorageEndpoint, "", "The endpoint of the Alicloud Bucket")
+	configStringVar(cfgAlicloudStorageBucket, "", "The Region string of the Alicloud KMS to encrypt values")
+	configStringVar(cfgAlicloudStoragePrefix, "", "The prefix to use for values store in Alicloud Storage")
 
 	configStringVar("local-key-dir", "", "Directory of key shares in path")
 }

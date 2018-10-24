@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
-
+	"github.com/jetstack/vault-unsealer/pkg/kv/alicloud_kms"
+	"github.com/jetstack/vault-unsealer/pkg/kv/alicloud_oss"
 	"github.com/spf13/viper"
+	"os"
 
 	"github.com/jetstack/vault-unsealer/pkg/kv"
 	"github.com/jetstack/vault-unsealer/pkg/kv/aws_kms"
@@ -11,7 +13,6 @@ import (
 	"github.com/jetstack/vault-unsealer/pkg/kv/cloudkms"
 	"github.com/jetstack/vault-unsealer/pkg/kv/gcs"
 	"github.com/jetstack/vault-unsealer/pkg/kv/local"
-
 	"github.com/jetstack/vault-unsealer/pkg/vault"
 )
 
@@ -66,6 +67,34 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 		kms, err := aws_kms.New(ssm, cfg.GetString(cfgAWSKMSKeyID))
 		if err != nil {
 			return nil, fmt.Errorf("error creating AWS KMS ID kv store: %s", err.Error())
+		}
+
+		return kms, nil
+
+	case cfgModeValueAlicloudKMSOSS:
+		envAlicloudAccessKey := os.Getenv("ALICLOUD_ACCESS_KEY")
+		envAlicloudSecretKey := os.Getenv("ALICLOUD_SECRET_KEY")
+
+		o, err := alicloud_oss.New(
+			cfg.GetString(cfgAlicloudStorageEndpoint),
+			cfg.GetString(cfgAlicloudStorageBucket),
+			cfg.GetString(cfgAlicloudStoragePrefix),
+			envAlicloudSecretKey,
+			envAlicloudSecretKey)
+
+		if err != nil {
+			return nil, fmt.Errorf("error creating Alicloud storage kv store: %s", err.Error())
+		}
+
+
+		kms, err := alicloud_kms.New(o,
+			cfg.GetString(cfgAlicloudKMSKeyID),
+			cfg.GetString(cfgAlicloudKMSRegion),
+			envAlicloudAccessKey,
+			envAlicloudSecretKey)
+
+		if err != nil {
+			return nil, fmt.Errorf("error creating Alicloud KMS ID kv store: %s", err.Error())
 		}
 
 		return kms, nil
