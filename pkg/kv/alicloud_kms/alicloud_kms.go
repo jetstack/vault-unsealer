@@ -35,14 +35,12 @@ func (a *alicloudKms) encrypt(s []byte) ([]byte, error) {
 	requestStruct.RpcRequest.SetScheme("HTTPS")
 	requestStruct.Plaintext = string(s[:])
 
-	fmt.Println("HGX: Planintext is ", string(s[:]))
 	genresp, err := a.kmsClient.Encrypt(requestStruct)
 
 	if err != nil {
 		return nil, fmt.Errorf("error encrypting data: %s", err.Error())
 	}
 
-	fmt.Println("HGX: encrypted string is ", genresp.CiphertextBlob)
 	return []byte(genresp.CiphertextBlob), nil
 }
 

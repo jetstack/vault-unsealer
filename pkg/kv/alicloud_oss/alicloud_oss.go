@@ -50,8 +50,6 @@ func (o *ossStorage) Set(key string, val []byte) error {
 
 func (o *ossStorage) Get(key string) ([]byte, error) {
 	n := objectNameWithPrefix(o.prefix, key)
-	fmt.Println("HGX: n in Get is %s", n)
-
 	b := new(bytes.Buffer)
 
 	bucket, err := o.cl.Bucket(o.bucket)
