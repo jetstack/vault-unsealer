@@ -84,6 +84,4 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 	default:
 		return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))
 	}
-
-	return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))
 }
