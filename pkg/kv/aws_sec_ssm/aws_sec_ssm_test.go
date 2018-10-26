@@ -17,7 +17,7 @@ func TestAWSIntegration(t *testing.T) {
 	payloadKey := "test123"
 	payloadValue := "payload123"
 
-	a, err := New("test-integration-")
+	a, err := New("test-integration-", "TestKMSIDkey")
 	if err != nil {
 		t.Errorf("Unexpected error creating SSM kv: %s", err)
 	}
