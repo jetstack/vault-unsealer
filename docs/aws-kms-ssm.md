@@ -197,3 +197,30 @@ INFO[0000] checking if vault is sealed...
 INFO[0000] vault sealed: true
 INFO[0002] successfully unsealed vault
 ```
+
+## Getting the Root token and Unseal keys from SSM and Decrypt with KMS.
+
+Since you've generated the the keys and root token using vault-unsealer you can use the following commands to get the unseal keys and root token:
+
+Make sure to change the region / AWS CLI profile to your needs.
+
+Note that you don't have to pass the KMS key id since it's in the metadata of the stored parameter on SSM.
+
+```bash
+export AWS_DEFAULT_REGION=us-west-2
+export AWS_PROFILE=dev
+echo "Fetching Vault unseal keys and root token from AWS..."
+
+aws ssm get-parameters --names kubernetes-vault-root | jq -r '.Parameters[].Value'  | base64 -D > /tmp/root-token
+ROOT_TOKEN=$(aws kms decrypt --ciphertext-blob fileb:///tmp/root-token --encryption-context Tool=vault-unsealer | jq -r '.Plaintext' | base64 -D)
+
+for i in {0..4}; do
+aws ssm get-parameters --names kubernetes-vault-unseal-${i} | jq -r '.Parameters[].Value'  | base64 -D > /tmp/unseal-${i}
+echo "Unseal Key $((i+1)): $(aws kms decrypt --ciphertext-blob fileb:///tmp/unseal-${i} --encryption-context Tool=vault-unsealer | jq -r '.Plaintext' | base64 -D)"
+done
+
+echo "Initial Root token: ${ROOT_TOKEN}"
+rm /tmp/unseal*
+rm /tmp/root-token
+echo "Done."
+```
