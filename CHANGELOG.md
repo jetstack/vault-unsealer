@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2018-11-07
+
+### Added
+
+* Add alicloud support
+
 ## [0.3.0] - 2017-09-03
 
 ### Added
