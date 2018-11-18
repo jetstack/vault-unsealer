@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.4] - 2018-10-11
+
+### Added
+
+* Adds new mode aws-sec-ssm which is using ssm parameters type SEcureString which can be automatically decrypted by AWS KMS key
+* Update Dockerfile to multistage build format
+
 ## [0.3.0] - 2017-09-03
 
 ### Added
