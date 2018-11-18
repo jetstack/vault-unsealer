@@ -197,3 +197,24 @@ INFO[0000] checking if vault is sealed...
 INFO[0000] vault sealed: true
 INFO[0002] successfully unsealed vault
 ```
+
+## Obtaining the Vault root-token
+
+It is not uncommon, once securely setup, for operators to obtain the root token for later provisioning with other processes (e.g. creating leaf tokens etc). In order to obtain the root token from SSM with a KMS encrypted payload using the `aws` CLI, do the following:
+
+```bash
+
+ciphertext=$(aws ssm get-parameter --name NAME_OF_SSM_KEY | jq -r .Parameter.Value)
+
+aws kms decrypt \
+--ciphertext-blob fileb://<(echo "${ciphertext}" | base64 -D) \
+--encryption-context '{ "Tool": "vault-unsealer" }'
+```
+
+This will dump the ARN and the value stored in SSM decrypted to plain text. Be aware that the `Plaintext` field is actually `base64` encoded, so you have extract that field and decode it to obtain the actual plain text token. As one usually does not care about the ARN, you can do this inline like so:
+
+```base
+aws kms decrypt \
+--ciphertext-blob fileb://<(echo "${ciphertext}" | base64 -D) \
+--encryption-context '{ "Tool": "vault-unsealer" }' |  jq -r .Plaintext | base64 -D
+```
