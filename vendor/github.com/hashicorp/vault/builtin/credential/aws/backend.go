@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 	"github.com/patrickmn/go-cache"
@@ -38,14 +39,14 @@ type backend struct {
 	blacklistMutex sync.RWMutex
 
 	// Guards the blacklist/whitelist tidy functions
-	tidyBlacklistCASGuard uint32
-	tidyWhitelistCASGuard uint32
+	tidyBlacklistCASGuard *uint32
+	tidyWhitelistCASGuard *uint32
 
 	// Duration after which the periodic function of the backend needs to
 	// tidy the blacklist and whitelist entries.
 	tidyCooldownPeriod time.Duration
 
-	// nextTidyTime holds the time at which the periodic func should initiatite
+	// nextTidyTime holds the time at which the periodic func should initiate
 	// the tidy operations. This is set by the periodicFunc based on the value
 	// of tidyCooldownPeriod.
 	nextTidyTime time.Time
@@ -81,10 +82,12 @@ func Backend(conf *logical.BackendConfig) (*backend, error) {
 	b := &backend{
 		// Setting the periodic func to be run once in an hour.
 		// If there is a real need, this can be made configurable.
-		tidyCooldownPeriod:  time.Hour,
-		EC2ClientsMap:       make(map[string]map[string]*ec2.EC2),
-		IAMClientsMap:       make(map[string]map[string]*iam.IAM),
-		iamUserIdToArnCache: cache.New(7*24*time.Hour, 24*time.Hour),
+		tidyCooldownPeriod:    time.Hour,
+		EC2ClientsMap:         make(map[string]map[string]*ec2.EC2),
+		IAMClientsMap:         make(map[string]map[string]*iam.IAM),
+		iamUserIdToArnCache:   cache.New(7*24*time.Hour, 24*time.Hour),
+		tidyBlacklistCASGuard: new(uint32),
+		tidyWhitelistCASGuard: new(uint32),
 	}
 
 	b.resolveArnToUniqueIDFunc = b.resolveArnToRealUniqueId
@@ -143,29 +146,33 @@ func (b *backend) periodicFunc(ctx context.Context, req *logical.Request) error 
 	// Run the tidy operations for the first time. Then run it when current
 	// time matches the nextTidyTime.
 	if b.nextTidyTime.IsZero() || !time.Now().Before(b.nextTidyTime) {
-		// safety_buffer defaults to 180 days for roletag blacklist
-		safety_buffer := 15552000
-		tidyBlacklistConfigEntry, err := b.lockedConfigTidyRoleTags(ctx, req.Storage)
-		if err != nil {
-			return err
-		}
-		skipBlacklistTidy := false
-		// check if tidying of role tags was configured
-		if tidyBlacklistConfigEntry != nil {
-			// check if periodic tidying of role tags was disabled
-			if tidyBlacklistConfigEntry.DisablePeriodicTidy {
-				skipBlacklistTidy = true
+		if b.System().LocalMount() || !b.System().ReplicationState().HasState(consts.ReplicationPerformanceSecondary) {
+			// safety_buffer defaults to 180 days for roletag blacklist
+			safety_buffer := 15552000
+			tidyBlacklistConfigEntry, err := b.lockedConfigTidyRoleTags(ctx, req.Storage)
+			if err != nil {
+				return err
 			}
-			// overwrite the default safety_buffer with the configured value
-			safety_buffer = tidyBlacklistConfigEntry.SafetyBuffer
-		}
-		// tidy role tags if explicitly not disabled
-		if !skipBlacklistTidy {
-			b.tidyBlacklistRoleTag(ctx, req.Storage, safety_buffer)
+			skipBlacklistTidy := false
+			// check if tidying of role tags was configured
+			if tidyBlacklistConfigEntry != nil {
+				// check if periodic tidying of role tags was disabled
+				if tidyBlacklistConfigEntry.DisablePeriodicTidy {
+					skipBlacklistTidy = true
+				}
+				// overwrite the default safety_buffer with the configured value
+				safety_buffer = tidyBlacklistConfigEntry.SafetyBuffer
+			}
+			// tidy role tags if explicitly not disabled
+			if !skipBlacklistTidy {
+				b.tidyBlacklistRoleTag(ctx, req, safety_buffer)
+			}
 		}
 
-		// reset the safety_buffer to 72h
-		safety_buffer = 259200
+		// We don't check for replication state for whitelist identities as
+		// these are locally stored
+
+		safety_buffer := 259200
 		tidyWhitelistConfigEntry, err := b.lockedConfigTidyIdentities(ctx, req.Storage)
 		if err != nil {
 			return err
@@ -182,7 +189,7 @@ func (b *backend) periodicFunc(ctx context.Context, req *logical.Request) error 
 		}
 		// tidy identities if explicitly not disabled
 		if !skipWhitelistTidy {
-			b.tidyWhitelistIdentity(ctx, req.Storage, safety_buffer)
+			b.tidyWhitelistIdentity(ctx, req, safety_buffer)
 		}
 
 		// Update the time at which to run the tidy functions again.
@@ -222,7 +229,7 @@ func (b *backend) resolveArnToRealUniqueId(ctx context.Context, s logical.Storag
 	// Sigh
 	region := getAnyRegionForAwsPartition(entity.Partition)
 	if region == nil {
-		return "", fmt.Errorf("Unable to resolve partition %q to a region", entity.Partition)
+		return "", fmt.Errorf("unable to resolve partition %q to a region", entity.Partition)
 	}
 	iamClient, err := b.clientIAM(ctx, s, region.ID(), entity.AccountNumber)
 	if err != nil {
@@ -279,12 +286,21 @@ func getAnyRegionForAwsPartition(partitionId string) *endpoints.Region {
 }
 
 const backendHelp = `
-aws-ec2 auth method takes in PKCS#7 signature of an AWS EC2 instance and a client
-created nonce to authenticates the EC2 instance with Vault.
+The aws auth method uses either AWS IAM credentials or AWS-signed EC2 metadata
+to authenticate clients, which are IAM principals or EC2 instances.
 
 Authentication is backed by a preconfigured role in the backend. The role
 represents the authorization of resources by containing Vault's policies.
 Role can be created using 'role/<role>' endpoint.
+
+Authentication of IAM principals, either IAM users or roles, is done using a
+specifically signed AWS API request using clients' AWS IAM credentials. IAM
+principals can then be assigned to roles within Vault. This is known as the
+"iam" auth method.
+
+Authentication of EC2 instances is done using either a signed PKCS#7 document
+or a detached RSA signature of an AWS EC2 instance's identity document along
+with a client-created nonce. This is known as the "ec2" auth method.
 
 If there is need to further restrict the capabilities of the role on the instance
 that is using the role, 'role_tag' option can be enabled on the role, and a tag

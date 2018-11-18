@@ -3,7 +3,9 @@ package pki
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/mitchellh/mapstructure"
 )
@@ -13,7 +15,7 @@ func createBackendWithStorage(t *testing.T) (*backend, logical.Storage) {
 	config.StorageView = &logical.InmemStorage{}
 
 	var err error
-	b := Backend()
+	b := Backend(config)
 	err = b.Setup(context.Background(), config)
 	if err != nil {
 		t.Fatal(err)
@@ -62,6 +64,11 @@ func TestPki_RoleGenerateLease(t *testing.T) {
 		t.Fatalf("generate_lease should not be set by default")
 	}
 
+	// Update values due to switching of ttl type
+	resp.Data["ttl_duration"] = resp.Data["ttl"]
+	resp.Data["ttl"] = (time.Duration(resp.Data["ttl"].(int64)) * time.Second).String()
+	resp.Data["max_ttl_duration"] = resp.Data["max_ttl"]
+	resp.Data["max_ttl"] = (time.Duration(resp.Data["max_ttl"].(int64)) * time.Second).String()
 	// role.GenerateLease will be nil after the decode
 	var role roleEntry
 	err = mapstructure.Decode(resp.Data, &role)
@@ -155,6 +162,11 @@ func TestPki_RoleKeyUsage(t *testing.T) {
 		t.Fatalf("key_usage should have 2 values")
 	}
 
+	// Update values due to switching of ttl type
+	resp.Data["ttl_duration"] = resp.Data["ttl"]
+	resp.Data["ttl"] = (time.Duration(resp.Data["ttl"].(int64)) * time.Second).String()
+	resp.Data["max_ttl_duration"] = resp.Data["max_ttl"]
+	resp.Data["max_ttl"] = (time.Duration(resp.Data["max_ttl"].(int64)) * time.Second).String()
 	// Check that old key usage value is nil
 	var role roleEntry
 	err = mapstructure.Decode(resp.Data, &role)
@@ -245,9 +257,14 @@ func TestPki_RoleOUOrganizationUpgrade(t *testing.T) {
 	}
 	organization := resp.Data["organization"].([]string)
 	if len(organization) != 2 {
-		t.Fatalf("organziation should have 2 values")
+		t.Fatalf("organization should have 2 values")
 	}
 
+	// Update values due to switching of ttl type
+	resp.Data["ttl_duration"] = resp.Data["ttl"]
+	resp.Data["ttl"] = (time.Duration(resp.Data["ttl"].(int64)) * time.Second).String()
+	resp.Data["max_ttl_duration"] = resp.Data["max_ttl"]
+	resp.Data["max_ttl"] = (time.Duration(resp.Data["max_ttl"].(int64)) * time.Second).String()
 	// Check that old key usage value is nil
 	var role roleEntry
 	err = mapstructure.Decode(resp.Data, &role)
@@ -350,6 +367,11 @@ func TestPki_RoleAllowedDomains(t *testing.T) {
 		t.Fatalf("allowed_domains should have 2 values")
 	}
 
+	// Update values due to switching of ttl type
+	resp.Data["ttl_duration"] = resp.Data["ttl"]
+	resp.Data["ttl"] = (time.Duration(resp.Data["ttl"].(int64)) * time.Second).String()
+	resp.Data["max_ttl_duration"] = resp.Data["max_ttl"]
+	resp.Data["max_ttl"] = (time.Duration(resp.Data["max_ttl"].(int64)) * time.Second).String()
 	// Check that old key usage value is nil
 	var role roleEntry
 	err = mapstructure.Decode(resp.Data, &role)
@@ -401,6 +423,131 @@ func TestPki_RoleAllowedDomains(t *testing.T) {
 	}
 	if len(result.AllowedDomains) != 2 {
 		t.Fatal("allowed_domains should have 2 values")
+	}
+}
+
+func TestPki_RoleAllowedURISANs(t *testing.T) {
+	var resp *logical.Response
+	var err error
+	b, storage := createBackendWithStorage(t)
+
+	roleData := map[string]interface{}{
+		"allowed_uri_sans": []string{"http://foobar.com", "spiffe://*"},
+		"ttl":              "5h",
+	}
+
+	roleReq := &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "roles/testrole",
+		Storage:   storage,
+		Data:      roleData,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("bad: err: %v resp: %#v", err, resp)
+	}
+
+	roleReq.Operation = logical.ReadOperation
+	resp, err = b.HandleRequest(context.Background(), roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("bad: err: %v resp: %#v", err, resp)
+	}
+
+	allowedURISANs := resp.Data["allowed_uri_sans"].([]string)
+	if len(allowedURISANs) != 2 {
+		t.Fatalf("allowed_uri_sans should have 2 values")
+	}
+}
+
+func TestPki_RolePkixFields(t *testing.T) {
+	var resp *logical.Response
+	var err error
+	b, storage := createBackendWithStorage(t)
+
+	roleData := map[string]interface{}{
+		"ttl":            "5h",
+		"country":        []string{"c1", "c2"},
+		"ou":             []string{"abc", "123"},
+		"organization":   []string{"org1", "org2"},
+		"locality":       []string{"foocity", "bartown"},
+		"province":       []string{"bar", "foo"},
+		"street_address": []string{"123 foo street", "789 bar avenue"},
+		"postal_code":    []string{"f00", "b4r"},
+	}
+
+	roleReq := &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "roles/testrole_pkixfields",
+		Storage:   storage,
+		Data:      roleData,
+	}
+
+	resp, err = b.HandleRequest(context.Background(), roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("bad: err: %v resp: %#v", err, resp)
+	}
+
+	roleReq.Operation = logical.ReadOperation
+	resp, err = b.HandleRequest(context.Background(), roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("bad: err: %v resp: %#v", err, resp)
+	}
+
+	origCountry := roleData["country"].([]string)
+	respCountry := resp.Data["country"].([]string)
+	if !strutil.StrListSubset(origCountry, respCountry) {
+		t.Fatalf("country did not match values set in role")
+	} else if len(origCountry) != len(respCountry) {
+		t.Fatalf("country did not have same number of values set in role")
+	}
+
+	origOU := roleData["ou"].([]string)
+	respOU := resp.Data["ou"].([]string)
+	if !strutil.StrListSubset(origOU, respOU) {
+		t.Fatalf("ou did not match values set in role")
+	} else if len(origOU) != len(respOU) {
+		t.Fatalf("ou did not have same number of values set in role")
+	}
+
+	origOrganization := roleData["organization"].([]string)
+	respOrganization := resp.Data["organization"].([]string)
+	if !strutil.StrListSubset(origOrganization, respOrganization) {
+		t.Fatalf("organization did not match values set in role")
+	} else if len(origOrganization) != len(respOrganization) {
+		t.Fatalf("organization did not have same number of values set in role")
+	}
+
+	origLocality := roleData["locality"].([]string)
+	respLocality := resp.Data["locality"].([]string)
+	if !strutil.StrListSubset(origLocality, respLocality) {
+		t.Fatalf("locality did not match values set in role")
+	} else if len(origLocality) != len(respLocality) {
+		t.Fatalf("locality did not have same number of values set in role: ")
+	}
+
+	origProvince := roleData["province"].([]string)
+	respProvince := resp.Data["province"].([]string)
+	if !strutil.StrListSubset(origProvince, respProvince) {
+		t.Fatalf("province did not match values set in role")
+	} else if len(origProvince) != len(respProvince) {
+		t.Fatalf("province did not have same number of values set in role")
+	}
+
+	origStreetAddress := roleData["street_address"].([]string)
+	respStreetAddress := resp.Data["street_address"].([]string)
+	if !strutil.StrListSubset(origStreetAddress, respStreetAddress) {
+		t.Fatalf("street_address did not match values set in role")
+	} else if len(origStreetAddress) != len(respStreetAddress) {
+		t.Fatalf("street_address did not have same number of values set in role")
+	}
+
+	origPostalCode := roleData["postal_code"].([]string)
+	respPostalCode := resp.Data["postal_code"].([]string)
+	if !strutil.StrListSubset(origPostalCode, respPostalCode) {
+		t.Fatalf("postal_code did not match values set in role")
+	} else if len(origPostalCode) != len(respPostalCode) {
+		t.Fatalf("postal_code did not have same number of values set in role")
 	}
 }
 

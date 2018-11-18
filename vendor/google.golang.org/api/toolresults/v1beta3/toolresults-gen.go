@@ -312,7 +312,7 @@ func (s *AndroidRoboTest) MarshalJSON() ([]byte, error) {
 
 // AndroidTest: An Android mobile test specification.
 type AndroidTest struct {
-	// AndroidAppInfo: Infomation about the application under test.
+	// AndroidAppInfo: Information about the application under test.
 	AndroidAppInfo *AndroidAppInfo `json:"androidAppInfo,omitempty"`
 
 	// AndroidInstrumentationTest: An Android instrumentation test.
@@ -406,8 +406,9 @@ func (s *AndroidTest) MarshalJSON() ([]byte, error) {
 // "1.212s" }
 type Any struct {
 	// TypeUrl: A URL/resource name that uniquely identifies the type of the
-	// serialized protocol buffer message. The last segment of the URL's
-	// path must represent the fully qualified name of the type (as in
+	// serialized protocol buffer message. This string must contain at least
+	// one "/" character. The last segment of the URL's path must represent
+	// the fully qualified name of the type (as in
 	// `path/google.protobuf.Duration`). The name should be in a canonical
 	// form (e.g., leading "." is not accepted).
 	//
@@ -1064,7 +1065,7 @@ type History struct {
 	HistoryId string `json:"historyId,omitempty"`
 
 	// Name: A name to uniquely identify a history within a project. Maximum
-	// of 100 characters.
+	// of 200 characters.
 	//
 	// - In response always set - In create request: always set
 	Name string `json:"name,omitempty"`
@@ -1329,7 +1330,7 @@ func (s *ListPerfSamplesResponse) MarshalJSON() ([]byte, error) {
 }
 
 type ListScreenshotClustersResponse struct {
-	// Clusters: The set of clustres associated with an execution Always set
+	// Clusters: The set of clusters associated with an execution Always set
 	Clusters []*ScreenshotCluster `json:"clusters,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -1969,18 +1970,12 @@ func (s *Specification) MarshalJSON() ([]byte, error) {
 
 // StackTrace: A stacktrace.
 type StackTrace struct {
-	// ClusterId: Exception cluster ID
-	ClusterId string `json:"clusterId,omitempty"`
-
 	// Exception: The stack trace message.
 	//
 	// Required
 	Exception string `json:"exception,omitempty"`
 
-	// ReportId: Exception report ID
-	ReportId string `json:"reportId,omitempty"`
-
-	// ForceSendFields is a list of field names (e.g. "ClusterId") to
+	// ForceSendFields is a list of field names (e.g. "Exception") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -1988,7 +1983,7 @@ type StackTrace struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "ClusterId") to include in
+	// NullFields is a list of field names (e.g. "Exception") to include in
 	// API requests with the JSON null value. By default, fields with empty
 	// values are omitted from API requests. However, any field with an
 	// empty value appearing in NullFields will be sent to the server as
@@ -2505,6 +2500,14 @@ func (s *TestExecutionStep) MarshalJSON() ([]byte, error) {
 
 // TestIssue: An issue detected occurring during a test execution.
 type TestIssue struct {
+	// Category: Category of issue. Required.
+	//
+	// Possible values:
+	//   "common"
+	//   "robo"
+	//   "unspecifiedCategory"
+	Category string `json:"category,omitempty"`
+
 	// ErrorMessage: A brief human-readable message describing the issue.
 	// Required.
 	ErrorMessage string `json:"errorMessage,omitempty"`
@@ -2514,6 +2517,7 @@ type TestIssue struct {
 	// Possible values:
 	//   "info"
 	//   "severe"
+	//   "suggestion"
 	//   "unspecifiedSeverity"
 	//   "warning"
 	Severity string `json:"severity,omitempty"`
@@ -2526,10 +2530,20 @@ type TestIssue struct {
 	//
 	// Possible values:
 	//   "anr"
+	//   "availableDeepLinks"
 	//   "compatibleWithOrchestrator"
+	//   "completeRoboScriptExecution"
+	//   "encounteredLoginScreen"
+	//   "encounteredNonAndroidUiWidgetScreen"
+	//   "failedToInstall"
 	//   "fatalException"
+	//   "incompleteRoboScriptExecution"
+	//   "iosCrash"
+	//   "iosException"
 	//   "launcherActivityNotFound"
 	//   "nativeCrash"
+	//   "nonSdkApiUsageViolation"
+	//   "performedGoogleLogin"
 	//   "startActivityNotFound"
 	//   "unspecifiedType"
 	//   "unusedRoboDirective"
@@ -2539,7 +2553,7 @@ type TestIssue struct {
 	// always be a message from com.google.devtools.toolresults.v1.warnings
 	Warning *Any `json:"warning,omitempty"`
 
-	// ForceSendFields is a list of field names (e.g. "ErrorMessage") to
+	// ForceSendFields is a list of field names (e.g. "Category") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
 	// non-interface field appearing in ForceSendFields will be sent to the
@@ -2547,10 +2561,10 @@ type TestIssue struct {
 	// used to include empty fields in Patch requests.
 	ForceSendFields []string `json:"-"`
 
-	// NullFields is a list of field names (e.g. "ErrorMessage") to include
-	// in API requests with the JSON null value. By default, fields with
-	// empty values are omitted from API requests. However, any field with
-	// an empty value appearing in NullFields will be sent to the server as
+	// NullFields is a list of field names (e.g. "Category") to include in
+	// API requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
 	// null. It is an error if a field in this list has a non-empty value.
 	// This may be used to include null fields in Patch requests.
 	NullFields []string `json:"-"`
@@ -2775,8 +2789,10 @@ func (s *Thumbnail) MarshalJSON() ([]byte, error) {
 // {day}, {hour}, {min}, and {sec} are zero-padded to two digits each.
 // The fractional seconds, which can go up to 9 digits (i.e. up to 1
 // nanosecond resolution), are optional. The "Z" suffix indicates the
-// timezone ("UTC"); the timezone is required, though only UTC (as
-// indicated by "Z") is currently supported.
+// timezone ("UTC"); the timezone is required. A proto3 JSON serializer
+// should always use UTC (as indicated by "Z") when printing the
+// Timestamp type and a proto3 JSON parser should be able to accept both
+// UTC and other timezones (as indicated by an offset).
 //
 // For example, "2017-01-15T01:30:15.01Z" encodes 15.01 seconds past
 // 01:30 UTC on January 15, 2017.
@@ -2790,7 +2806,7 @@ func (s *Thumbnail) MarshalJSON() ([]byte, error) {
 // [`strftime`](https://docs.python.org/2/library/time.html#time.strftime
 // ) with the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in
 // Java, one can use the Joda Time's [`ISODateTimeFormat.dateTime()`](
-// http://www.joda.org/joda-time/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime-- ) to obtain a formatter capable of generating timestamps in this
+// http://www.joda.org/joda-time/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime%2D%2D ) to obtain a formatter capable of generating timestamps in this
 // format.
 type Timestamp struct {
 	// Nanos: Non-negative fractions of a second at nanosecond resolution.

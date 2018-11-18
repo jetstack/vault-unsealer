@@ -204,35 +204,41 @@ func (s *DownloadLineItemsResponse) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
-// DownloadRequest: Request to fetch stored insertion orders, line
-// items, TrueView ad groups and ads.
+// DownloadRequest: Request to fetch stored campaigns, insertion orders,
+// line items, TrueView ad groups and ads.
 type DownloadRequest struct {
 	// FileTypes: File types that will be returned.
+	//
+	// Acceptable values are:
+	// - "AD"
+	// - "AD_GROUP"
+	// - "CAMPAIGN"
+	// - "INSERTION_ORDER"
+	// - "LINE_ITEM"
 	//
 	// Possible values:
 	//   "AD"
 	//   "AD_GROUP"
+	//   "CAMPAIGN"
 	//   "INSERTION_ORDER"
 	//   "LINE_ITEM"
 	FileTypes []string `json:"fileTypes,omitempty"`
 
 	// FilterIds: The IDs of the specified filter type. This is used to
-	// filter entities to fetch. At least one ID must be specified. Only one
-	// ID is allowed for the ADVERTISER_ID filter type. For
-	// INSERTION_ORDER_ID or LINE_ITEM_ID filter types, all IDs must be from
-	// the same Advertiser.
+	// filter entities to fetch. At least one ID must be specified.
 	FilterIds googleapi.Int64s `json:"filterIds,omitempty"`
 
-	// FilterType: Filter type used to filter line items to fetch.
+	// FilterType: Filter type used to filter entities to fetch.
 	//
 	// Possible values:
 	//   "ADVERTISER_ID"
+	//   "CAMPAIGN_ID"
 	//   "INSERTION_ORDER_ID"
 	//   "LINE_ITEM_ID"
 	FilterType string `json:"filterType,omitempty"`
 
 	// Version: SDF Version (column names, types, order) in which the
-	// entities will be returned. Default to 3.
+	// entities will be returned. Default to 3.1.
 	Version string `json:"version,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "FileTypes") to
@@ -265,6 +271,9 @@ type DownloadResponse struct {
 
 	// Ads: Retrieved ads in SDF format.
 	Ads string `json:"ads,omitempty"`
+
+	// Campaigns: Retrieved campaigns in SDF format.
+	Campaigns string `json:"campaigns,omitempty"`
 
 	// InsertionOrders: Retrieved insertion orders in SDF format.
 	InsertionOrders string `json:"insertionOrders,omitempty"`
@@ -311,6 +320,7 @@ type FilterPair struct {
 	//   "FILTER_ADVERTISER_TIMEZONE"
 	//   "FILTER_AD_POSITION"
 	//   "FILTER_AGE"
+	//   "FILTER_AUTHORIZED_SELLER_STATE_ID"
 	//   "FILTER_BRANDSAFE_CHANNEL_ID"
 	//   "FILTER_BROWSER"
 	//   "FILTER_BUDGET_SEGMENT_DESCRIPTION"
@@ -329,9 +339,14 @@ type FilterPair struct {
 	//   "FILTER_DATA_PROVIDER"
 	//   "FILTER_DATE"
 	//   "FILTER_DAY_OF_WEEK"
+	//   "FILTER_DEVICE_MAKE"
+	//   "FILTER_DEVICE_MODEL"
+	//   "FILTER_DEVICE_TYPE"
 	//   "FILTER_DFP_ORDER_ID"
 	//   "FILTER_DMA"
+	//   "FILTER_DV360_ACTIVITY_ID"
 	//   "FILTER_EXCHANGE_ID"
+	//   "FILTER_FLOODLIGHT_ACTIVITY_ID"
 	//   "FILTER_FLOODLIGHT_PIXEL_ID"
 	//   "FILTER_GENDER"
 	//   "FILTER_INSERTION_ORDER"
@@ -537,6 +552,7 @@ type Parameters struct {
 	//   "FILTER_ADVERTISER_TIMEZONE"
 	//   "FILTER_AD_POSITION"
 	//   "FILTER_AGE"
+	//   "FILTER_AUTHORIZED_SELLER_STATE_ID"
 	//   "FILTER_BRANDSAFE_CHANNEL_ID"
 	//   "FILTER_BROWSER"
 	//   "FILTER_BUDGET_SEGMENT_DESCRIPTION"
@@ -555,9 +571,14 @@ type Parameters struct {
 	//   "FILTER_DATA_PROVIDER"
 	//   "FILTER_DATE"
 	//   "FILTER_DAY_OF_WEEK"
+	//   "FILTER_DEVICE_MAKE"
+	//   "FILTER_DEVICE_MODEL"
+	//   "FILTER_DEVICE_TYPE"
 	//   "FILTER_DFP_ORDER_ID"
 	//   "FILTER_DMA"
+	//   "FILTER_DV360_ACTIVITY_ID"
 	//   "FILTER_EXCHANGE_ID"
+	//   "FILTER_FLOODLIGHT_ACTIVITY_ID"
 	//   "FILTER_FLOODLIGHT_PIXEL_ID"
 	//   "FILTER_GENDER"
 	//   "FILTER_INSERTION_ORDER"
@@ -686,6 +707,8 @@ type Parameters struct {
 	//   "METRIC_BILLABLE_COST_USD"
 	//   "METRIC_CLICKS"
 	//   "METRIC_CLICK_TO_POST_CLICK_CONVERSION_RATE"
+	//   "METRIC_CM_POST_CLICK_REVENUE"
+	//   "METRIC_CM_POST_VIEW_REVENUE"
 	//   "METRIC_COMSCORE_VCE_AUDIENCE_AVG_FREQUENCY"
 	//   "METRIC_COMSCORE_VCE_AUDIENCE_IMPRESSIONS"
 	//   "METRIC_COMSCORE_VCE_AUDIENCE_IMPRESSIONS_SHARE"
@@ -695,6 +718,8 @@ type Parameters struct {
 	//   "METRIC_COMSCORE_VCE_POPULATION"
 	//   "METRIC_COMSCORE_VCE_UNIQUE_AUDIENCE"
 	//   "METRIC_CONVERSIONS_PER_MILLE"
+	//   "METRIC_COOKIE_REACH_AVERAGE_IMPRESSION_FREQUENCY"
+	//   "METRIC_COOKIE_REACH_IMPRESSION_REACH"
 	//   "METRIC_CPM_FEE1_ADVERTISER"
 	//   "METRIC_CPM_FEE1_PARTNER"
 	//   "METRIC_CPM_FEE1_USD"
@@ -714,6 +739,7 @@ type Parameters struct {
 	//   "METRIC_DATA_COST_ADVERTISER"
 	//   "METRIC_DATA_COST_PARTNER"
 	//   "METRIC_DATA_COST_USD"
+	//   "METRIC_DBM_ENGAGEMENT_RATE"
 	//   "METRIC_FEE10_ADVERTISER"
 	//   "METRIC_FEE10_PARTNER"
 	//   "METRIC_FEE10_USD"
@@ -777,6 +803,7 @@ type Parameters struct {
 	//   "METRIC_FEE9_ADVERTISER"
 	//   "METRIC_FEE9_PARTNER"
 	//   "METRIC_FEE9_USD"
+	//   "METRIC_FLOODLIGHT_IMPRESSIONS"
 	//   "METRIC_IMPRESSIONS"
 	//   "METRIC_IMPRESSIONS_TO_CONVERSION_RATE"
 	//   "METRIC_LAST_CLICKS"
@@ -875,6 +902,7 @@ type Parameters struct {
 	//   "METRIC_REVENUE_VIEWABLE_ECPM_ADVERTISER"
 	//   "METRIC_REVENUE_VIEWABLE_ECPM_PARTNER"
 	//   "METRIC_REVENUE_VIEWABLE_ECPM_USD"
+	//   "METRIC_RICH_MEDIA_SCROLLS"
 	//   "METRIC_RICH_MEDIA_VIDEO_COMPLETIONS"
 	//   "METRIC_RICH_MEDIA_VIDEO_FIRST_QUARTILE_COMPLETES"
 	//   "METRIC_RICH_MEDIA_VIDEO_FULL_SCREENS"
@@ -960,6 +988,7 @@ type Parameters struct {
 	//   "METRIC_VIDEO_COMPANION_CLICKS"
 	//   "METRIC_VIDEO_COMPANION_IMPRESSIONS"
 	//   "METRIC_VIDEO_COMPLETION_RATE"
+	//   "METRIC_VIEWABLE_BID_REQUESTS"
 	Metrics []string `json:"metrics,omitempty"`
 
 	// Type: Report type.
@@ -978,6 +1007,7 @@ type Parameters struct {
 	//   "TYPE_GENERAL"
 	//   "TYPE_INVENTORY_AVAILABILITY"
 	//   "TYPE_KEYWORD"
+	//   "TYPE_LINEAR_TV_SEARCH_LIFT"
 	//   "TYPE_NIELSEN_AUDIENCE_PROFILE"
 	//   "TYPE_NIELSEN_DAILY_REACH_BUILD"
 	//   "TYPE_NIELSEN_ONLINE_GLOBAL_MARKET"
@@ -1647,7 +1677,8 @@ type LineitemsDownloadlineitemsCall struct {
 	header_                  http.Header
 }
 
-// Downloadlineitems: Retrieves line items in CSV format.
+// Downloadlineitems: Retrieves line items in CSV format. TrueView line
+// items are not supported.
 func (r *LineitemsService) Downloadlineitems(downloadlineitemsrequest *DownloadLineItemsRequest) *LineitemsDownloadlineitemsCall {
 	c := &LineitemsDownloadlineitemsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.downloadlineitemsrequest = downloadlineitemsrequest
@@ -1737,7 +1768,7 @@ func (c *LineitemsDownloadlineitemsCall) Do(opts ...googleapi.CallOption) (*Down
 	}
 	return ret, nil
 	// {
-	//   "description": "Retrieves line items in CSV format.",
+	//   "description": "Retrieves line items in CSV format. TrueView line items are not supported.",
 	//   "httpMethod": "POST",
 	//   "id": "doubleclickbidmanager.lineitems.downloadlineitems",
 	//   "path": "lineitems/downloadlineitems",
@@ -1764,7 +1795,8 @@ type LineitemsUploadlineitemsCall struct {
 	header_                http.Header
 }
 
-// Uploadlineitems: Uploads line items in CSV format.
+// Uploadlineitems: Uploads line items in CSV format. TrueView line
+// items are not supported.
 func (r *LineitemsService) Uploadlineitems(uploadlineitemsrequest *UploadLineItemsRequest) *LineitemsUploadlineitemsCall {
 	c := &LineitemsUploadlineitemsCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.uploadlineitemsrequest = uploadlineitemsrequest
@@ -1854,7 +1886,7 @@ func (c *LineitemsUploadlineitemsCall) Do(opts ...googleapi.CallOption) (*Upload
 	}
 	return ret, nil
 	// {
-	//   "description": "Uploads line items in CSV format.",
+	//   "description": "Uploads line items in CSV format. TrueView line items are not supported.",
 	//   "httpMethod": "POST",
 	//   "id": "doubleclickbidmanager.lineitems.uploadlineitems",
 	//   "path": "lineitems/uploadlineitems",

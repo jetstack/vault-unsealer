@@ -1,7 +1,10 @@
+// +build !race
+
 package command
 
 import (
 	"io"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -32,21 +35,13 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 		code int
 	}{
 		{
-			"init_no_args",
-			[]string{
-				"-init",
-			},
-			"must specify either -otp or -pgp-key",
-			1,
-		},
-		{
 			"init_invalid_otp",
 			[]string{
 				"-init",
 				"-otp", "not-a-valid-otp",
 			},
-			"Error initializing: invalid OTP:",
-			1,
+			"illegal base64 data at input",
+			2,
 		},
 		{
 			"init_pgp_multi",
@@ -88,16 +83,20 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
+				client, closer := testVaultServer(t)
+				defer closer()
+
 				ui, cmd := testOperatorGenerateRootCommand(t)
+				cmd.client = client
 
 				code := cmd.Run(tc.args)
 				if code != tc.code {
-					t.Errorf("expected %d to be %d", code, tc.code)
+					t.Errorf("%s: expected %d to be %d", tc.name, code, tc.code)
 				}
 
 				combined := ui.OutputWriter.String() + ui.ErrorWriter.String()
 				if !strings.Contains(combined, tc.out) {
-					t.Errorf("expected %q to contain %q", combined, tc.out)
+					t.Errorf("%s: expected %q to contain %q", tc.name, combined, tc.out)
 				}
 			})
 		}
@@ -106,18 +105,17 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 	t.Run("generate_otp", func(t *testing.T) {
 		t.Parallel()
 
-		ui, cmd := testOperatorGenerateRootCommand(t)
+		client, closer := testVaultServer(t)
+		defer closer()
+
+		_, cmd := testOperatorGenerateRootCommand(t)
+		cmd.client = client
 
 		code := cmd.Run([]string{
 			"-generate-otp",
 		})
 		if exp := 0; code != exp {
 			t.Errorf("expected %d to be %d", code, exp)
-		}
-
-		output := ui.OutputWriter.String() + ui.ErrorWriter.String()
-		if err := cmd.verifyOTP(output); err != nil {
-			t.Fatal(err)
 		}
 	})
 
@@ -127,7 +125,19 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 		encoded := "L9MaZ/4mQanpOV6QeWd84g=="
 		otp := "dIeeezkjpDUv3fy7MYPOLQ=="
 
+		client, closer := testVaultServer(t)
+		defer closer()
+
 		ui, cmd := testOperatorGenerateRootCommand(t)
+		cmd.client = client
+
+		// Simulate piped output to print raw output
+		old := os.Stdout
+		_, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.Stdout = w
 
 		code := cmd.Run([]string{
 			"-decode", encoded,
@@ -136,6 +146,9 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 		if exp := 0; code != exp {
 			t.Errorf("expected %d to be %d", code, exp)
 		}
+
+		w.Close()
+		os.Stdout = old
 
 		expected := "5b54841c-c705-e59c-c6e4-a22b48e4b2cf"
 		combined := ui.OutputWriter.String() + ui.ErrorWriter.String()
@@ -320,7 +333,7 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 			t.Errorf("expected %d to be %d", code, exp)
 		}
 
-		reToken := regexp.MustCompile(`Root Token\s+(.+)`)
+		reToken := regexp.MustCompile(`Encoded Token\s+(.+)`)
 		combined := ui.OutputWriter.String() + ui.ErrorWriter.String()
 		match := reToken.FindAllStringSubmatch(combined, -1)
 		if len(match) < 1 || len(match[0]) < 2 {
@@ -395,7 +408,7 @@ func TestOperatorGenerateRootCommand_Run(t *testing.T) {
 			t.Errorf("expected %d to be %d", code, exp)
 		}
 
-		reToken := regexp.MustCompile(`Root Token\s+(.+)`)
+		reToken := regexp.MustCompile(`Encoded Token\s+(.+)`)
 		combined := ui.OutputWriter.String() + ui.ErrorWriter.String()
 		match := reToken.FindAllStringSubmatch(combined, -1)
 		if len(match) < 1 || len(match[0]) < 2 {

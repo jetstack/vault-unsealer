@@ -319,29 +319,29 @@ func (b *backend) parseAndVerifyRoleTagValue(ctx context.Context, s logical.Stor
 	for _, tagItem := range tagItems {
 		var err error
 		switch {
-		case strings.Contains(tagItem, "i="):
+		case strings.HasPrefix(tagItem, "i="):
 			rTag.InstanceID = strings.TrimPrefix(tagItem, "i=")
-		case strings.Contains(tagItem, "r="):
+		case strings.HasPrefix(tagItem, "r="):
 			rTag.Role = strings.TrimPrefix(tagItem, "r=")
-		case strings.Contains(tagItem, "p="):
+		case strings.HasPrefix(tagItem, "p="):
 			rTag.Policies = strings.Split(strings.TrimPrefix(tagItem, "p="), ",")
-		case strings.Contains(tagItem, "d="):
+		case strings.HasPrefix(tagItem, "d="):
 			rTag.DisallowReauthentication, err = strconv.ParseBool(strings.TrimPrefix(tagItem, "d="))
 			if err != nil {
 				return nil, err
 			}
-		case strings.Contains(tagItem, "m="):
+		case strings.HasPrefix(tagItem, "m="):
 			rTag.AllowInstanceMigration, err = strconv.ParseBool(strings.TrimPrefix(tagItem, "m="))
 			if err != nil {
 				return nil, err
 			}
-		case strings.Contains(tagItem, "t="):
+		case strings.HasPrefix(tagItem, "t="):
 			rTag.MaxTTL, err = time.ParseDuration(fmt.Sprintf("%ss", strings.TrimPrefix(tagItem, "t=")))
 			if err != nil {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("unrecognized item %s in tag", tagItem)
+			return nil, fmt.Errorf("unrecognized item %q in tag", tagItem)
 		}
 	}
 
@@ -354,7 +354,7 @@ func (b *backend) parseAndVerifyRoleTagValue(ctx context.Context, s logical.Stor
 		return nil, err
 	}
 	if roleEntry == nil {
-		return nil, fmt.Errorf("entry not found for %s", rTag.Role)
+		return nil, fmt.Errorf("entry not found for %q", rTag.Role)
 	}
 
 	// Create a HMAC of the plaintext value of role tag and compare it with the given value.
@@ -390,17 +390,17 @@ func createRoleTagNonce() (string, error) {
 	}
 }
 
-// Struct roleTag represents a role tag in a struc form.
+// Struct roleTag represents a role tag in a struct form.
 type roleTag struct {
-	Version                  string        `json:"version" structs:"version" mapstructure:"version"`
-	InstanceID               string        `json:"instance_id" structs:"instance_id" mapstructure:"instance_id"`
-	Nonce                    string        `json:"nonce" structs:"nonce" mapstructure:"nonce"`
-	Policies                 []string      `json:"policies" structs:"policies" mapstructure:"policies"`
-	MaxTTL                   time.Duration `json:"max_ttl" structs:"max_ttl" mapstructure:"max_ttl"`
-	Role                     string        `json:"role" structs:"role" mapstructure:"role"`
-	HMAC                     string        `json:"hmac" structs:"hmac" mapstructure:"hmac"`
-	DisallowReauthentication bool          `json:"disallow_reauthentication" structs:"disallow_reauthentication" mapstructure:"disallow_reauthentication"`
-	AllowInstanceMigration   bool          `json:"allow_instance_migration" structs:"allow_instance_migration" mapstructure:"allow_instance_migration"`
+	Version                  string        `json:"version"`
+	InstanceID               string        `json:"instance_id"`
+	Nonce                    string        `json:"nonce"`
+	Policies                 []string      `json:"policies"`
+	MaxTTL                   time.Duration `json:"max_ttl"`
+	Role                     string        `json:"role"`
+	HMAC                     string        `json:"hmac"`
+	DisallowReauthentication bool          `json:"disallow_reauthentication"`
+	AllowInstanceMigration   bool          `json:"allow_instance_migration"`
 }
 
 func (rTag1 *roleTag) Equal(rTag2 *roleTag) bool {

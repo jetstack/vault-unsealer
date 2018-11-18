@@ -349,7 +349,7 @@ func TestGlobbedStringsMatch(t *testing.T) {
 		actual := GlobbedStringsMatch(tc.item, tc.val)
 
 		if actual != tc.expect {
-			t.Fatalf("Bad testcase %#v, expected %b, got %b", tc, tc.expect, actual)
+			t.Fatalf("Bad testcase %#v, expected %t, got %t", tc, tc.expect, actual)
 		}
 	}
 }
@@ -421,5 +421,41 @@ func TestStrUtil_RemoveDuplicates(t *testing.T) {
 		if !reflect.DeepEqual(actual, tc.expect) {
 			t.Fatalf("Bad testcase %#v, expected %v, got %v", tc, tc.expect, actual)
 		}
+	}
+}
+
+func TestStrUtil_ParseStringSlice(t *testing.T) {
+	type tCase struct {
+		input  string
+		sep    string
+		expect []string
+	}
+
+	tCases := []tCase{
+		tCase{"", "", []string{}},
+		tCase{"   ", ",", []string{}},
+		tCase{",   ", ",", []string{"", ""}},
+		tCase{"a", ",", []string{"a"}},
+		tCase{" a, b,   c   ", ",", []string{"a", "b", "c"}},
+		tCase{" a; b;   c   ", ";", []string{"a", "b", "c"}},
+		tCase{" a :: b  ::   c   ", "::", []string{"a", "b", "c"}},
+	}
+
+	for _, tc := range tCases {
+		actual := ParseStringSlice(tc.input, tc.sep)
+
+		if !reflect.DeepEqual(actual, tc.expect) {
+			t.Fatalf("Bad testcase %#v, expected %v, got %v", tc, tc.expect, actual)
+		}
+	}
+}
+
+func TestStrUtil_MergeSlices(t *testing.T) {
+	res := MergeSlices([]string{"a", "c", "d"}, []string{}, []string{"c", "f", "a"}, nil, []string{"foo"})
+
+	expect := []string{"a", "c", "d", "f", "foo"}
+
+	if !reflect.DeepEqual(res, expect) {
+		t.Fatalf("expected %v, got %v", expect, res)
 	}
 }

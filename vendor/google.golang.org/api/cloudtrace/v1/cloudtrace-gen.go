@@ -129,7 +129,7 @@ type ListTracesResponse struct {
 	// retrieving additional traces.
 	NextPageToken string `json:"nextPageToken,omitempty"`
 
-	// Traces: List of trace records returned.
+	// Traces: List of trace records as specified by the view parameter.
 	Traces []*Trace `json:"traces,omitempty"`
 
 	// ServerResponse contains the HTTP response code and headers from the
@@ -261,9 +261,11 @@ type TraceSpan struct {
 	// *   `/http/client_region`
 	// *   `/http/host`
 	// *   `/http/method`
+	// *   `/http/path`
 	// *   `/http/redirected_url`
 	// *   `/http/request/size`
 	// *   `/http/response/size`
+	// *   `/http/route`
 	// *   `/http/status_code`
 	// *   `/http/url`
 	// *   `/http/user_agent`
@@ -275,7 +277,7 @@ type TraceSpan struct {
 	// Name: Name of the span. Must be less than 128 bytes. The span name is
 	// sanitized
 	// and displayed in the Stackdriver Trace tool in the
-	// {% dynamic print site_values.console_name %}.
+	// Google Cloud Platform Console.
 	// The name may be a method name or some other per-call site name.
 	// For the same executable and the same call point, a best practice
 	// is

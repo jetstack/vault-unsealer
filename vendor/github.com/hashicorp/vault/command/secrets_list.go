@@ -47,7 +47,7 @@ Usage: vault secrets list [options]
 }
 
 func (c *SecretsListCommand) Flags() *FlagSets {
-	set := c.flagSet(FlagSetHTTP)
+	set := c.flagSet(FlagSetHTTP | FlagSetOutputFormat)
 
 	f := set.NewFlagSet("Command Options")
 
@@ -96,13 +96,17 @@ func (c *SecretsListCommand) Run(args []string) int {
 		return 2
 	}
 
-	if c.flagDetailed {
-		c.UI.Output(tableOutput(c.detailedMounts(mounts), nil))
+	switch Format(c.UI) {
+	case "table":
+		if c.flagDetailed {
+			c.UI.Output(tableOutput(c.detailedMounts(mounts), nil))
+			return 0
+		}
+		c.UI.Output(tableOutput(c.simpleMounts(mounts), nil))
 		return 0
+	default:
+		return OutputData(c.UI, mounts)
 	}
-
-	c.UI.Output(tableOutput(c.simpleMounts(mounts), nil))
-	return 0
 }
 
 func (c *SecretsListCommand) simpleMounts(mounts map[string]*api.MountOutput) []string {
@@ -112,10 +116,10 @@ func (c *SecretsListCommand) simpleMounts(mounts map[string]*api.MountOutput) []
 	}
 	sort.Strings(paths)
 
-	out := []string{"Path | Type | Description"}
+	out := []string{"Path | Type | Accessor | Description"}
 	for _, path := range paths {
 		mount := mounts[path]
-		out = append(out, fmt.Sprintf("%s | %s | %s", path, mount.Type, mount.Description))
+		out = append(out, fmt.Sprintf("%s | %s | %s | %s", path, mount.Type, mount.Accessor, mount.Description))
 	}
 
 	return out
@@ -139,7 +143,7 @@ func (c *SecretsListCommand) detailedMounts(mounts map[string]*api.MountOutput) 
 		}
 	}
 
-	out := []string{"Path | Type | Accessor | Plugin | Default TTL | Max TTL | Force No Cache | Replication | Seal Wrap | Description"}
+	out := []string{"Path | Type | Accessor | Plugin | Default TTL | Max TTL | Force No Cache | Replication | Seal Wrap | Options | Description"}
 	for _, path := range paths {
 		mount := mounts[path]
 
@@ -151,7 +155,7 @@ func (c *SecretsListCommand) detailedMounts(mounts map[string]*api.MountOutput) 
 			replication = "local"
 		}
 
-		out = append(out, fmt.Sprintf("%s | %s | %s | %s | %s | %s | %t | %s | %t | %s",
+		out = append(out, fmt.Sprintf("%s | %s | %s | %s | %s | %s | %t | %s | %t | %v | %s",
 			path,
 			mount.Type,
 			mount.Accessor,
@@ -161,6 +165,7 @@ func (c *SecretsListCommand) detailedMounts(mounts map[string]*api.MountOutput) 
 			mount.Config.ForceNoCache,
 			replication,
 			mount.SealWrap,
+			mount.Options,
 			mount.Description,
 		))
 	}

@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,6 +53,10 @@ func TestBQToTableMetadata(t *testing.T) {
 					Type:         "DAY",
 					Field:        "pfield",
 				},
+				Clustering: &bq.Clustering{
+					Fields: []string{"cfield1", "cfield2"},
+				},
+				EncryptionConfiguration: &bq.EncryptionConfiguration{KmsKeyName: "keyName"},
 				Type:   "EXTERNAL",
 				View:   &bq.ViewDefinition{Query: "view-query"},
 				Labels: map[string]string{"a": "b"},
@@ -77,12 +81,16 @@ func TestBQToTableMetadata(t *testing.T) {
 					Expiration: 7890 * time.Millisecond,
 					Field:      "pfield",
 				},
+				Clustering: &Clustering{
+					Fields: []string{"cfield1", "cfield2"},
+				},
 				StreamingBuffer: &StreamingBuffer{
 					EstimatedBytes:  11,
 					EstimatedRows:   3,
 					OldestEntryTime: aTime,
 				},
-				ETag: "etag",
+				EncryptionConfig: &EncryptionConfig{KMSKeyName: "keyName"},
+				ETag:             "etag",
 			},
 		},
 	} {
@@ -115,6 +123,7 @@ func TestTableMetadataToBQ(t *testing.T) {
 				ExpirationTime:     aTime,
 				Labels:             map[string]string{"a": "b"},
 				ExternalDataConfig: &ExternalDataConfig{SourceFormat: Bigtable},
+				EncryptionConfig:   &EncryptionConfig{KMSKeyName: "keyName"},
 			},
 			&bq.Table{
 				FriendlyName: "n",
@@ -127,6 +136,7 @@ func TestTableMetadataToBQ(t *testing.T) {
 				ExpirationTime: aTimeMillis,
 				Labels:         map[string]string{"a": "b"},
 				ExternalDataConfiguration: &bq.ExternalDataConfiguration{SourceFormat: "BIGTABLE"},
+				EncryptionConfiguration:   &bq.EncryptionConfiguration{KmsKeyName: "keyName"},
 			},
 		},
 		{
@@ -164,6 +174,9 @@ func TestTableMetadataToBQ(t *testing.T) {
 					Expiration: time.Second,
 					Field:      "ofDreams",
 				},
+				Clustering: &Clustering{
+					Fields: []string{"cfield1"},
+				},
 			},
 			&bq.Table{
 				View: &bq.ViewDefinition{
@@ -175,6 +188,9 @@ func TestTableMetadataToBQ(t *testing.T) {
 					Type:         "DAY",
 					ExpirationMs: 1000,
 					Field:        "ofDreams",
+				},
+				Clustering: &bq.Clustering{
+					Fields: []string{"cfield1"},
 				},
 			},
 		},

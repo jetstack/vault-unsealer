@@ -1,12 +1,19 @@
 package consts
 
+import "time"
+
 type ReplicationState uint32
+
+var ReplicationStaleReadTimeout = 2 * time.Second
 
 const (
 	_ ReplicationState = iota
 	OldReplicationPrimary
 	OldReplicationSecondary
 	OldReplicationBootstrapping
+	// Don't add anything here. Adding anything to this Old block would cause
+	// the rest of the values to change below. This was done originally to
+	// ensure no overlap between old and new values.
 
 	ReplicationUnknown            ReplicationState = 0
 	ReplicationPerformancePrimary ReplicationState = 1 << iota
@@ -18,6 +25,7 @@ const (
 	ReplicationDRBootstrapping
 	ReplicationPerformanceDisabled
 	ReplicationDRDisabled
+	ReplicationPerformanceStandby
 )
 
 func (r ReplicationState) string() string {

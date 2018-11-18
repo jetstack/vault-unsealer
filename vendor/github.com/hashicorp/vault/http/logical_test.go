@@ -4,16 +4,19 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	log "github.com/mgutz/logxi/v1"
+	log "github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/vault/helper/logformat"
+	"github.com/hashicorp/vault/helper/logging"
+	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/physical"
 	"github.com/hashicorp/vault/physical/inmem"
 	"github.com/hashicorp/vault/vault"
@@ -82,7 +85,7 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 	defer ln2.Close()
 
 	// Create an HA Vault
-	logger := logformat.NewVaultLogger(log.LevelTrace)
+	logger := logging.NewVaultLogger(log.Debug)
 
 	inmha, err := inmem.NewInmemHA(nil, logger)
 	if err != nil {
@@ -134,9 +137,9 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 	resp := testHttpPutDisableRedirect(t, root, addr2+"/v1/secret/foo", map[string]interface{}{
 		"data": "bar",
 	})
-	logger.Trace("307 test one starting")
+	logger.Debug("307 test one starting")
 	testResponseStatus(t, resp, 307)
-	logger.Trace("307 test one stopping")
+	logger.Debug("307 test one stopping")
 
 	//// READ to standby
 	resp = testHttpGet(t, root, addr2+"/v1/auth/token/lookup-self")
@@ -178,9 +181,9 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 
 	//// DELETE to standby
 	resp = testHttpDeleteDisableRedirect(t, root, addr2+"/v1/secret/foo")
-	logger.Trace("307 test two starting")
+	logger.Debug("307 test two starting")
 	testResponseStatus(t, resp, 307)
-	logger.Trace("307 test two stopping")
+	logger.Debug("307 test two stopping")
 }
 
 func TestLogical_CreateToken(t *testing.T) {
@@ -204,6 +207,7 @@ func TestLogical_CreateToken(t *testing.T) {
 		"wrap_info":      nil,
 		"auth": map[string]interface{}{
 			"policies":       []interface{}{"root"},
+			"token_policies": []interface{}{"root"},
 			"metadata":       nil,
 			"lease_duration": json.Number("0"),
 			"renewable":      false,
@@ -257,7 +261,7 @@ func TestLogical_RequestSizeLimit(t *testing.T) {
 
 	// Write a very large object, should fail
 	resp := testHttpPut(t, token, addr+"/v1/secret/foo", map[string]interface{}{
-		"data": make([]byte, MaxRequestSize),
+		"data": make([]byte, DefaultMaxRequestSize),
 	})
 	testResponseStatus(t, resp, 413)
 }
@@ -298,5 +302,36 @@ func TestLogical_ListSuffix(t *testing.T) {
 	}
 	if !strings.HasSuffix(lreq.Path, "/") {
 		t.Fatal("trailing slash not found on path")
+	}
+}
+
+func TestLogical_RespondWithStatusCode(t *testing.T) {
+	resp := &logical.Response{
+		Data: map[string]interface{}{
+			"test-data": "foo",
+		},
+	}
+
+	resp404, err := logical.RespondWithStatusCode(resp, &logical.Request{ID: "id"}, http.StatusNotFound)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	respondLogical(w, nil, nil, resp404, false)
+
+	if w.Code != 404 {
+		t.Fatalf("Bad Status code: %d", w.Code)
+	}
+
+	bodyRaw, err := ioutil.ReadAll(w.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{"request_id":"id","lease_id":"","renewable":false,"lease_duration":0,"data":{"test-data":"foo"},"wrap_info":null,"warnings":null,"auth":null}`
+
+	if string(bodyRaw[:]) != strings.Trim(expected, "\n") {
+		t.Fatalf("bad response: %s", string(bodyRaw[:]))
 	}
 }

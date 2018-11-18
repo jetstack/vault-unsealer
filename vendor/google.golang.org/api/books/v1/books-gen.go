@@ -2411,6 +2411,8 @@ type Notification struct {
 
 	IconUrl string `json:"iconUrl,omitempty"`
 
+	IsDocumentMature bool `json:"is_document_mature,omitempty"`
+
 	// Kind: Resource type.
 	Kind string `json:"kind,omitempty"`
 
@@ -4029,6 +4031,9 @@ type VolumeVolumeInfo struct {
 	// Categories: A list of subject categories, such as "Fiction",
 	// "Suspense", etc.
 	Categories []string `json:"categories,omitempty"`
+
+	// ComicsContent: Whether the volume has comics content.
+	ComicsContent bool `json:"comicsContent,omitempty"`
 
 	// ContentVersion: An identifier for the version of the volume content
 	// (text & images). (In LITE projection)

@@ -39,6 +39,10 @@ type SystemView interface {
 	// despite known slowdowns.
 	CachingDisabled() bool
 
+	// When run from a system view attached to a request, indicates whether the
+	// request is affecting a local mount or not
+	LocalMount() bool
+
 	// ReplicationState indicates the state of cluster replication
 	ReplicationState() consts.ReplicationState
 
@@ -53,6 +57,13 @@ type SystemView interface {
 	// MlockEnabled returns the configuration setting for enabling mlock on
 	// plugins.
 	MlockEnabled() bool
+
+	// EntityInfo returns a subset of information related to the identity entity
+	// for the given entity id
+	EntityInfo(entityID string) (*Entity, error)
+
+	// PluginEnv returns Vault environment information used by plugins
+	PluginEnv(context.Context) (*PluginEnvironment, error)
 }
 
 type StaticSystemView struct {
@@ -63,7 +74,11 @@ type StaticSystemView struct {
 	CachingDisabledVal  bool
 	Primary             bool
 	EnableMlock         bool
+	LocalMountVal       bool
 	ReplicationStateVal consts.ReplicationState
+	EntityVal           *Entity
+	VaultVersion        string
+	PluginEnvironment   *PluginEnvironment
 }
 
 func (d StaticSystemView) DefaultLeaseTTL() time.Duration {
@@ -86,6 +101,10 @@ func (d StaticSystemView) CachingDisabled() bool {
 	return d.CachingDisabledVal
 }
 
+func (d StaticSystemView) LocalMount() bool {
+	return d.LocalMountVal
+}
+
 func (d StaticSystemView) ReplicationState() consts.ReplicationState {
 	return d.ReplicationStateVal
 }
@@ -100,4 +119,12 @@ func (d StaticSystemView) LookupPlugin(_ context.Context, name string) (*pluginu
 
 func (d StaticSystemView) MlockEnabled() bool {
 	return d.EnableMlock
+}
+
+func (d StaticSystemView) EntityInfo(entityID string) (*Entity, error) {
+	return d.EntityVal, nil
+}
+
+func (d StaticSystemView) PluginEnv(_ context.Context) (*PluginEnvironment, error) {
+	return d.PluginEnvironment, nil
 }

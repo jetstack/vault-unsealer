@@ -30,7 +30,7 @@ import (
 
 const (
 	googleDiscoveryURL = "https://www.googleapis.com/discovery/v1/apis"
-	generatorVersion   = "20170210"
+	generatorVersion   = "2018018"
 )
 
 var (
@@ -450,6 +450,19 @@ func (a *API) jsonBytes() []byte {
 			}
 		} else {
 			slurp = slurpURL(a.DiscoveryURL())
+			if slurp != nil {
+				// Make sure that keys are sorted by re-marshalling.
+				d := make(map[string]interface{})
+				json.Unmarshal(slurp, &d)
+				if err != nil {
+					log.Fatal(err)
+				}
+				var err error
+				slurp, err = json.MarshalIndent(d, "", "  ")
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
 		}
 		a.forceJSON = slurp
 	}
@@ -541,6 +554,10 @@ func (a *API) GenerateCode() ([]byte, error) {
 	}
 
 	pn("// Package %s provides access to the %s.", pkg, a.doc.Title)
+	if r := replacementPackage[pkg]; r != "" {
+		pn("//")
+		pn("// This package is DEPRECATED. Use package %s instead.", r)
+	}
 	docsLink = a.doc.DocumentationLink
 	if docsLink != "" {
 		pn("//")
@@ -613,7 +630,7 @@ func (a *API) GenerateCode() ([]byte, error) {
 	pn("if client == nil { return nil, errors.New(\"client is nil\") }")
 	pn("s := &%s{client: client, BasePath: basePath}", service)
 	for _, res := range a.doc.Resources { // add top level resources.
-		pn("s.%s = New%s(s)", resourceGoField(res), resourceGoType(res))
+		pn("s.%s = New%s(s)", resourceGoField(res, nil), resourceGoType(res))
 	}
 	pn("return s, nil")
 	pn("}")
@@ -624,7 +641,7 @@ func (a *API) GenerateCode() ([]byte, error) {
 	pn(" UserAgent string // optional additional User-Agent fragment")
 
 	for _, res := range a.doc.Resources {
-		pn("\n\t%s\t*%s", resourceGoField(res), resourceGoType(res))
+		pn("\n\t%s\t*%s", resourceGoField(res, nil), resourceGoType(res))
 	}
 	pn("}")
 	pn("\nfunc (s *%s) userAgent() string {", service)
@@ -786,6 +803,9 @@ type fieldName struct {
 // This makes it possible to distinguish between a field being unset vs having
 // an empty value.
 var pointerFields = []fieldName{
+	{api: "androidpublisher:v1.1", schema: "InappPurchase", field: "PurchaseType"},
+	{api: "androidpublisher:v2", schema: "ProductPurchase", field: "PurchaseType"},
+	{api: "androidpublisher:v3", schema: "ProductPurchase", field: "PurchaseType"},
 	{api: "androidpublisher:v2", schema: "SubscriptionPurchase", field: "CancelReason"},
 	{api: "androidpublisher:v2", schema: "SubscriptionPurchase", field: "PaymentState"},
 	{api: "cloudmonitoring:v2beta2", schema: "Point", field: "BoolValue"},
@@ -1040,7 +1060,7 @@ func (s *Schema) populateSubSchemas() (outerr error) {
 			case disco.StructKind:
 				addSubStruct(subApiName, p.Type())
 			default:
-				panicf("Unknown type for %q: %s", subApiName, p.Type())
+				panicf("Unknown type for %s: %v", subApiName, p.Type())
 			}
 		}
 	case disco.ArrayKind:
@@ -1061,7 +1081,7 @@ func (s *Schema) populateSubSchemas() (outerr error) {
 		case disco.StructKind:
 			addSubStruct(subApiName, at)
 		default:
-			panicf("Unknown array type for %q: %s", subApiName, at)
+			panicf("Unknown array type for %s: %v", subApiName, at)
 		}
 	case disco.AnyStructKind, disco.MapKind, disco.SimpleKind, disco.ReferenceKind:
 		// Do nothing.
@@ -1349,7 +1369,7 @@ func (a *API) generateResource(r *disco.Resource) {
 	pn(fmt.Sprintf("func New%s(s *%s) *%s {", t, a.ServiceType(), t))
 	pn("rs := &%s{s : s}", t)
 	for _, res := range r.Resources {
-		pn("rs.%s = New%s(s)", resourceGoField(res), resourceGoType(res))
+		pn("rs.%s = New%s(s)", resourceGoField(res, r), resourceGoType(res))
 	}
 	pn("return rs")
 	pn("}")
@@ -1357,7 +1377,7 @@ func (a *API) generateResource(r *disco.Resource) {
 	pn("\ntype %s struct {", t)
 	pn(" s *%s", a.ServiceType())
 	for _, res := range r.Resources {
-		pn("\n\t%s\t*%s", resourceGoField(res), resourceGoType(res))
+		pn("\n\t%s\t*%s", resourceGoField(res, r), resourceGoType(res))
 	}
 	pn("}")
 
@@ -1384,8 +1404,19 @@ func (a *API) generateResourceMethods(r *disco.Resource) {
 	}
 }
 
-func resourceGoField(r *disco.Resource) string {
-	return initialCap(r.Name)
+func resourceGoField(r, parent *disco.Resource) string {
+	// Avoid conflicts with method names.
+	und := ""
+	if parent != nil {
+		for _, m := range parent.Methods {
+			if m.Name == r.Name {
+				und = "_"
+				break
+			}
+		}
+	}
+	// Note: initialCap(r.Name + "_") doesn't work because initialCap calls depunct.
+	return initialCap(r.Name) + und
 }
 
 func resourceGoType(r *disco.Resource) string {
@@ -1826,6 +1857,7 @@ func (meth *Method) generateCode() {
 		pn(`reqHeaders.Set("Content-Type", "application/json")`)
 	}
 	pn(`c.urlParams_.Set("alt", alt)`)
+	pn(`c.urlParams_.Set("prettyPrint", "false")`)
 
 	pn("urls := googleapi.ResolveRelative(c.s.BasePath, %q)", meth.m.Path)
 	if meth.supportsMediaUpload() {
@@ -1841,12 +1873,15 @@ func (meth *Method) generateCode() {
 		pn(" body = new(bytes.Buffer)")
 		pn(` reqHeaders.Set("Content-Type", "application/json")`)
 		pn("}")
-		pn("body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)")
+		pn("body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)")
 		pn("defer cleanup()")
 	}
 	pn("urls += \"?\" + c.urlParams_.Encode()")
 	pn("req, _ := http.NewRequest(%q, urls, body)", httpMethod)
 	pn("req.Header = reqHeaders")
+	if meth.supportsMediaUpload() {
+		pn("gensupport.SetGetBody(req, getBody)")
+	}
 
 	// Replace param values after NewRequest to avoid reencoding them.
 	// E.g. Cloud Storage API requires '%2F' in entity param to be kept, but url.Parse replaces it with '/'.
@@ -2129,6 +2164,8 @@ func (a *argument) exprAsString(prefix string) string {
 		return "strconv.FormatInt(" + prefix + a.goname + ", 10)"
 	case "uint64":
 		return "strconv.FormatUint(" + prefix + a.goname + ", 10)"
+	case "bool":
+		return "strconv.FormatBool(" + prefix + a.goname + ")"
 	}
 	log.Panicf("unknown type: apitype=%q, gotype=%q", a.apitype, a.gotype)
 	return ""

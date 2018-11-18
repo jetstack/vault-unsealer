@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,7 +17,7 @@ import (
 
 	"golang.org/x/net/http2"
 
-	log "github.com/mgutz/logxi/v1"
+	log "github.com/hashicorp/go-hclog"
 
 	"crypto/tls"
 	"crypto/x509"
@@ -73,6 +74,10 @@ var _ physical.HABackend = (*ConsulBackend)(nil)
 var _ physical.Lock = (*ConsulLock)(nil)
 var _ physical.Transactional = (*ConsulBackend)(nil)
 
+var (
+	hostnameRegex = regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
+)
+
 // ConsulBackend is a physical backend that stores data at specific
 // prefix within Consul. It is used for most production situations as
 // it allows Vault to run on multiple machines in a highly-available manner.
@@ -87,12 +92,16 @@ type ConsulBackend struct {
 	redirectPort        int64
 	serviceName         string
 	serviceTags         []string
+	serviceAddress      *string
 	disableRegistration bool
 	checkTimeout        time.Duration
 	consistencyMode     string
 
 	notifyActiveCh chan notifyEvent
 	notifySealedCh chan notifyEvent
+
+	sessionTTL   string
+	lockWaitTime time.Duration
 }
 
 // NewConsulBackend constructs a Consul backend using the given API client
@@ -104,16 +113,16 @@ func NewConsulBackend(conf map[string]string, logger log.Logger) (physical.Backe
 		path = "vault/"
 	}
 	if logger.IsDebug() {
-		logger.Debug("physical/consul: config path set", "path", path)
+		logger.Debug("config path set", "path", path)
 	}
 
 	// Ensure path is suffixed but not prefixed
 	if !strings.HasSuffix(path, "/") {
-		logger.Warn("physical/consul: appending trailing forward slash to path")
+		logger.Warn("appending trailing forward slash to path")
 		path += "/"
 	}
 	if strings.HasPrefix(path, "/") {
-		logger.Warn("physical/consul: trimming path of its forward slash")
+		logger.Warn("trimming path of its forward slash")
 		path = strings.TrimPrefix(path, "/")
 	}
 
@@ -128,7 +137,7 @@ func NewConsulBackend(conf map[string]string, logger log.Logger) (physical.Backe
 		disableRegistration = b
 	}
 	if logger.IsDebug() {
-		logger.Debug("physical/consul: config disable_registration set", "disable_registration", disableRegistration)
+		logger.Debug("config disable_registration set", "disable_registration", disableRegistration)
 	}
 
 	// Get the service name to advertise in Consul
@@ -136,33 +145,71 @@ func NewConsulBackend(conf map[string]string, logger log.Logger) (physical.Backe
 	if !ok {
 		service = DefaultServiceName
 	}
+	if !hostnameRegex.MatchString(service) {
+		return nil, errors.New("service name must be valid per RFC 1123 and can contain only alphanumeric characters or dashes")
+	}
 	if logger.IsDebug() {
-		logger.Debug("physical/consul: config service set", "service", service)
+		logger.Debug("config service set", "service", service)
 	}
 
 	// Get the additional tags to attach to the registered service name
 	tags := conf["service_tags"]
-
 	if logger.IsDebug() {
-		logger.Debug("physical/consul: config service_tags set", "service_tags", tags)
+		logger.Debug("config service_tags set", "service_tags", tags)
+	}
+
+	// Get the service-specific address to override the use of the HA redirect address
+	var serviceAddr *string
+	serviceAddrStr, ok := conf["service_address"]
+	if ok {
+		serviceAddr = &serviceAddrStr
+	}
+	if logger.IsDebug() {
+		logger.Debug("config service_address set", "service_address", serviceAddr)
 	}
 
 	checkTimeout := defaultCheckTimeout
 	checkTimeoutStr, ok := conf["check_timeout"]
 	if ok {
-		d, err := time.ParseDuration(checkTimeoutStr)
+		d, err := parseutil.ParseDurationSecond(checkTimeoutStr)
 		if err != nil {
 			return nil, err
 		}
 
 		min, _ := lib.DurationMinusBufferDomain(d, checkMinBuffer, checkJitterFactor)
 		if min < checkMinBuffer {
-			return nil, fmt.Errorf("Consul check_timeout must be greater than %v", min)
+			return nil, fmt.Errorf("consul check_timeout must be greater than %v", min)
 		}
 
 		checkTimeout = d
 		if logger.IsDebug() {
-			logger.Debug("physical/consul: config check_timeout set", "check_timeout", d)
+			logger.Debug("config check_timeout set", "check_timeout", d)
+		}
+	}
+
+	sessionTTL := api.DefaultLockSessionTTL
+	sessionTTLStr, ok := conf["session_ttl"]
+	if ok {
+		_, err := parseutil.ParseDurationSecond(sessionTTLStr)
+		if err != nil {
+			return nil, errwrap.Wrapf("invalid session_ttl: {{err}}", err)
+		}
+		sessionTTL = sessionTTLStr
+		if logger.IsDebug() {
+			logger.Debug("config session_ttl set", "session_ttl", sessionTTL)
+		}
+	}
+
+	lockWaitTime := api.DefaultLockWaitTime
+	lockWaitTimeRaw, ok := conf["lock_wait_time"]
+	if ok {
+		d, err := parseutil.ParseDurationSecond(lockWaitTimeRaw)
+		if err != nil {
+			return nil, errwrap.Wrapf("invalid lock_wait_time: {{err}}", err)
+		}
+		lockWaitTime = d
+		if logger.IsDebug() {
+			logger.Debug("config lock_wait_time set", "lock_wait_time", d)
 		}
 	}
 
@@ -174,18 +221,18 @@ func NewConsulBackend(conf map[string]string, logger log.Logger) (physical.Backe
 	if addr, ok := conf["address"]; ok {
 		consulConf.Address = addr
 		if logger.IsDebug() {
-			logger.Debug("physical/consul: config address set", "address", addr)
+			logger.Debug("config address set", "address", addr)
 		}
 	}
 	if scheme, ok := conf["scheme"]; ok {
 		consulConf.Scheme = scheme
 		if logger.IsDebug() {
-			logger.Debug("physical/consul: config scheme set", "scheme", scheme)
+			logger.Debug("config scheme set", "scheme", scheme)
 		}
 	}
 	if token, ok := conf["token"]; ok {
 		consulConf.Token = token
-		logger.Debug("physical/consul: config token set")
+		logger.Debug("config token set")
 	}
 
 	if consulConf.Scheme == "https" {
@@ -198,7 +245,7 @@ func NewConsulBackend(conf map[string]string, logger log.Logger) (physical.Backe
 		if err := http2.ConfigureTransport(consulConf.Transport); err != nil {
 			return nil, err
 		}
-		logger.Debug("physical/consul: configured TLS")
+		logger.Debug("configured TLS")
 	}
 
 	consulConf.HttpClient = &http.Client{Transport: consulConf.Transport}
@@ -215,7 +262,7 @@ func NewConsulBackend(conf map[string]string, logger log.Logger) (physical.Backe
 			return nil, errwrap.Wrapf("failed parsing max_parallel parameter: {{err}}", err)
 		}
 		if logger.IsDebug() {
-			logger.Debug("physical/consul: max_parallel set", "max_parallel", maxParInt)
+			logger.Debug("max_parallel set", "max_parallel", maxParInt)
 		}
 	}
 
@@ -224,7 +271,7 @@ func NewConsulBackend(conf map[string]string, logger log.Logger) (physical.Backe
 		switch consistencyMode {
 		case consistencyModeDefault, consistencyModeStrong:
 		default:
-			return nil, fmt.Errorf("invalid consistency_mode value: %s", consistencyMode)
+			return nil, fmt.Errorf("invalid consistency_mode value: %q", consistencyMode)
 		}
 	} else {
 		consistencyMode = consistencyModeDefault
@@ -239,11 +286,14 @@ func NewConsulBackend(conf map[string]string, logger log.Logger) (physical.Backe
 		permitPool:          physical.NewPermitPool(maxParInt),
 		serviceName:         service,
 		serviceTags:         strutil.ParseDedupLowercaseAndSortStrings(tags, ","),
+		serviceAddress:      serviceAddr,
 		checkTimeout:        checkTimeout,
 		disableRegistration: disableRegistration,
 		consistencyMode:     consistencyMode,
 		notifyActiveCh:      make(chan notifyEvent),
 		notifySealedCh:      make(chan notifyEvent),
+		sessionTTL:          sessionTTL,
+		lockWaitTime:        lockWaitTime,
 	}
 	return c, nil
 }
@@ -292,7 +342,7 @@ func setupTLSConfig(conf map[string]string) (*tls.Config, error) {
 	if okCert && okKey {
 		tlsCert, err := tls.LoadX509KeyPair(conf["tls_cert_file"], conf["tls_key_file"])
 		if err != nil {
-			return nil, fmt.Errorf("client tls setup failed: %v", err)
+			return nil, errwrap.Wrapf("client tls setup failed: {{err}}", err)
 		}
 
 		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
@@ -303,7 +353,7 @@ func setupTLSConfig(conf map[string]string) (*tls.Config, error) {
 
 		data, err := ioutil.ReadFile(tlsCaFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read CA file: %v", err)
+			return nil, errwrap.Wrapf("failed to read CA file: {{err}}", err)
 		}
 
 		if !caPool.AppendCertsFromPEM(data) {
@@ -344,7 +394,10 @@ func (c *ConsulBackend) Transaction(ctx context.Context, txns []*physical.TxnEnt
 	c.permitPool.Acquire()
 	defer c.permitPool.Release()
 
-	ok, resp, _, err := c.kv.Txn(ops, nil)
+	queryOpts := &api.QueryOptions{}
+	queryOpts = queryOpts.WithContext(ctx)
+
+	ok, resp, _, err := c.kv.Txn(ops, queryOpts)
 	if err != nil {
 		return err
 	}
@@ -372,7 +425,10 @@ func (c *ConsulBackend) Put(ctx context.Context, entry *physical.Entry) error {
 		Value: entry.Value,
 	}
 
-	_, err := c.kv.Put(pair, nil)
+	writeOpts := &api.WriteOptions{}
+	writeOpts = writeOpts.WithContext(ctx)
+
+	_, err := c.kv.Put(pair, writeOpts)
 	return err
 }
 
@@ -383,14 +439,14 @@ func (c *ConsulBackend) Get(ctx context.Context, key string) (*physical.Entry, e
 	c.permitPool.Acquire()
 	defer c.permitPool.Release()
 
-	var queryOptions *api.QueryOptions
+	queryOpts := &api.QueryOptions{}
+	queryOpts = queryOpts.WithContext(ctx)
+
 	if c.consistencyMode == consistencyModeStrong {
-		queryOptions = &api.QueryOptions{
-			RequireConsistent: true,
-		}
+		queryOpts.RequireConsistent = true
 	}
 
-	pair, _, err := c.kv.Get(c.path+key, queryOptions)
+	pair, _, err := c.kv.Get(c.path+key, queryOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -411,7 +467,10 @@ func (c *ConsulBackend) Delete(ctx context.Context, key string) error {
 	c.permitPool.Acquire()
 	defer c.permitPool.Release()
 
-	_, err := c.kv.Delete(c.path+key, nil)
+	writeOpts := &api.WriteOptions{}
+	writeOpts = writeOpts.WithContext(ctx)
+
+	_, err := c.kv.Delete(c.path+key, writeOpts)
 	return err
 }
 
@@ -431,7 +490,10 @@ func (c *ConsulBackend) List(ctx context.Context, prefix string) ([]string, erro
 	c.permitPool.Acquire()
 	defer c.permitPool.Release()
 
-	out, _, err := c.kv.Keys(scan, "/", nil)
+	queryOpts := &api.QueryOptions{}
+	queryOpts = queryOpts.WithContext(ctx)
+
+	out, _, err := c.kv.Keys(scan, "/", queryOpts)
 	for idx, val := range out {
 		out[idx] = strings.TrimPrefix(val, scan)
 	}
@@ -447,10 +509,12 @@ func (c *ConsulBackend) LockWith(key, value string) (physical.Lock, error) {
 		Value:          []byte(value),
 		SessionName:    "Vault Lock",
 		MonitorRetries: 5,
+		SessionTTL:     c.sessionTTL,
+		LockWaitTime:   c.lockWaitTime,
 	}
 	lock, err := c.client.LockOpts(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create lock: %v", err)
+		return nil, errwrap.Wrapf("failed to create lock: {{err}}", err)
 	}
 	cl := &ConsulLock{
 		client:          c.client,
@@ -476,7 +540,7 @@ func (c *ConsulBackend) DetectHostAddr() (string, error) {
 	}
 	addr, ok := self["Member"]["Addr"].(string)
 	if !ok {
-		return "", fmt.Errorf("Unable to convert an address to string")
+		return "", fmt.Errorf("unable to convert an address to string")
 	}
 	return addr, nil
 }
@@ -525,7 +589,7 @@ func (c *ConsulBackend) NotifyActiveStateChange() error {
 	default:
 		// NOTE: If this occurs Vault's active status could be out of
 		// sync with Consul until reconcileTimer expires.
-		c.logger.Warn("physical/consul: Concurrent state change notify dropped")
+		c.logger.Warn("concurrent state change notify dropped")
 	}
 
 	return nil
@@ -537,7 +601,7 @@ func (c *ConsulBackend) NotifySealedStateChange() error {
 	default:
 		// NOTE: If this occurs Vault's sealed status could be out of
 		// sync with Consul until checkTimer expires.
-		c.logger.Warn("physical/consul: Concurrent sealed state change notify dropped")
+		c.logger.Warn("concurrent sealed state change notify dropped")
 	}
 
 	return nil
@@ -584,9 +648,9 @@ func (c *ConsulBackend) runEventDemuxer(waitGroup *sync.WaitGroup, shutdownCh ph
 	// and end of a handler's life (or after a handler wakes up from
 	// sleeping during a back-off/retry).
 	var shutdown bool
-	var checkLock int64
 	var registeredServiceID string
-	var serviceRegLock int64
+	checkLock := new(int32)
+	serviceRegLock := new(int32)
 
 	for !shutdown {
 		select {
@@ -602,15 +666,15 @@ func (c *ConsulBackend) runEventDemuxer(waitGroup *sync.WaitGroup, shutdownCh ph
 
 			// Abort if service discovery is disabled or a
 			// reconcile handler is already active
-			if !c.disableRegistration && atomic.CompareAndSwapInt64(&serviceRegLock, 0, 1) {
+			if !c.disableRegistration && atomic.CompareAndSwapInt32(serviceRegLock, 0, 1) {
 				// Enter handler with serviceRegLock held
 				go func() {
-					defer atomic.CompareAndSwapInt64(&serviceRegLock, 1, 0)
+					defer atomic.CompareAndSwapInt32(serviceRegLock, 1, 0)
 					for !shutdown {
 						serviceID, err := c.reconcileConsul(registeredServiceID, activeFunc, sealedFunc)
 						if err != nil {
 							if c.logger.IsWarn() {
-								c.logger.Warn("physical/consul: reconcile unable to talk with Consul backend", "error", err)
+								c.logger.Warn("reconcile unable to talk with Consul backend", "error", err)
 							}
 							time.Sleep(consulRetryInterval)
 							continue
@@ -628,15 +692,15 @@ func (c *ConsulBackend) runEventDemuxer(waitGroup *sync.WaitGroup, shutdownCh ph
 			checkTimer.Reset(c.checkDuration())
 			// Abort if service discovery is disabled or a
 			// reconcile handler is active
-			if !c.disableRegistration && atomic.CompareAndSwapInt64(&checkLock, 0, 1) {
+			if !c.disableRegistration && atomic.CompareAndSwapInt32(checkLock, 0, 1) {
 				// Enter handler with checkLock held
 				go func() {
-					defer atomic.CompareAndSwapInt64(&checkLock, 1, 0)
+					defer atomic.CompareAndSwapInt32(checkLock, 1, 0)
 					for !shutdown {
 						sealed := sealedFunc()
 						if err := c.runCheck(sealed); err != nil {
 							if c.logger.IsWarn() {
-								c.logger.Warn("physical/consul: check unable to talk with Consul backend", "error", err)
+								c.logger.Warn("check unable to talk with Consul backend", "error", err)
 							}
 							time.Sleep(consulRetryInterval)
 							continue
@@ -646,7 +710,7 @@ func (c *ConsulBackend) runEventDemuxer(waitGroup *sync.WaitGroup, shutdownCh ph
 				}()
 			}
 		case <-shutdownCh:
-			c.logger.Info("physical/consul: Shutting down consul backend")
+			c.logger.Info("shutting down consul backend")
 			shutdown = true
 		}
 	}
@@ -655,7 +719,7 @@ func (c *ConsulBackend) runEventDemuxer(waitGroup *sync.WaitGroup, shutdownCh ph
 	defer c.serviceLock.RUnlock()
 	if err := c.client.Agent().ServiceDeregister(registeredServiceID); err != nil {
 		if c.logger.IsWarn() {
-			c.logger.Warn("physical/consul: service deregistration failed", "error", err)
+			c.logger.Warn("service deregistration failed", "error", err)
 		}
 	}
 }
@@ -718,12 +782,21 @@ func (c *ConsulBackend) reconcileConsul(registeredServiceID string, activeFunc p
 		return serviceID, nil
 	}
 
+	// If service address was set explicitly in configuration, use that
+	// as the service-specific address instead of the HA redirect address.
+	var serviceAddress string
+	if c.serviceAddress == nil {
+		serviceAddress = c.redirectHost
+	} else {
+		serviceAddress = *c.serviceAddress
+	}
+
 	service := &api.AgentServiceRegistration{
 		ID:                serviceID,
 		Name:              c.serviceName,
 		Tags:              tags,
 		Port:              int(c.redirectPort),
-		Address:           c.redirectHost,
+		Address:           serviceAddress,
 		EnableTagOverride: false,
 	}
 
@@ -781,7 +854,7 @@ func (c *ConsulBackend) setRedirectAddr(addr string) (err error) {
 
 	url, err := url.Parse(addr)
 	if err != nil {
-		return errwrap.Wrapf(fmt.Sprintf(`failed to parse redirect URL "%v": {{err}}`, addr), err)
+		return errwrap.Wrapf(fmt.Sprintf("failed to parse redirect URL %q: {{err}}", addr), err)
 	}
 
 	var portStr string

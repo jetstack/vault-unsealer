@@ -10,10 +10,10 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/errwrap"
+	log "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/helper/compressutil"
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
-	log "github.com/mgutz/logxi/v1"
 )
 
 const (
@@ -253,6 +253,9 @@ func (s *StoragePacker) GetItem(itemID string) (*Item, error) {
 	bucket, err := s.GetBucket(bucketPath)
 	if err != nil {
 		return nil, errwrap.Wrapf("failed to read packed storage item: {{err}}", err)
+	}
+	if bucket == nil {
+		return nil, nil
 	}
 
 	// Look for a matching storage entry in the bucket items

@@ -45,7 +45,7 @@ Usage: vault token capabilities [options] [TOKEN] PATH
 }
 
 func (c *TokenCapabilitiesCommand) Flags() *FlagSets {
-	return c.flagSet(FlagSetHTTP)
+	return c.flagSet(FlagSetHTTP | FlagSetOutputFormat)
 }
 
 func (c *TokenCapabilitiesCommand) AutocompleteArgs() complete.Predictor {
@@ -93,8 +93,17 @@ func (c *TokenCapabilitiesCommand) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error listing capabilities: %s", err))
 		return 2
 	}
+	if capabilities == nil {
+		c.UI.Error(fmt.Sprintf("No capabilities found"))
+		return 1
+	}
 
-	sort.Strings(capabilities)
-	c.UI.Output(strings.Join(capabilities, ", "))
-	return 0
+	switch Format(c.UI) {
+	case "table":
+		sort.Strings(capabilities)
+		c.UI.Output(strings.Join(capabilities, ", "))
+		return 0
+	default:
+		return OutputData(c.UI, capabilities)
+	}
 }

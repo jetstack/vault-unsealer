@@ -64,16 +64,20 @@ func (b *backend) pathPolicyExportRead(ctx context.Context, req *logical.Request
 		return logical.ErrorResponse(fmt.Sprintf("invalid export type: %s", exportType)), logical.ErrInvalidRequest
 	}
 
-	p, lock, err := b.lm.GetPolicyShared(ctx, req.Storage, name)
-	if lock != nil {
-		defer lock.RUnlock()
-	}
+	p, _, err := b.lm.GetPolicy(ctx, keysutil.PolicyRequest{
+		Storage: req.Storage,
+		Name:    name,
+	})
 	if err != nil {
 		return nil, err
 	}
 	if p == nil {
 		return nil, nil
 	}
+	if !b.System().CachingDisabled() {
+		p.Lock(false)
+	}
+	defer p.Unlock()
 
 	if !p.Exportable {
 		return logical.ErrorResponse("key is not exportable"), nil
@@ -114,7 +118,7 @@ func (b *backend) pathPolicyExportRead(ctx context.Context, req *logical.Request
 		}
 
 		if versionValue < p.MinDecryptionVersion {
-			return logical.ErrorResponse("version for export is below minimun decryption version"), logical.ErrInvalidRequest
+			return logical.ErrorResponse("version for export is below minimum decryption version"), logical.ErrInvalidRequest
 		}
 		key, ok := p.Keys[strconv.Itoa(versionValue)]
 		if !ok {
@@ -151,7 +155,7 @@ func getExportKey(policy *keysutil.Policy, key *keysutil.KeyEntry, exportType st
 
 	case exportTypeEncryptionKey:
 		switch policy.Type {
-		case keysutil.KeyType_AES256_GCM96:
+		case keysutil.KeyType_AES256_GCM96, keysutil.KeyType_ChaCha20_Poly1305:
 			return strings.TrimSpace(base64.StdEncoding.EncodeToString(key.Key)), nil
 
 		case keysutil.KeyType_RSA2048, keysutil.KeyType_RSA4096:
@@ -208,7 +212,7 @@ func keyEntryToECPrivateKey(k *keysutil.KeyEntry, curve elliptic.Curve) (string,
 		return "", err
 	}
 	if ecder == nil {
-		return "", errors.New("No data returned when marshalling to private key")
+		return "", errors.New("no data returned when marshalling to private key")
 	}
 
 	block := pem.Block{

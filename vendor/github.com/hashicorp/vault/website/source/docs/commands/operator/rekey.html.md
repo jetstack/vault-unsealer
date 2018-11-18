@@ -22,7 +22,7 @@ An unseal key may be provided directly on the command line as an argument to the
 command. If key is specified as "-", the command will read from stdin. If a TTY
 is available, the command will prompt for text.
 
-Please see the [rotating and rekeying](/guides/rekeying-and-rotating.html) for
+Please see the [rotating and rekeying](/guides/operations/rekeying-and-rotating.html) for
 step-by-step instructions.
 
 ## Examples
@@ -72,7 +72,13 @@ $ vault operator rekey -backup-delete
 The following flags are available in addition to the [standard set of
 flags](/docs/commands/index.html) included on all commands.
 
-## Common Options
+### Output Options
+
+- `-format` `(string: "table")` - Print the output in the given format. Valid
+  formats are "table", "json", or "yaml". This can also be specified via the
+  `VAULT_FORMAT` environment variable.
+
+### Command Options
 
 - `-cancel` `(bool: false)` - Reset the rekeying progress. This will discard any submitted unseal keys
       or configuration. The default is false.
@@ -94,7 +100,7 @@ flags](/docs/commands/index.html) included on all commands.
 
 - `-pgp-keys` `(string: "...")` - Comma-separated list of paths to files on disk
   containing public GPG keys OR a comma-separated list of Keybase usernames
-  using the format "keybase:<username>". When supplied, the generated unseal
+  using the format `keybase:<username>`. When supplied, the generated unseal
   keys will be encrypted and base64-encoded in the order specified in this list.
 
 - `-status` `(bool: false)` - Print the status of the current attempt without

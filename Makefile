@@ -5,12 +5,26 @@ IMAGE_NAME := vault-unsealer
 BUILD_TAG := build
 IMAGE_TAGS := canary
 
+BINDIR ?= $(CURDIR)/bin
+
 BUILD_IMAGE_NAME := golang:1.10.4
 
 GOPATH ?= /tmp/go
 
 CI_COMMIT_TAG ?= unknown
 CI_COMMIT_SHA ?= unknown
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	SHASUM := sha256sum -c
+	DEP_URL := https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64
+	DEP_HASH := 31144e465e52ffbc0035248a10ddea61a09bf28b00784fd3fdd9882c8cbb2315
+endif
+ifeq ($(UNAME_S),Darwin)
+	SHASUM := shasum -a 256 -c
+	DEP_URL := https://github.com/golang/dep/releases/download/v0.4.1/dep-darwin-amd64
+	DEP_HASH := 1544afdd4d543574ef8eabed343d683f7211202a65380f8b32035d07ce0c45ef
+endif
 
 help:
 	# all 		- runs verify, build and docker_build targets
@@ -26,7 +40,7 @@ all: verify build docker_build
 
 build: go_build
 
-verify: go_verify
+verify: depend verify_vendor go_verify
 
 .builder_image:
 	docker pull ${BUILD_IMAGE_NAME}
@@ -58,6 +72,9 @@ docker_push: docker_build
 #################
 go_verify: go_fmt go_vet go_test
 
+verify_vendor:
+	$(BINDIR)/dep ensure -no-vendor -dry-run -v
+
 go_build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags netgo -ldflags '-w -X main.version=$(CI_COMMIT_TAG) -X main.commit=$(CI_COMMIT_SHA) -X main.date=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)' -o vault-unsealer_linux_amd64
 
@@ -75,3 +92,12 @@ go_fmt:
 
 go_vet:
 	go vet $$(go list ./... | grep -v '/vendor/')
+
+depend: $(BINDIR)/dep
+
+$(BINDIR)/dep:
+	mkdir -p $(BINDIR)
+	curl -sL -o $@ $(DEP_URL)
+	echo "$(DEP_HASH)  $@" | $(SHASUM)
+	chmod +x $@
+

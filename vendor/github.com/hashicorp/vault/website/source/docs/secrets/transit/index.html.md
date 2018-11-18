@@ -29,6 +29,71 @@ bit length be returned to them, encrypted with the named key. Normally this will
 also return the key in plaintext to allow for immediate use, but this can be
 disabled to accommodate auditing requirements.
 
+## Working Set Management
+
+This secrets engine does not currently delete keys. Keys that are out of the
+working set (earlier than a key's specified `min_decryption_version` are
+instead archived. This is a performance consideration to keep key loading fast,
+as well as a security consideration: by disallowing decryption of old versions
+of keys, found ciphertext corresponding to obsolete (but sensitive) data can
+not be decrypted by most users, but in an emergency the
+`min_decryption_version` can be moved back to allow for legitimate decryption.
+
+Currently this archive is stored in a single storage entry. With some storage
+backends, notably those using Raft or Paxos for HA capabilities, frequent
+rotation may lead to a storage entry size for the archive that is larger than
+the storage backend can handle. For frequent rotation needs, using named keys
+that correspond to time bounds (e.g. five-minute periods floored to the closest
+multiple of five) may provide a good alternative, allowing for several keys to
+be live at once and a deterministic way to decide which key to use at any given
+time.
+
+## Key Types
+
+As of now, the transit secrets engine supports the following key types (all key
+types also generate separate HMAC keys):
+
+* `aes256-gcm96`: AES-GCM with a 256-bit AES key and a 96-bit nonce; supports
+  encryption, decryption, key derivation, and convergent encryption
+* `chacha20-poly1305`: ChaCha20-Poly1305 with a 256-bit key; supports
+  encryption, decryption, key derivation, and convergent encryption
+* `ed25519`: Ed25519; supports signing, signature verification, and key
+  derivation
+* `ecdsa-p256`: ECDSA using curve P256; supports signing and signature
+  verification
+* `rsa-2048`: 2048-bit RSA key; supports encryption, decryption, signing, and
+  signature verification 
+* `rsa-4096`: 4096-bit RSA key; supports encryption, decryption, signing, and
+  signature verification
+
+## Convergent Encryption
+
+Convergent encryption is a mode where the same set of plaintext+context always
+result in the same ciphertext. It does this by deriving a key using a key
+derivation function but also by deterministically deriving a nonce. Because
+these properties differ for any combination of plaintext and ciphertext over a
+keyspace the size of 2^256, the risk of nonce reuse is near zero.
+
+This has many practical uses. A key usage mode is to allow values to be stored
+encrypted in a database, but with limited lookup/query support, so that rows
+with the same value for a specific field can be returned from a query.
+
+To accommodate for any needed upgrades to the algorithm, different versions of
+convergent encryption have historically been supported:
+
+* Version 1 required the client to provide their own nonce, which is highly
+  flexible but if done incorrectly can be dangerous. This was only in Vault
+  0.6.1, and keys using this version cannot be upgraded.
+* Version 2 used an algorithmic approach to deriving the parameters. However,
+  the algorithm used was susceptible to offline plaintext-confirmation attacks,
+  which could allow attackers to brute force decryption if the plaintext size
+  was small. Keys using version 2 can be upgraded by simply performing a rotate
+  operation to a new key version; existing values can then be rewrapped against
+  the new key version and will use the version 3 algorithm.
+* Version 3 uses a different algorithm designed to be resistant to offline
+  plaintext-confirmation attacks. It is similar to AES-SIV in that it uses a
+  PRF to generate the nonce from the plaintext.
+
 ## Setup
 
 Most secrets engines must be configured in advance before they can perform their
@@ -45,14 +110,14 @@ management tool.
     By default, the secrets engine will mount at the name of the engine. To
     enable the secrets engine at a different path, use the `-path` argument.
 
-1. Create a named encryption key ring:
+1. Create a named encryption key:
 
     ```text
     $ vault write -f transit/keys/my-key
     Success! Data written to: transit/keys/my-key
     ```
 
-    Usually each application has its own encryption key ring.
+    Usually each application has its own encryption key.
 
 ## Usage
 

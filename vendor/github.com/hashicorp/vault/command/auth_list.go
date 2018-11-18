@@ -46,7 +46,7 @@ Usage: vault auth list [options]
 }
 
 func (c *AuthListCommand) Flags() *FlagSets {
-	set := c.flagSet(FlagSetHTTP)
+	set := c.flagSet(FlagSetHTTP | FlagSetOutputFormat)
 
 	f := set.NewFlagSet("Command Options")
 
@@ -55,7 +55,8 @@ func (c *AuthListCommand) Flags() *FlagSets {
 		Target:  &c.flagDetailed,
 		Default: false,
 		Usage: "Print detailed information such as configuration and replication " +
-			"status about each auth method.",
+			"status about each auth method. This option is only applicable to " +
+			"table-formatted output.",
 	})
 
 	return set
@@ -95,13 +96,17 @@ func (c *AuthListCommand) Run(args []string) int {
 		return 2
 	}
 
-	if c.flagDetailed {
-		c.UI.Output(tableOutput(c.detailedMounts(auths), nil))
+	switch Format(c.UI) {
+	case "table":
+		if c.flagDetailed {
+			c.UI.Output(tableOutput(c.detailedMounts(auths), nil))
+			return 0
+		}
+		c.UI.Output(tableOutput(c.simpleMounts(auths), nil))
 		return 0
+	default:
+		return OutputData(c.UI, auths)
 	}
-
-	c.UI.Output(tableOutput(c.simpleMounts(auths), nil))
-	return 0
 }
 
 func (c *AuthListCommand) simpleMounts(auths map[string]*api.AuthMount) []string {
@@ -111,10 +116,10 @@ func (c *AuthListCommand) simpleMounts(auths map[string]*api.AuthMount) []string
 	}
 	sort.Strings(paths)
 
-	out := []string{"Path | Type | Description"}
+	out := []string{"Path | Type | Accessor | Description"}
 	for _, path := range paths {
 		mount := auths[path]
-		out = append(out, fmt.Sprintf("%s | %s | %s", path, mount.Type, mount.Description))
+		out = append(out, fmt.Sprintf("%s | %s | %s | %s", path, mount.Type, mount.Accessor, mount.Description))
 	}
 
 	return out
@@ -138,7 +143,7 @@ func (c *AuthListCommand) detailedMounts(auths map[string]*api.AuthMount) []stri
 		}
 	}
 
-	out := []string{"Path | Type | Accessor | Plugin | Default TTL | Max TTL | Replication | Seal Wrap | Description"}
+	out := []string{"Path | Type | Accessor | Plugin | Default TTL | Max TTL | Replication | Seal Wrap | Options | Description"}
 	for _, path := range paths {
 		mount := auths[path]
 
@@ -150,7 +155,7 @@ func (c *AuthListCommand) detailedMounts(auths map[string]*api.AuthMount) []stri
 			replication = "local"
 		}
 
-		out = append(out, fmt.Sprintf("%s | %s | %s | %s | %s | %s | %s | %t | %s",
+		out = append(out, fmt.Sprintf("%s | %s | %s | %s | %s | %s | %s | %t | %v | %s",
 			path,
 			mount.Type,
 			mount.Accessor,
@@ -159,6 +164,7 @@ func (c *AuthListCommand) detailedMounts(auths map[string]*api.AuthMount) []stri
 			maxTTL,
 			replication,
 			mount.SealWrap,
+			mount.Options,
 			mount.Description,
 		))
 	}

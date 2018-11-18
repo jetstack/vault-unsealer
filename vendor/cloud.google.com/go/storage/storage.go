@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -37,6 +36,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"cloud.google.com/go/internal/trace"
 	"google.golang.org/api/option"
 	htransport "google.golang.org/api/transport/http"
 
@@ -346,7 +346,7 @@ func (o *ObjectHandle) Generation(gen int64) *ObjectHandle {
 
 // If returns a new ObjectHandle that applies a set of preconditions.
 // Preconditions already set on the ObjectHandle are ignored.
-// Operations on the new handle will only occur if the preconditions are
+// Operations on the new handle will return an error if the preconditions are not
 // satisfied. See https://cloud.google.com/storage/docs/generations-preconditions
 // for more details.
 func (o *ObjectHandle) If(conds Conditions) *ObjectHandle {
@@ -368,7 +368,10 @@ func (o *ObjectHandle) Key(encryptionKey []byte) *ObjectHandle {
 
 // Attrs returns meta information about the object.
 // ErrObjectNotExist will be returned if the object is not found.
-func (o *ObjectHandle) Attrs(ctx context.Context) (*ObjectAttrs, error) {
+func (o *ObjectHandle) Attrs(ctx context.Context) (attrs *ObjectAttrs, err error) {
+	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.Attrs")
+	defer func() { trace.EndSpan(ctx, err) }()
+
 	if err := o.validate(); err != nil {
 		return nil, err
 	}
@@ -383,7 +386,6 @@ func (o *ObjectHandle) Attrs(ctx context.Context) (*ObjectAttrs, error) {
 		return nil, err
 	}
 	var obj *raw.Object
-	var err error
 	setClientHeader(call.Header())
 	err = runWithRetry(ctx, func() error { obj, err = call.Do(); return err })
 	if e, ok := err.(*googleapi.Error); ok && e.Code == http.StatusNotFound {
@@ -398,7 +400,10 @@ func (o *ObjectHandle) Attrs(ctx context.Context) (*ObjectAttrs, error) {
 // Update updates an object with the provided attributes.
 // All zero-value attributes are ignored.
 // ErrObjectNotExist will be returned if the object is not found.
-func (o *ObjectHandle) Update(ctx context.Context, uattrs ObjectAttrsToUpdate) (*ObjectAttrs, error) {
+func (o *ObjectHandle) Update(ctx context.Context, uattrs ObjectAttrsToUpdate) (oa *ObjectAttrs, err error) {
+	ctx = trace.StartSpan(ctx, "cloud.google.com/go/storage.Object.Update")
+	defer func() { trace.EndSpan(ctx, err) }()
+
 	if err := o.validate(); err != nil {
 		return nil, err
 	}
@@ -462,11 +467,13 @@ func (o *ObjectHandle) Update(ctx context.Context, uattrs ObjectAttrsToUpdate) (
 	if o.userProject != "" {
 		call.UserProject(o.userProject)
 	}
+	if uattrs.PredefinedACL != "" {
+		call.PredefinedAcl(uattrs.PredefinedACL)
+	}
 	if err := setEncryptionHeaders(call.Header(), o.encryptionKey, false); err != nil {
 		return nil, err
 	}
 	var obj *raw.Object
-	var err error
 	setClientHeader(call.Header())
 	err = runWithRetry(ctx, func() error { obj, err = call.Do(); return err })
 	if e, ok := err.(*googleapi.Error); ok && e.Code == http.StatusNotFound {
@@ -497,6 +504,10 @@ type ObjectAttrsToUpdate struct {
 	CacheControl       optional.String
 	Metadata           map[string]string // set to map[string]string{} to delete
 	ACL                []ACLRule
+
+	// If not empty, applies a predefined set of access controls. ACL must be nil.
+	// See https://cloud.google.com/storage/docs/json_api/v1/objects/patch.
+	PredefinedACL string
 }
 
 // Delete deletes the single specified object.
@@ -531,144 +542,6 @@ func (o *ObjectHandle) ReadCompressed(compressed bool) *ObjectHandle {
 	o2.readCompressed = compressed
 	return &o2
 }
-
-// NewReader creates a new Reader to read the contents of the
-// object.
-// ErrObjectNotExist will be returned if the object is not found.
-//
-// The caller must call Close on the returned Reader when done reading.
-func (o *ObjectHandle) NewReader(ctx context.Context) (*Reader, error) {
-	return o.NewRangeReader(ctx, 0, -1)
-}
-
-// NewRangeReader reads part of an object, reading at most length bytes
-// starting at the given offset. If length is negative, the object is read
-// until the end.
-func (o *ObjectHandle) NewRangeReader(ctx context.Context, offset, length int64) (*Reader, error) {
-	if err := o.validate(); err != nil {
-		return nil, err
-	}
-	if offset < 0 {
-		return nil, fmt.Errorf("storage: invalid offset %d < 0", offset)
-	}
-	if o.conds != nil {
-		if err := o.conds.validate("NewRangeReader"); err != nil {
-			return nil, err
-		}
-	}
-	u := &url.URL{
-		Scheme:   "https",
-		Host:     "storage.googleapis.com",
-		Path:     fmt.Sprintf("/%s/%s", o.bucket, o.object),
-		RawQuery: conditionsQuery(o.gen, o.conds),
-	}
-	verb := "GET"
-	if length == 0 {
-		verb = "HEAD"
-	}
-	req, err := http.NewRequest(verb, u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	req = withContext(req, ctx)
-	if length < 0 && offset > 0 {
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
-	} else if length > 0 {
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", offset, offset+length-1))
-	}
-	if o.userProject != "" {
-		req.Header.Set("X-Goog-User-Project", o.userProject)
-	}
-	if o.readCompressed {
-		req.Header.Set("Accept-Encoding", "gzip")
-	}
-	if err := setEncryptionHeaders(req.Header, o.encryptionKey, false); err != nil {
-		return nil, err
-	}
-	var res *http.Response
-	err = runWithRetry(ctx, func() error {
-		res, err = o.c.hc.Do(req)
-		if err != nil {
-			return err
-		}
-		if res.StatusCode == http.StatusNotFound {
-			res.Body.Close()
-			return ErrObjectNotExist
-		}
-		if res.StatusCode < 200 || res.StatusCode > 299 {
-			body, _ := ioutil.ReadAll(res.Body)
-			res.Body.Close()
-			return &googleapi.Error{
-				Code:   res.StatusCode,
-				Header: res.Header,
-				Body:   string(body),
-			}
-		}
-		if offset > 0 && length != 0 && res.StatusCode != http.StatusPartialContent {
-			res.Body.Close()
-			return errors.New("storage: partial request not satisfied")
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var size int64 // total size of object, even if a range was requested.
-	if res.StatusCode == http.StatusPartialContent {
-		cr := strings.TrimSpace(res.Header.Get("Content-Range"))
-		if !strings.HasPrefix(cr, "bytes ") || !strings.Contains(cr, "/") {
-			return nil, fmt.Errorf("storage: invalid Content-Range %q", cr)
-		}
-		size, err = strconv.ParseInt(cr[strings.LastIndex(cr, "/")+1:], 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("storage: invalid Content-Range %q", cr)
-		}
-	} else {
-		size = res.ContentLength
-	}
-
-	remain := res.ContentLength
-	body := res.Body
-	if length == 0 {
-		remain = 0
-		body.Close()
-		body = emptyBody
-	}
-	var (
-		checkCRC bool
-		crc      uint32
-	)
-	// Even if there is a CRC header, we can't compute the hash on partial data.
-	if remain == size {
-		crc, checkCRC = parseCRC32c(res)
-	}
-	return &Reader{
-		body:            body,
-		size:            size,
-		remain:          remain,
-		contentType:     res.Header.Get("Content-Type"),
-		contentEncoding: res.Header.Get("Content-Encoding"),
-		cacheControl:    res.Header.Get("Cache-Control"),
-		wantCRC:         crc,
-		checkCRC:        checkCRC,
-	}, nil
-}
-
-func parseCRC32c(res *http.Response) (uint32, bool) {
-	const prefix = "crc32c="
-	for _, spec := range res.Header["X-Goog-Hash"] {
-		if strings.HasPrefix(spec, prefix) {
-			c, err := decodeUint32(spec[len(prefix):])
-			if err == nil {
-				return c, true
-			}
-		}
-	}
-	return 0, false
-}
-
-var emptyBody = ioutil.NopCloser(strings.NewReader(""))
 
 // NewWriter returns a storage Writer that writes to the GCS object
 // associated with this ObjectHandle.
@@ -729,23 +602,8 @@ func parseKey(key []byte) (*rsa.PrivateKey, error) {
 	return parsed, nil
 }
 
-func toRawObjectACL(oldACL []ACLRule) []*raw.ObjectAccessControl {
-	var acl []*raw.ObjectAccessControl
-	if len(oldACL) > 0 {
-		acl = make([]*raw.ObjectAccessControl, len(oldACL))
-		for i, rule := range oldACL {
-			acl[i] = &raw.ObjectAccessControl{
-				Entity: string(rule.Entity),
-				Role:   string(rule.Role),
-			}
-		}
-	}
-	return acl
-}
-
 // toRawObject copies the editable attributes from o to the raw library's Object type.
 func (o *ObjectAttrs) toRawObject(bucket string) *raw.Object {
-	acl := toRawObjectACL(o.ACL)
 	return &raw.Object{
 		Bucket:             bucket,
 		Name:               o.Name,
@@ -755,7 +613,7 @@ func (o *ObjectAttrs) toRawObject(bucket string) *raw.Object {
 		CacheControl:       o.CacheControl,
 		ContentDisposition: o.ContentDisposition,
 		StorageClass:       o.StorageClass,
-		Acl:                acl,
+		Acl:                toRawObjectACL(o.ACL),
 		Metadata:           o.Metadata,
 	}
 }
@@ -782,6 +640,14 @@ type ObjectAttrs struct {
 
 	// ACL is the list of access control rules for the object.
 	ACL []ACLRule
+
+	// If not empty, applies a predefined set of access controls. It should be set
+	// only when writing, copying or composing an object. When copying or composing,
+	// it acts as the destinationPredefinedAcl parameter.
+	// PredefinedACL is always empty for ObjectAttrs returned from the service.
+	// See https://cloud.google.com/storage/docs/json_api/v1/objects/insert
+	// for valid values.
+	PredefinedACL string
 
 	// Owner is the owner of the object. This field is read-only.
 	//
@@ -856,6 +722,14 @@ type ObjectAttrs struct {
 	// encryption in Google Cloud Storage.
 	CustomerKeySHA256 string
 
+	// Cloud KMS key name, in the form
+	// projects/P/locations/L/keyRings/R/cryptoKeys/K, used to encrypt this object,
+	// if the object is encrypted by such a key.
+	//
+	// Providing both a KMSKeyName and a customer-supplied encryption key (via
+	// ObjectHandle.Key) will result in an error when writing an object.
+	KMSKeyName string
+
 	// Prefix is set only for ObjectAttrs which represent synthetic "directory
 	// entries" when iterating over buckets using Query.Delimiter. See
 	// ObjectIterator.Next. When set, no other fields in ObjectAttrs will be
@@ -877,13 +751,6 @@ func newObject(o *raw.Object) *ObjectAttrs {
 	if o == nil {
 		return nil
 	}
-	acl := make([]ACLRule, len(o.Acl))
-	for i, rule := range o.Acl {
-		acl[i] = ACLRule{
-			Entity: ACLEntity(rule.Entity),
-			Role:   ACLRole(rule.Role),
-		}
-	}
 	owner := ""
 	if o.Owner != nil {
 		owner = o.Owner.Entity
@@ -900,7 +767,7 @@ func newObject(o *raw.Object) *ObjectAttrs {
 		ContentType:        o.ContentType,
 		ContentLanguage:    o.ContentLanguage,
 		CacheControl:       o.CacheControl,
-		ACL:                acl,
+		ACL:                toObjectACLRules(o.Acl),
 		Owner:              owner,
 		ContentEncoding:    o.ContentEncoding,
 		ContentDisposition: o.ContentDisposition,
@@ -913,6 +780,7 @@ func newObject(o *raw.Object) *ObjectAttrs {
 		Metageneration:     o.Metageneration,
 		StorageClass:       o.StorageClass,
 		CustomerKeySHA256:  sha256,
+		KMSKeyName:         o.KmsKeyName,
 		Created:            convertTime(o.TimeCreated),
 		Deleted:            convertTime(o.TimeDeleted),
 		Updated:            convertTime(o.Updated),
@@ -1198,4 +1066,12 @@ func setEncryptionHeaders(headers http.Header, key []byte, copySource bool) erro
 	return nil
 }
 
-// TODO(jbd): Add storage.objects.watch.
+// ServiceAccount fetches the email address of the given project's Google Cloud Storage service account.
+func (c *Client) ServiceAccount(ctx context.Context, projectID string) (string, error) {
+	r := c.raw.Projects.ServiceAccount.Get(projectID)
+	res, err := r.Context(ctx).Do()
+	if err != nil {
+		return "", err
+	}
+	return res.EmailAddress, nil
+}

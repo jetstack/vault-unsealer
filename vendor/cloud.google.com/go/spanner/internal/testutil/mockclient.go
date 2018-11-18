@@ -1,5 +1,5 @@
 /*
-Copyright 2017 Google Inc. All Rights Reserved.
+Copyright 2017 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/status"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -132,7 +133,7 @@ func (m *MockCloudSpannerClient) CreateSession(c context.Context, r *sppb.Create
 	s := &sppb.Session{}
 	if r.Database != "mockdb" {
 		// Reject other databases
-		return s, grpc.Errorf(codes.NotFound, fmt.Sprintf("database not found: %v", r.Database))
+		return s, status.Errorf(codes.NotFound, fmt.Sprintf("database not found: %v", r.Database))
 	}
 	// Generate & record session name.
 	s.Name = fmt.Sprintf("mockdb-%v", time.Now().UnixNano())
@@ -150,7 +151,7 @@ func (m *MockCloudSpannerClient) GetSession(c context.Context, r *sppb.GetSessio
 	}
 	m.pings = append(m.pings, r.Name)
 	if _, ok := m.sessions[r.Name]; !ok {
-		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("Session not found: %v", r.Name))
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("Session not found: %v", r.Name))
 	}
 	return &sppb.Session{Name: r.Name}, nil
 }
@@ -165,7 +166,7 @@ func (m *MockCloudSpannerClient) DeleteSession(c context.Context, r *sppb.Delete
 	}
 	if _, ok := m.sessions[r.Name]; !ok {
 		// Session not found.
-		return &empty.Empty{}, grpc.Errorf(codes.NotFound, fmt.Sprintf("Session not found: %v", r.Name))
+		return &empty.Empty{}, status.Errorf(codes.NotFound, fmt.Sprintf("Session not found: %v", r.Name))
 	}
 	// Delete session from in-memory table.
 	delete(m.sessions, r.Name)
@@ -199,9 +200,9 @@ func (m *MockCloudSpannerClient) ExecuteStreamingSql(c context.Context, r *sppb.
 		},
 		Sql: "mockquery",
 		Params: &proto3.Struct{
-			Fields: map[string]*proto3.Value{"var1": &proto3.Value{Kind: &proto3.Value_StringValue{StringValue: "abc"}}},
+			Fields: map[string]*proto3.Value{"var1": {Kind: &proto3.Value_StringValue{StringValue: "abc"}}},
 		},
-		ParamTypes: map[string]*sppb.Type{"var1": &sppb.Type{Code: sppb.TypeCode_STRING}},
+		ParamTypes: map[string]*sppb.Type{"var1": {Code: sppb.TypeCode_STRING}},
 	}
 	if !proto.Equal(r, wantReq) {
 		return nil, fmt.Errorf("got query request: %v, want: %v", r, wantReq)
@@ -241,9 +242,9 @@ func (m *MockCloudSpannerClient) StreamingRead(c context.Context, r *sppb.ReadRe
 		Columns: []string{"col1", "col2"},
 		KeySet: &sppb.KeySet{
 			Keys: []*proto3.ListValue{
-				&proto3.ListValue{
+				{
 					Values: []*proto3.Value{
-						&proto3.Value{Kind: &proto3.Value_StringValue{StringValue: "foo"}},
+						{Kind: &proto3.Value_StringValue{StringValue: "foo"}},
 					},
 				},
 			},
@@ -316,6 +317,18 @@ func (m *MockCloudSpannerClient) Rollback(c context.Context, r *sppb.RollbackReq
 		}
 	}
 	return nil, nil
+}
+
+// PartitionQuery is a placeholder for SpannerServer.PartitionQuery.
+func (m *MockCloudSpannerClient) PartitionQuery(ctx context.Context, r *sppb.PartitionQueryRequest, opts ...grpc.CallOption) (*sppb.PartitionResponse, error) {
+	m.ready()
+	return nil, errors.New("Unimplemented")
+}
+
+// PartitionRead is a placeholder for SpannerServer.PartitionRead.
+func (m *MockCloudSpannerClient) PartitionRead(ctx context.Context, r *sppb.PartitionReadRequest, opts ...grpc.CallOption) (*sppb.PartitionResponse, error) {
+	m.ready()
+	return nil, errors.New("Unimplemented")
 }
 
 func (m *MockCloudSpannerClient) expectAction(methods ...string) (Action, error) {

@@ -10,6 +10,30 @@ import (
 	"github.com/hashicorp/vault/logical"
 )
 
+func TestAuth_ReadOnlyViewDuringMount(t *testing.T) {
+	c, _, _ := TestCoreUnsealed(t)
+	c.credentialBackends["noop"] = func(ctx context.Context, config *logical.BackendConfig) (logical.Backend, error) {
+		err := config.StorageView.Put(ctx, &logical.StorageEntry{
+			Key:   "bar",
+			Value: []byte("baz"),
+		})
+		if err == nil || !strings.Contains(err.Error(), logical.ErrSetupReadOnly.Error()) {
+			t.Fatalf("expected a read-only error")
+		}
+		return &NoopBackend{}, nil
+	}
+
+	me := &MountEntry{
+		Table: credentialTableType,
+		Path:  "foo",
+		Type:  "noop",
+	}
+	err := c.enableCredential(context.Background(), me)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestCore_DefaultAuthTable(t *testing.T) {
 	c, keys, _ := TestCoreUnsealed(t)
 	verifyDefaultAuthTable(t, c.auth)
@@ -100,18 +124,20 @@ func TestCore_EnableCredential_Local(t *testing.T) {
 		Type: credentialTableType,
 		Entries: []*MountEntry{
 			&MountEntry{
-				Table:    credentialTableType,
-				Path:     "noop/",
-				Type:     "noop",
-				UUID:     "abcd",
-				Accessor: "noop-abcd",
+				Table:            credentialTableType,
+				Path:             "noop/",
+				Type:             "noop",
+				UUID:             "abcd",
+				Accessor:         "noop-abcd",
+				BackendAwareUUID: "abcde",
 			},
 			&MountEntry{
-				Table:    credentialTableType,
-				Path:     "noop2/",
-				Type:     "noop",
-				UUID:     "bcde",
-				Accessor: "noop-bcde",
+				Table:            credentialTableType,
+				Path:             "noop2/",
+				Type:             "noop",
+				UUID:             "bcde",
+				Accessor:         "noop-bcde",
+				BackendAwareUUID: "bcdea",
 			},
 		},
 	}
@@ -138,7 +164,7 @@ func TestCore_EnableCredential_Local(t *testing.T) {
 	}
 
 	c.auth.Entries[1].Local = true
-	if err := c.persistAuth(context.Background(), c.auth, false); err != nil {
+	if err := c.persistAuth(context.Background(), c.auth, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -316,7 +342,7 @@ func TestCore_DisableCredential_Cleanup(t *testing.T) {
 		Operation: logical.ReadOperation,
 		Path:      "auth/foo/login",
 	}
-	resp, err := c.HandleRequest(r)
+	resp, err := c.HandleRequest(context.Background(), r)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
