@@ -56,9 +56,6 @@
   name = "cloud.google.com/go"
 
 [[constraint]]
-  name = "github.com/sirupsen/logrus"
-
-[[constraint]]
   name = "github.com/fatih/structs"
   version = "^1.0.0"
 
@@ -81,12 +78,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/sethgrid/pester"
-
-[[constraint]]
-  name = "github.com/spf13/cobra"
-
-[[constraint]]
-  name = "golang.org/x/oauth2"
 
 [[constraint]]
   branch = "master"
