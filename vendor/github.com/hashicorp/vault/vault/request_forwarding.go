@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	math "math"
 	"net"
 	"net/http"
 	"net/url"
@@ -44,7 +45,7 @@ func (c *Core) startForwarding(ctx context.Context) error {
 	ha := c.ha != nil
 
 	// Get our TLS config
-	tlsConfig, err := c.ClusterTLSConfig(ctx)
+	tlsConfig, err := c.ClusterTLSConfig(ctx, nil)
 	if err != nil {
 		c.logger.Error("core: failed to get tls configuration when starting forwarding", "error", err)
 		return err
@@ -259,11 +260,15 @@ func (c *Core) refreshRequestForwardingConnection(ctx context.Context, clusterAd
 	// the TLS state.
 	dctx, cancelFunc := context.WithCancel(ctx)
 	c.rpcClientConn, err = grpc.DialContext(dctx, clusterURL.Host,
-		grpc.WithDialer(c.getGRPCDialer(ctx, requestForwardingALPN, "", nil)),
+		grpc.WithDialer(c.getGRPCDialer(ctx, requestForwardingALPN, "", nil, nil)),
 		grpc.WithInsecure(), // it's not, we handle it in the dialer
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time: 2 * HeartbeatInterval,
-		}))
+		}),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(math.MaxInt32),
+			grpc.MaxCallSendMsgSize(math.MaxInt32),
+		))
 	if err != nil {
 		cancelFunc()
 		c.logger.Error("core: err setting up forwarding rpc client", "error", err)
@@ -338,9 +343,9 @@ func (c *Core) ForwardRequest(req *http.Request) (int, http.Header, []byte, erro
 // getGRPCDialer is used to return a dialer that has the correct TLS
 // configuration. Otherwise gRPC tries to be helpful and stomps all over our
 // NextProtos.
-func (c *Core) getGRPCDialer(ctx context.Context, alpnProto, serverName string, caCert *x509.Certificate) func(string, time.Duration) (net.Conn, error) {
+func (c *Core) getGRPCDialer(ctx context.Context, alpnProto, serverName string, caCert *x509.Certificate, repClusters *ReplicatedClusters) func(string, time.Duration) (net.Conn, error) {
 	return func(addr string, timeout time.Duration) (net.Conn, error) {
-		tlsConfig, err := c.ClusterTLSConfig(ctx)
+		tlsConfig, err := c.ClusterTLSConfig(ctx, repClusters)
 		if err != nil {
 			c.logger.Error("core: failed to get tls configuration", "error", err)
 			return nil, err

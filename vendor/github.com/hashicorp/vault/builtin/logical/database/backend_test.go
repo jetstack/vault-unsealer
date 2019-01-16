@@ -143,7 +143,7 @@ func TestBackend_RoleUpgrade(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(role, roleEnt) {
-		t.Fatal("bad role %#v", role)
+		t.Fatalf("bad role %#v", role)
 	}
 
 	// Upgrade case
@@ -162,7 +162,7 @@ func TestBackend_RoleUpgrade(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(role, roleEnt) {
-		t.Fatal("bad role %#v", role)
+		t.Fatalf("bad role %#v", role)
 	}
 
 }
@@ -614,7 +614,7 @@ func TestBackend_roleCrud(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("Statements did not match, exepected %#v, got %#v", expected, actual)
+		t.Fatalf("Statements did not match, expected %#v, got %#v", expected, actual)
 	}
 
 	// Delete the role

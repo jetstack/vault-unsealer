@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/errwrap"
@@ -136,7 +137,12 @@ func (b *backend) pathCAGenerateRoot(ctx context.Context, req *logical.Request, 
 		role.MaxPathLength = &maxPathLength
 	}
 
-	parsedBundle, err := generateCert(ctx, b, role, nil, true, req, data)
+	input := &dataBundle{
+		req:     req,
+		apiData: data,
+		role:    role,
+	}
+	parsedBundle, err := generateCert(ctx, b, input, true)
 	if err != nil {
 		switch err.(type) {
 		case errutil.UserError:
@@ -247,6 +253,13 @@ func (b *backend) pathCASignIntermediate(ctx context.Context, req *logical.Reque
 	}
 
 	role := &roleEntry{
+		OU:                    data.Get("ou").([]string),
+		Organization:          data.Get("organization").([]string),
+		Country:               data.Get("country").([]string),
+		Locality:              data.Get("locality").([]string),
+		Province:              data.Get("province").([]string),
+		StreetAddress:         data.Get("street_address").([]string),
+		PostalCode:            data.Get("postal_code").([]string),
 		TTL:                   (time.Duration(data.Get("ttl").(int)) * time.Second).String(),
 		AllowLocalhost:        true,
 		AllowAnyName:          true,
@@ -279,7 +292,13 @@ func (b *backend) pathCASignIntermediate(ctx context.Context, req *logical.Reque
 		role.MaxPathLength = &maxPathLength
 	}
 
-	parsedBundle, err := signCert(b, role, signingBundle, true, useCSRValues, req, data)
+	input := &dataBundle{
+		req:           req,
+		apiData:       data,
+		signingBundle: signingBundle,
+		role:          role,
+	}
+	parsedBundle, err := signCert(b, input, true, useCSRValues)
 	if err != nil {
 		switch err.(type) {
 		case errutil.UserError:
@@ -419,7 +438,7 @@ func (b *backend) pathCASignSelfIssued(ctx context.Context, req *logical.Request
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"certificate": string(pemCert),
+			"certificate": strings.TrimSpace(string(pemCert)),
 			"issuing_ca":  signingCB.Certificate,
 		},
 	}, nil

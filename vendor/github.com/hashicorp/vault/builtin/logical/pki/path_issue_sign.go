@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/helper/certutil"
 	"github.com/hashicorp/vault/helper/errutil"
+	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -123,12 +124,9 @@ func (b *backend) pathSignVerbatim(ctx context.Context, req *logical.Request, da
 		return nil, err
 	}
 
-	ttl := b.System().DefaultLeaseTTL()
-	maxTTL := b.System().MaxLeaseTTL()
-
 	entry := &roleEntry{
-		TTL:              ttl.String(),
-		MaxTTL:           maxTTL.String(),
+		TTL:              b.System().DefaultLeaseTTL().String(),
+		MaxTTL:           b.System().MaxLeaseTTL().String(),
 		AllowLocalhost:   true,
 		AllowAnyName:     true,
 		AllowIPSANs:      true,
@@ -141,10 +139,25 @@ func (b *backend) pathSignVerbatim(ctx context.Context, req *logical.Request, da
 
 	if role != nil {
 		if role.TTL != "" {
-			entry.TTL = role.TTL
+			ttl, err := parseutil.ParseDurationSecond(role.TTL)
+			if err != nil {
+				return logical.ErrorResponse(fmt.Sprintf("could not parse role ttl: %s", err)), nil
+			}
+			if ttl != 0 {
+				entry.TTL = role.TTL
+			}
 		}
 		if role.MaxTTL != "" {
-			entry.MaxTTL = role.MaxTTL
+			ttl, err := parseutil.ParseDurationSecond(role.MaxTTL)
+			if err != nil {
+				return logical.ErrorResponse(fmt.Sprintf("could not parse role max ttl: %s", err)), nil
+			}
+			if ttl != 0 {
+				entry.MaxTTL = role.MaxTTL
+			}
+		}
+		if entry.TTL > entry.MaxTTL {
+			return logical.ErrorResponse(fmt.Sprintf("requested ttl of %s is greater than max ttl of %s", entry.TTL, entry.MaxTTL)), nil
 		}
 		entry.NoStore = role.NoStore
 	}
@@ -175,12 +188,18 @@ func (b *backend) pathIssueSignCert(ctx context.Context, req *logical.Request, d
 			"error fetching CA certificate: %s", caErr)}
 	}
 
+	input := &dataBundle{
+		req:           req,
+		apiData:       data,
+		role:          role,
+		signingBundle: signingBundle,
+	}
 	var parsedBundle *certutil.ParsedCertBundle
 	var err error
 	if useCSR {
-		parsedBundle, err = signCert(b, role, signingBundle, false, useCSRValues, req, data)
+		parsedBundle, err = signCert(b, input, false, useCSRValues)
 	} else {
-		parsedBundle, err = generateCert(ctx, b, role, signingBundle, false, req, data)
+		parsedBundle, err = generateCert(ctx, b, input, false)
 	}
 	if err != nil {
 		switch err.(type) {

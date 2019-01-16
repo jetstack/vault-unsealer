@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc. All Rights Reserved.
+// Copyright 2017 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,54 +20,57 @@ import (
 	"testing"
 	"time"
 
+	ts "github.com/golang/protobuf/ptypes/timestamp"
 	pb "google.golang.org/genproto/googleapis/firestore/v1beta1"
-
 	"google.golang.org/genproto/googleapis/type/latlng"
 )
 
 type testStruct1 struct {
-	B bool
-	I int
-	U uint32
-	F float64
-	S string
-	Y []byte
-	T time.Time
-	G *latlng.LatLng
-	L []int
-	M map[string]int
-	P *int
+	B  bool
+	I  int
+	U  uint32
+	F  float64
+	S  string
+	Y  []byte
+	T  time.Time
+	Ts *ts.Timestamp
+	G  *latlng.LatLng
+	L  []int
+	M  map[string]int
+	P  *int
 }
 
 var (
 	p = new(int)
 
 	testVal1 = testStruct1{
-		B: true,
-		I: 1,
-		U: 2,
-		F: 3.0,
-		S: "four",
-		Y: []byte{5},
-		T: tm,
-		G: ll,
-		L: []int{6},
-		M: map[string]int{"a": 7},
-		P: p,
+		B:  true,
+		I:  1,
+		U:  2,
+		F:  3.0,
+		S:  "four",
+		Y:  []byte{5},
+		T:  tm,
+		Ts: ptm,
+		G:  ll,
+		L:  []int{6},
+		M:  map[string]int{"a": 7},
+		P:  p,
 	}
 
 	mapVal1 = mapval(map[string]*pb.Value{
-		"B": boolval(true),
-		"I": intval(1),
-		"U": intval(2),
-		"F": floatval(3),
-		"S": &pb.Value{&pb.Value_StringValue{"four"}},
-		"Y": bytesval([]byte{5}),
-		"T": tsval(tm),
-		"G": geoval(ll),
-		"L": arrayval(intval(6)),
-		"M": mapval(map[string]*pb.Value{"a": intval(7)}),
-		"P": intval(8),
+		"B":  boolval(true),
+		"I":  intval(1),
+		"U":  intval(2),
+		"F":  floatval(3),
+		"S":  {ValueType: &pb.Value_StringValue{"four"}},
+		"Y":  bytesval([]byte{5}),
+		"T":  tsval(tm),
+		"Ts": {ValueType: &pb.Value_TimestampValue{ptm}},
+		"G":  geoval(ll),
+		"L":  arrayval(intval(6)),
+		"M":  mapval(map[string]*pb.Value{"a": intval(7)}),
+		"P":  intval(8),
 	})
 )
 
@@ -81,6 +84,7 @@ func TestToProtoValue(t *testing.T) {
 		{[]int(nil), nullValue},
 		{map[string]int(nil), nullValue},
 		{(*testStruct1)(nil), nullValue},
+		{(*ts.Timestamp)(nil), nullValue},
 		{(*latlng.LatLng)(nil), nullValue},
 		{(*DocumentRef)(nil), nullValue},
 		{true, boolval(true)},
@@ -90,6 +94,7 @@ func TestToProtoValue(t *testing.T) {
 		{"str", strval("str")},
 		{[]byte{1, 2}, bytesval([]byte{1, 2})},
 		{tm, tsval(tm)},
+		{ptm, &pb.Value{ValueType: &pb.Value_TimestampValue{ptm}}},
 		{ll, geoval(ll)},
 		{[]int{1, 2}, arrayval(intval(1), intval(2))},
 		{&[]int{1, 2}, arrayval(intval(1), intval(2))},
@@ -156,6 +161,12 @@ func TestToProtoValue(t *testing.T) {
 				}),
 			}),
 		},
+
+		// Transforms are allowed in maps, but won't show up in the returned proto. Instead, we rely
+		// on seeing sawTransforms=true and a call to extractTransforms.
+		{map[string]interface{}{"a": ServerTimestamp, "b": 5}, mapval(map[string]*pb.Value{"b": intval(5)})},
+		{map[string]interface{}{"a": ArrayUnion(1, 2, 3), "b": 5}, mapval(map[string]*pb.Value{"b": intval(5)})},
+		{map[string]interface{}{"a": ArrayRemove(1, 2, 3), "b": 5}, mapval(map[string]*pb.Value{"b": intval(5)})},
 	} {
 		got, _, err := toProtoValue(reflect.ValueOf(test.in))
 		if err != nil {
@@ -179,7 +190,7 @@ func TestToProtoValueErrors(t *testing.T) {
 		make(chan int),                          // can't handle type
 		map[string]fmt.Stringer{"a": stringy{}}, // only empty interfaces
 		ServerTimestamp,                         // ServerTimestamp can only be a field value
-		[]interface{}{ServerTimestamp},
+		struct{ A interface{} }{A: ServerTimestamp},
 		map[string]interface{}{"a": []interface{}{ServerTimestamp}},
 		map[string]interface{}{"a": []interface{}{
 			map[string]interface{}{"b": ServerTimestamp},
@@ -188,10 +199,36 @@ func TestToProtoValueErrors(t *testing.T) {
 		[]interface{}{Delete},
 		map[string]interface{}{"a": Delete},
 		map[string]interface{}{"a": []interface{}{Delete}},
+
+		// Transforms are not allowed to occur in an array.
+		[]interface{}{ServerTimestamp},
+		[]interface{}{ArrayUnion(1, 2, 3)},
+		[]interface{}{ArrayRemove(1, 2, 3)},
+
+		// Transforms are not allowed to occur in a struct.
+		struct{ A interface{} }{A: ServerTimestamp},
+		struct{ A interface{} }{A: ArrayUnion()},
+		struct{ A interface{} }{A: ArrayRemove()},
 	} {
 		_, _, err := toProtoValue(reflect.ValueOf(in))
 		if err == nil {
 			t.Errorf("%v: got nil, want error", in)
+		}
+	}
+}
+
+func TestToProtoValue_SawTransform(t *testing.T) {
+	for i, in := range []interface{}{
+		map[string]interface{}{"a": ServerTimestamp},
+		map[string]interface{}{"a": ArrayUnion()},
+		map[string]interface{}{"a": ArrayRemove()},
+	} {
+		_, sawTransform, err := toProtoValue(reflect.ValueOf(in))
+		if err != nil {
+			t.Fatalf("%d %v: got err %v\nexpected nil", i, in, err)
+		}
+		if !sawTransform {
+			t.Errorf("%d %v: got sawTransform=false, expected sawTransform=true", i, in)
 		}
 	}
 }
@@ -234,19 +271,21 @@ func TestToProtoValueTags(t *testing.T) {
 }
 
 func TestToProtoValueEmbedded(t *testing.T) {
-	// Embedded time.Time or LatLng should behave like non-embedded.
+	// Embedded time.Time, LatLng, or Timestamp should behave like non-embedded.
 	type embed struct {
 		time.Time
 		*latlng.LatLng
+		*ts.Timestamp
 	}
 
-	got, _, err := toProtoValue(reflect.ValueOf(embed{tm, ll}))
+	got, _, err := toProtoValue(reflect.ValueOf(embed{tm, ll, ptm}))
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := mapval(map[string]*pb.Value{
-		"Time":   tsval(tm),
-		"LatLng": geoval(ll),
+		"Time":      tsval(tm),
+		"LatLng":    geoval(ll),
+		"Timestamp": {ValueType: &pb.Value_TimestampValue{ptm}},
 	})
 	if !testEqual(got, want) {
 		t.Errorf("got %+v, want %+v", got, want)

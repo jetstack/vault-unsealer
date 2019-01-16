@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All Rights Reserved.
+// Copyright 2016 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,11 +25,11 @@
 package logging
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -44,7 +44,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	tspb "github.com/golang/protobuf/ptypes/timestamp"
-	"golang.org/x/net/context"
 	"google.golang.org/api/option"
 	"google.golang.org/api/support/bundler"
 	mrpb "google.golang.org/genproto/googleapis/api/monitoredres"
@@ -53,13 +52,13 @@ import (
 )
 
 const (
-	// Scope for reading from the logging service.
+	// ReadScope is the scope for reading from the logging service.
 	ReadScope = "https://www.googleapis.com/auth/logging.read"
 
-	// Scope for writing to the logging service.
+	// WriteScope is the scope for writing to the logging service.
 	WriteScope = "https://www.googleapis.com/auth/logging.write"
 
-	// Scope for administrative actions on the logging service.
+	// AdminScope is the scope for administrative actions on the logging service.
 	AdminScope = "https://www.googleapis.com/auth/logging.admin"
 )
 
@@ -79,6 +78,12 @@ const (
 
 	// DefaultBufferedByteLimit is the default value for the BufferedByteLimit LoggerOption.
 	DefaultBufferedByteLimit = 1 << 30 // 1GiB
+
+	// defaultWriteTimeout is the timeout for the underlying write API calls. As
+	// write API calls are not idempotent, they are not retried on timeout. This
+	// timeout is to allow clients to degrade gracefully if underlying logging
+	// service is temporarily impaired for some reason.
+	defaultWriteTimeout = 10 * time.Minute
 )
 
 // For testing:
@@ -228,6 +233,7 @@ type Logger struct {
 	// Options
 	commonResource *mrpb.MonitoredResource
 	commonLabels   map[string]string
+	ctxFunc        func() (context.Context, func())
 }
 
 // A LoggerOption is a configuration option for a Logger.
@@ -321,6 +327,15 @@ type commonLabels map[string]string
 
 func (c commonLabels) set(l *Logger) { l.commonLabels = c }
 
+// ConcurrentWriteLimit determines how many goroutines will send log entries to the
+// underlying service. The default is 1. Set ConcurrentWriteLimit to a higher value to
+// increase throughput.
+func ConcurrentWriteLimit(n int) LoggerOption { return concurrentWriteLimit(n) }
+
+type concurrentWriteLimit int
+
+func (c concurrentWriteLimit) set(l *Logger) { l.bundler.HandlerLimit = int(c) }
+
 // DelayThreshold is the maximum amount of time that an entry should remain
 // buffered in memory before a call to the logging service is triggered. Larger
 // values of DelayThreshold will generally result in fewer calls to the logging
@@ -382,6 +397,23 @@ type bufferedByteLimit int
 
 func (b bufferedByteLimit) set(l *Logger) { l.bundler.BufferedByteLimit = int(b) }
 
+// ContextFunc is a function that will be called to obtain a context.Context for the
+// WriteLogEntries RPC executed in the background for calls to Logger.Log. The
+// default is a function that always returns context.Background. The second return
+// value of the function is a function to call after the RPC completes.
+//
+// The function is not used for calls to Logger.LogSync, since the caller can pass
+// in the context directly.
+//
+// This option is EXPERIMENTAL. It may be changed or removed.
+func ContextFunc(f func() (ctx context.Context, afterCall func())) LoggerOption {
+	return contextFunc(f)
+}
+
+type contextFunc func() (ctx context.Context, afterCall func())
+
+func (c contextFunc) set(l *Logger) { l.ctxFunc = c }
+
 // Logger returns a Logger that will write entries with the given log ID, such as
 // "syslog". A log ID must be less than 512 characters long and can only
 // include the following characters: upper and lower case alphanumeric
@@ -396,11 +428,10 @@ func (c *Client) Logger(logID string, opts ...LoggerOption) *Logger {
 		client:         c,
 		logName:        internal.LogPath(c.parent, logID),
 		commonResource: r,
+		ctxFunc:        func() (context.Context, func()) { return context.Background(), nil },
 	}
-	// TODO(jba): determine the right context for the bundle handler.
-	ctx := context.TODO()
 	l.bundler = bundler.NewBundler(&logpb.LogEntry{}, func(entries interface{}) {
-		l.writeLogEntries(ctx, entries.([]*logpb.LogEntry))
+		l.writeLogEntries(entries.([]*logpb.LogEntry))
 	})
 	l.bundler.DelayThreshold = DefaultDelayThreshold
 	l.bundler.BundleCountThreshold = DefaultEntryCountThreshold
@@ -409,12 +440,14 @@ func (c *Client) Logger(logID string, opts ...LoggerOption) *Logger {
 	for _, opt := range opts {
 		opt.set(l)
 	}
-
 	l.stdLoggers = map[Severity]*log.Logger{}
 	for s := range severityName {
 		l.stdLoggers[s] = log.New(severityWriter{l, s}, "", 0)
 	}
+
 	c.loggers.Add(1)
+	// Start a goroutine that cleans up the bundler, its channel
+	// and the writer goroutines when the client is closed.
 	go func() {
 		defer c.loggers.Done()
 		<-c.donec
@@ -445,7 +478,7 @@ func (c *Client) Close() error {
 	c.loggers.Wait() // wait for all bundlers to flush and close
 	// Now there can be no more errors.
 	close(c.errc) // terminate error goroutine
-	// Prefer logging errors to close errors.
+	// Prefer errors arising from logging to the error returned from Close.
 	err := c.extractErrorInfo()
 	err2 := c.client.Close()
 	if err == nil {
@@ -525,9 +558,8 @@ type Entry struct {
 	// The zero value is Default.
 	Severity Severity
 
-	// Payload must be either a string or something that
-	// marshals via the encoding/json package to a JSON object
-	// (and not any other type of JSON value).
+	// Payload must be either a string, or something that marshals via the
+	// encoding/json package to a JSON object (and not any other type of JSON value).
 	Payload interface{}
 
 	// Labels optionally specifies key/value labels for the log entry.
@@ -563,6 +595,14 @@ type Entry struct {
 	// if any. If it contains a relative resource name, the name is assumed to
 	// be relative to //tracing.googleapis.com.
 	Trace string
+
+	// ID of the span within the trace associated with the log entry.
+	// The ID is a 16-character hexadecimal encoding of an 8-byte array.
+	SpanID string
+
+	// Optional. Source code location information associated with the log entry,
+	// if any.
+	SourceLocation *logpb.LogEntrySourceLocation
 }
 
 // HTTPRequest contains an http.Request as well as additional
@@ -640,13 +680,19 @@ func toProtoStruct(v interface{}) (*structpb.Struct, error) {
 	if s, ok := v.(*structpb.Struct); ok {
 		return s, nil
 	}
-	// v is a Go struct that supports JSON marshalling. We want a Struct
+	// v is a Go value that supports JSON marshalling. We want a Struct
 	// protobuf. Some day we may have a more direct way to get there, but right
-	// now the only way is to marshal the Go struct to JSON, unmarshal into a
+	// now the only way is to marshal the Go value to JSON, unmarshal into a
 	// map, and then build the Struct proto from the map.
-	jb, err := json.Marshal(v)
-	if err != nil {
-		return nil, fmt.Errorf("logging: json.Marshal: %v", err)
+	var jb []byte
+	var err error
+	if raw, ok := v.(json.RawMessage); ok { // needed for Go 1.7 and below
+		jb = []byte(raw)
+	} else {
+		jb, err = json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("logging: json.Marshal: %v", err)
+		}
 	}
 	var m map[string]interface{}
 	err = json.Unmarshal(jb, &m)
@@ -692,7 +738,7 @@ func jsonValueToStructValue(v interface{}) *structpb.Value {
 // Prefer Log for most uses.
 // TODO(jba): come up with a better name (LogNow?) or eliminate.
 func (l *Logger) LogSync(ctx context.Context, e Entry) error {
-	ent, err := toLogEntry(e)
+	ent, err := l.toLogEntry(e)
 	if err != nil {
 		return err
 	}
@@ -707,7 +753,7 @@ func (l *Logger) LogSync(ctx context.Context, e Entry) error {
 
 // Log buffers the Entry for output to the logging service. It never blocks.
 func (l *Logger) Log(e Entry) {
-	ent, err := toLogEntry(e)
+	ent, err := l.toLogEntry(e)
 	if err != nil {
 		l.client.error(err)
 		return
@@ -728,16 +774,22 @@ func (l *Logger) Flush() error {
 	return l.client.extractErrorInfo()
 }
 
-func (l *Logger) writeLogEntries(ctx context.Context, entries []*logpb.LogEntry) {
+func (l *Logger) writeLogEntries(entries []*logpb.LogEntry) {
 	req := &logpb.WriteLogEntriesRequest{
 		LogName:  l.logName,
 		Resource: l.commonResource,
 		Labels:   l.commonLabels,
 		Entries:  entries,
 	}
+	ctx, afterCall := l.ctxFunc()
+	ctx, cancel := context.WithTimeout(ctx, defaultWriteTimeout)
+	defer cancel()
 	_, err := l.client.client.WriteLogEntries(ctx, req)
 	if err != nil {
 		l.client.error(err)
+	}
+	if afterCall != nil {
+		afterCall()
 	}
 }
 
@@ -748,14 +800,7 @@ func (l *Logger) writeLogEntries(ctx context.Context, entries []*logpb.LogEntry)
 // (for example by calling SetFlags or SetPrefix).
 func (l *Logger) StandardLogger(s Severity) *log.Logger { return l.stdLoggers[s] }
 
-func trunc32(i int) int32 {
-	if i > math.MaxInt32 {
-		i = math.MaxInt32
-	}
-	return int32(i)
-}
-
-func toLogEntry(e Entry) (*logpb.LogEntry, error) {
+func (l *Logger) toLogEntry(e Entry) (*logpb.LogEntry, error) {
 	if e.LogName != "" {
 		return nil, errors.New("logging: Entry.LogName should be not be set when writing")
 	}
@@ -767,17 +812,26 @@ func toLogEntry(e Entry) (*logpb.LogEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	ent := &logpb.LogEntry{
-		Timestamp:   ts,
-		Severity:    logtypepb.LogSeverity(e.Severity),
-		InsertId:    e.InsertID,
-		HttpRequest: fromHTTPRequest(e.HTTPRequest),
-		Operation:   e.Operation,
-		Labels:      e.Labels,
-		Trace:       e.Trace,
-		Resource:    e.Resource,
+	if e.Trace == "" && e.HTTPRequest != nil && e.HTTPRequest.Request != nil {
+		traceHeader := e.HTTPRequest.Request.Header.Get("X-Cloud-Trace-Context")
+		if traceHeader != "" {
+			// Set to a relative resource name, as described at
+			// https://cloud.google.com/appengine/docs/flexible/go/writing-application-logs.
+			e.Trace = fmt.Sprintf("%s/traces/%s", l.client.parent, traceHeader)
+		}
 	}
-
+	ent := &logpb.LogEntry{
+		Timestamp:      ts,
+		Severity:       logtypepb.LogSeverity(e.Severity),
+		InsertId:       e.InsertID,
+		HttpRequest:    fromHTTPRequest(e.HTTPRequest),
+		Operation:      e.Operation,
+		Labels:         e.Labels,
+		Trace:          e.Trace,
+		SpanId:         e.SpanID,
+		Resource:       e.Resource,
+		SourceLocation: e.SourceLocation,
+	}
 	switch p := e.Payload.(type) {
 	case string:
 		ent.Payload = &logpb.LogEntry_TextPayload{TextPayload: p}

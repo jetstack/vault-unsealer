@@ -72,8 +72,8 @@
   name = "github.com/hashicorp/go-rootcerts"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/hashicorp/vault"
+  version = "0.9.6"
 
 [[constraint]]
   branch = "master"
@@ -82,3 +82,12 @@
 [[constraint]]
   branch = "master"
   name = "google.golang.org/api"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/spf13/cobra"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "^1.0.0"
+

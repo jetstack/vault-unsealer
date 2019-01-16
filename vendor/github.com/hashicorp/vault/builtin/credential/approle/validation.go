@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/helper/cidrutil"
 	"github.com/hashicorp/vault/helper/locksutil"
-	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -95,26 +95,26 @@ func (b *backend) validateRoleID(ctx context.Context, s logical.Storage, roleID 
 }
 
 // Validates the supplied RoleID and SecretID
-func (b *backend) validateCredentials(ctx context.Context, req *logical.Request, data *framework.FieldData) (*roleStorageEntry, string, map[string]string, string, error) {
+func (b *backend) validateCredentials(ctx context.Context, req *logical.Request, data *framework.FieldData) (*roleStorageEntry, string, map[string]string, string, error, error) {
 	metadata := make(map[string]string)
 	// RoleID must be supplied during every login
 	roleID := strings.TrimSpace(data.Get("role_id").(string))
 	if roleID == "" {
-		return nil, "", metadata, "", fmt.Errorf("missing role_id")
+		return nil, "", metadata, "", fmt.Errorf("missing role_id"), nil
 	}
 
 	// Validate the RoleID and get the Role entry
 	role, roleName, err := b.validateRoleID(ctx, req.Storage, roleID)
 	if err != nil {
-		return nil, "", metadata, "", err
+		return nil, "", metadata, "", nil, err
 	}
 	if role == nil || roleName == "" {
-		return nil, "", metadata, "", fmt.Errorf("failed to validate role_id")
+		return nil, "", metadata, "", fmt.Errorf("failed to validate role_id"), nil
 	}
 
 	// Calculate the TTL boundaries since this reflects the properties of the token issued
 	if role.TokenTTL, role.TokenMaxTTL, err = b.SanitizeTTL(role.TokenTTL, role.TokenMaxTTL); err != nil {
-		return nil, "", metadata, "", err
+		return nil, "", metadata, "", nil, err
 	}
 
 	var secretID string
@@ -123,7 +123,7 @@ func (b *backend) validateCredentials(ctx context.Context, req *logical.Request,
 		// to be specified and validate it.
 		secretID = strings.TrimSpace(data.Get("secret_id").(string))
 		if secretID == "" {
-			return nil, "", metadata, "", fmt.Errorf("missing secret_id")
+			return nil, "", metadata, "", fmt.Errorf("missing secret_id"), nil
 		}
 
 		if role.LowerCaseRoleName {
@@ -135,34 +135,34 @@ func (b *backend) validateCredentials(ctx context.Context, req *logical.Request,
 		var valid bool
 		valid, metadata, err = b.validateBindSecretID(ctx, req, roleName, secretID, role.HMACKey, role.BoundCIDRList)
 		if err != nil {
-			return nil, "", metadata, "", err
+			return nil, "", metadata, "", nil, err
 		}
 		if !valid {
-			return nil, "", metadata, "", fmt.Errorf("invalid secret_id %q", secretID)
+			return nil, "", metadata, "", fmt.Errorf("invalid secret_id %q", secretID), nil
 		}
 	}
 
-	if role.BoundCIDRList != "" {
+	if len(role.BoundCIDRList) != 0 {
 		// If 'bound_cidr_list' was set, verify the CIDR restrictions
 		if req.Connection == nil || req.Connection.RemoteAddr == "" {
-			return nil, "", metadata, "", fmt.Errorf("failed to get connection information")
+			return nil, "", metadata, "", fmt.Errorf("failed to get connection information"), nil
 		}
 
-		belongs, err := cidrutil.IPBelongsToCIDRBlocksString(req.Connection.RemoteAddr, role.BoundCIDRList, ",")
+		belongs, err := cidrutil.IPBelongsToCIDRBlocksSlice(req.Connection.RemoteAddr, role.BoundCIDRList)
 		if err != nil {
-			return nil, "", metadata, "", fmt.Errorf("failed to verify the CIDR restrictions set on the role: %v", err)
+			return nil, "", metadata, "", nil, errwrap.Wrapf("failed to verify the CIDR restrictions set on the role: {{err}}", err)
 		}
 		if !belongs {
-			return nil, "", metadata, "", fmt.Errorf("source address %q unauthorized through CIDR restrictions on the role", req.Connection.RemoteAddr)
+			return nil, "", metadata, "", fmt.Errorf("source address %q unauthorized through CIDR restrictions on the role", req.Connection.RemoteAddr), nil
 		}
 	}
 
-	return role, roleName, metadata, secretID, nil
+	return role, roleName, metadata, secretID, nil, nil
 }
 
 // validateBindSecretID is used to determine if the given SecretID is a valid one.
 func (b *backend) validateBindSecretID(ctx context.Context, req *logical.Request, roleName, secretID,
-	hmacKey, roleBoundCIDRList string) (bool, map[string]string, error) {
+	hmacKey string, roleBoundCIDRList []string) (bool, map[string]string, error) {
 	secretIDHMAC, err := createHMAC(hmacKey, secretID)
 	if err != nil {
 		return false, nil, fmt.Errorf("failed to create HMAC of secret_id: %v", err)
@@ -235,7 +235,7 @@ func (b *backend) validateBindSecretID(ctx context.Context, req *logical.Request
 	}
 
 	// If there exists a single use left, delete the SecretID entry from
-	// the storage but do not fail the validation request. Subsequest
+	// the storage but do not fail the validation request. Subsequent
 	// requests to use the same SecretID will fail.
 	if result.SecretIDNumUses == 1 {
 		// Delete the secret IDs accessor first
@@ -250,9 +250,9 @@ func (b *backend) validateBindSecretID(ctx context.Context, req *logical.Request
 		result.SecretIDNumUses -= 1
 		result.LastUpdatedTime = time.Now()
 		if entry, err := logical.StorageEntryJSON(entryIndex, &result); err != nil {
-			return false, nil, fmt.Errorf("failed to decrement the use count for secret ID %q", secretID)
+			return false, nil, fmt.Errorf("failed to create storage entry while decrementing the secret ID use count: %v", err)
 		} else if err = req.Storage.Put(ctx, entry); err != nil {
-			return false, nil, fmt.Errorf("failed to decrement the use count for secret ID %q", secretID)
+			return false, nil, fmt.Errorf("failed to decrement the secret ID use count: %v", err)
 		}
 	}
 
@@ -280,17 +280,14 @@ func (b *backend) validateBindSecretID(ctx context.Context, req *logical.Request
 
 // verifyCIDRRoleSecretIDSubset checks if the CIDR blocks set on the secret ID
 // are a subset of CIDR blocks set on the role
-func verifyCIDRRoleSecretIDSubset(secretIDCIDRs []string, roleBoundCIDRList string) error {
+func verifyCIDRRoleSecretIDSubset(secretIDCIDRs []string, roleBoundCIDRList []string) error {
 	if len(secretIDCIDRs) != 0 {
-		// Parse the CIDRs on role as a slice
-		roleCIDRs := strutil.ParseDedupLowercaseAndSortStrings(roleBoundCIDRList, ",")
-
 		// If there are no CIDR blocks on the role, then the subset
 		// requirement would be satisfied
-		if len(roleCIDRs) != 0 {
-			subset, err := cidrutil.SubsetBlocks(roleCIDRs, secretIDCIDRs)
+		if len(roleBoundCIDRList) != 0 {
+			subset, err := cidrutil.SubsetBlocks(roleBoundCIDRList, secretIDCIDRs)
 			if !subset || err != nil {
-				return fmt.Errorf("failed to verify subset relationship between CIDR blocks on the role %q and CIDR blocks on the secret ID %q: %v", roleCIDRs, secretIDCIDRs, err)
+				return fmt.Errorf("failed to verify subset relationship between CIDR blocks on the role %q and CIDR blocks on the secret ID %q: %v", roleBoundCIDRList, secretIDCIDRs, err)
 			}
 		}
 	}
@@ -479,7 +476,7 @@ func (b *backend) secretIDAccessorEntry(ctx context.Context, s logical.Storage, 
 	var result secretIDAccessorStorageEntry
 
 	// Create index entry, mapping the accessor to the token ID
-	salt, err := b.Salt()
+	salt, err := b.Salt(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -512,7 +509,7 @@ func (b *backend) createSecretIDAccessorEntry(ctx context.Context, s logical.Sto
 	entry.SecretIDAccessor = accessorUUID
 
 	// Create index entry, mapping the accessor to the token ID
-	salt, err := b.Salt()
+	salt, err := b.Salt(ctx)
 	if err != nil {
 		return err
 	}
@@ -535,7 +532,7 @@ func (b *backend) createSecretIDAccessorEntry(ctx context.Context, s logical.Sto
 
 // deleteSecretIDAccessorEntry deletes the storage index mapping the accessor to a SecretID.
 func (b *backend) deleteSecretIDAccessorEntry(ctx context.Context, s logical.Storage, secretIDAccessor string) error {
-	salt, err := b.Salt()
+	salt, err := b.Salt(ctx)
 	if err != nil {
 		return err
 	}

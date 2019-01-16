@@ -51,15 +51,16 @@ to specify where the configuration is.
   storage backend supports HA coordination and if HA specific options are
   already specified with `storage` parameter.
 
-- `cluster_name` `(string: <generated>)` – Specifies the identifier for the
-  Vault cluster. If omitted, Vault will generate a value. When connecting to
-  Vault Enterprise, this value will be used in the interface.
-
 - `listener` <tt>([Listener][listener]: \<required\>)</tt> – Configures how
   Vault is listening for API requests.
 
 - `seal` <tt>([Seal][seal]: nil)</tt> – Configures the seal type to use for
+  auto-unsealing, as well as for
   [seal wrapping][sealwrap] as an additional layer of data protection.
+
+- `cluster_name` `(string: <generated>)` – Specifies the identifier for the
+  Vault cluster. If omitted, Vault will generate a value. When connecting to
+  Vault Enterprise, this value will be used in the interface.
 
 - `cache_size` `(string: "32000")` – Specifies the size of the read cache used
   by the physical storage subsystem. The value is in number of entries, so the
@@ -88,12 +89,18 @@ to specify where the configuration is.
     sudo setcap cap_ipc_lock=+ep $(readlink -f $(which vault))
     ```
 
+    Note: Since each plugin runs as a separate process, you need to do the same for each plugin in your [plugins directory](https://www.vaultproject.io/docs/internals/plugins.html#plugin-directory).
+
     If you use a Linux distribution with a modern version of systemd, you can add
     the following directive to the "[Service]" configuration section:
 
     ```ini
     LimitMEMLOCK=infinity
     ```
+
+- `disable_sealwrap` `(bool: false)` – Disables using [seal wrapping][sealwrap]
+  for any value except the master key. If this value is toggled, the new
+  behavior will happen lazily (as values are read or written).
 
 - `plugin_directory` `(string: "")` – A directory from which plugins are
   allowed to be loaded. Vault must have permission to read files in this

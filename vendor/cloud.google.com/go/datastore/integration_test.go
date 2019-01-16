@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
 package datastore
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"reflect"
 	"sort"
@@ -31,10 +31,11 @@ import (
 
 	"cloud.google.com/go/internal/testutil"
 	"cloud.google.com/go/rpcreplay"
-	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // TODO(djd): Make test entity clean up more robust: some test entities may
@@ -72,7 +73,7 @@ func testMain(m *testing.M) int {
 		if *record {
 			log.Fatal("cannot combine -short and -record")
 		}
-		if _, err := os.Stat(replayFilename); err == nil {
+		if testutil.CanReplay(replayFilename) {
 			initReplay()
 		}
 	} else if *record {
@@ -117,7 +118,7 @@ func initReplay() {
 	}
 	timeNow = ri.Time.In(time.Local)
 
-	conn, err := replayConn(rep)
+	conn, err := rep.Connection()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,27 +130,6 @@ func initReplay() {
 		return client
 	}
 	log.Printf("replaying from %s", replayFilename)
-}
-
-func replayConn(rep *rpcreplay.Replayer) (*grpc.ClientConn, error) {
-	// If we make a real connection we need creds from somewhere, and they
-	// might not be available, for instance on Travis.
-	// Replaying doesn't require a connection live at all, but we need
-	// something to attach gRPC interceptors to.
-	// So we start a local listener and connect to it, then close them down.
-	// TODO(jba): build something like this into the replayer?
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return nil, err
-	}
-	conn, err := grpc.Dial(l.Addr().String(),
-		append([]grpc.DialOption{grpc.WithInsecure()}, rep.DialOptions()...)...)
-	if err != nil {
-		return nil, err
-	}
-	conn.Close()
-	l.Close()
-	return conn, nil
 }
 
 func newClient(ctx context.Context, t *testing.T, dialOpts []grpc.DialOption) *Client {
@@ -392,7 +372,7 @@ type SQTestCase struct {
 	wantSum   int
 }
 
-func testSmallQueries(t *testing.T, ctx context.Context, client *Client, parent *Key, children []*SQChild,
+func testSmallQueries(ctx context.Context, t *testing.T, client *Client, parent *Key, children []*SQChild,
 	testCases []SQTestCase, extraTests ...func()) {
 	keys := make([]*Key, len(children))
 	for i := range keys {
@@ -460,7 +440,7 @@ func TestFilters(t *testing.T) {
 		{I: 7, T: now, U: now},
 	}
 	baseQuery := NewQuery("SQChild").Ancestor(parent).Filter("T=", now)
-	testSmallQueries(t, ctx, client, parent, children, []SQTestCase{
+	testSmallQueries(ctx, t, client, parent, children, []SQTestCase{
 		{
 			"I>1",
 			baseQuery.Filter("I>", 1),
@@ -706,7 +686,7 @@ func TestEventualConsistency(t *testing.T) {
 		{I: 2, T: now, U: now},
 	}
 	query := NewQuery("SQChild").Ancestor(parent).Filter("T =", now).EventualConsistency()
-	testSmallQueries(t, ctx, client, parent, children, nil, func() {
+	testSmallQueries(ctx, t, client, parent, children, nil, func() {
 		got, err := client.Count(ctx, query)
 		if err != nil {
 			t.Fatalf("Count: %v", err)
@@ -732,7 +712,7 @@ func TestProjection(t *testing.T) {
 		{I: 1 << 4, J: 300, T: now, U: now},
 	}
 	baseQuery := NewQuery("SQChild").Ancestor(parent).Filter("T=", now).Filter("J>", 150)
-	testSmallQueries(t, ctx, client, parent, children, []SQTestCase{
+	testSmallQueries(ctx, t, client, parent, children, []SQTestCase{
 		{
 			"project",
 			baseQuery.Project("J"),
@@ -1022,7 +1002,7 @@ func TestTransaction(t *testing.T) {
 			}
 
 			if tt.causeConflict[attempts-1] {
-				c.N += 1
+				c.N++
 				if _, err := client.Put(ctx, key, &c); err != nil {
 					return err
 				}
@@ -1048,6 +1028,51 @@ func TestTransaction(t *testing.T) {
 		if c.N != tt.want {
 			t.Errorf("%s: counter N=%d, want N=%d", tt.desc, c.N, tt.want)
 		}
+	}
+}
+
+func TestReadOnlyTransaction(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Integration tests skipped in short mode")
+	}
+	ctx := context.Background()
+	client := newClient(ctx, t, nil)
+	defer client.Close()
+
+	type value struct{ N int }
+
+	// Put a value.
+	const n = 5
+	v := &value{N: n}
+	key, err := client.Put(ctx, IncompleteKey("roTxn", nil), v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Delete(ctx, key)
+
+	// Read it from a read-only transaction.
+	_, err = client.RunInTransaction(ctx, func(tx *Transaction) error {
+		if err := tx.Get(key, v); err != nil {
+			return err
+		}
+		return nil
+	}, ReadOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.N != n {
+		t.Fatalf("got %d, want %d", v.N, n)
+	}
+
+	// Attempting to write from a read-only transaction is an error.
+	_, err = client.RunInTransaction(ctx, func(tx *Transaction) error {
+		if _, err := tx.Put(key, v); err != nil {
+			return err
+		}
+		return nil
+	}, ReadOnly)
+	if err == nil {
+		t.Fatal("got nil, want error")
 	}
 }
 
@@ -1113,5 +1138,121 @@ func TestNestedRepeatedElementNoIndex(t *testing.T) {
 	}
 	if err := client.Delete(ctx, key); err != nil {
 		t.Fatalf("client.Delete: %v", err)
+	}
+}
+
+func TestPointerFields(t *testing.T) {
+	ctx := context.Background()
+	client := newTestClient(ctx, t)
+	defer client.Close()
+
+	want := populatedPointers()
+	key, err := client.Put(ctx, IncompleteKey("pointers", nil), want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got Pointers
+	if err := client.Get(ctx, key, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Pi == nil || *got.Pi != *want.Pi {
+		t.Errorf("Pi: got %v, want %v", got.Pi, *want.Pi)
+	}
+	if got.Ps == nil || *got.Ps != *want.Ps {
+		t.Errorf("Ps: got %v, want %v", got.Ps, *want.Ps)
+	}
+	if got.Pb == nil || *got.Pb != *want.Pb {
+		t.Errorf("Pb: got %v, want %v", got.Pb, *want.Pb)
+	}
+	if got.Pf == nil || *got.Pf != *want.Pf {
+		t.Errorf("Pf: got %v, want %v", got.Pf, *want.Pf)
+	}
+	if got.Pg == nil || *got.Pg != *want.Pg {
+		t.Errorf("Pg: got %v, want %v", got.Pg, *want.Pg)
+	}
+	if got.Pt == nil || !got.Pt.Equal(*want.Pt) {
+		t.Errorf("Pt: got %v, want %v", got.Pt, *want.Pt)
+	}
+}
+
+func TestMutate(t *testing.T) {
+	// test Client.Mutate
+	testMutate(t, func(ctx context.Context, client *Client, muts ...*Mutation) ([]*Key, error) {
+		return client.Mutate(ctx, muts...)
+	})
+	// test Transaction.Mutate
+	testMutate(t, func(ctx context.Context, client *Client, muts ...*Mutation) ([]*Key, error) {
+		var pkeys []*PendingKey
+		commit, err := client.RunInTransaction(ctx, func(tx *Transaction) error {
+			var err error
+			pkeys, err = tx.Mutate(muts...)
+			return err
+		})
+		if err != nil {
+			return nil, err
+		}
+		var keys []*Key
+		for _, pk := range pkeys {
+			keys = append(keys, commit.Key(pk))
+		}
+		return keys, nil
+	})
+}
+
+func testMutate(t *testing.T, mutate func(ctx context.Context, client *Client, muts ...*Mutation) ([]*Key, error)) {
+	ctx := context.Background()
+	client := newTestClient(ctx, t)
+	defer client.Close()
+
+	type T struct{ I int }
+
+	check := func(k *Key, want interface{}) {
+		var x T
+		err := client.Get(ctx, k, &x)
+		switch want := want.(type) {
+		case error:
+			if err != want {
+				t.Errorf("key %s: got error %v, want %v", k, err, want)
+			}
+		case int:
+			if err != nil {
+				t.Fatalf("key %s: %v", k, err)
+			}
+			if x.I != want {
+				t.Errorf("key %s: got %d, want %d", k, x.I, want)
+			}
+		default:
+			panic("check: bad arg")
+		}
+	}
+
+	keys, err := mutate(ctx, client,
+		NewInsert(IncompleteKey("t", nil), &T{1}),
+		NewUpsert(IncompleteKey("t", nil), &T{2}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(keys[0], 1)
+	check(keys[1], 2)
+
+	_, err = mutate(ctx, client,
+		NewUpdate(keys[0], &T{3}),
+		NewDelete(keys[1]),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(keys[0], 3)
+	check(keys[1], ErrNoSuchEntity)
+
+	_, err = mutate(ctx, client, NewInsert(keys[0], &T{4}))
+	if got, want := status.Code(err), codes.AlreadyExists; got != want {
+		t.Errorf("Insert existing key: got %s, want %s", got, want)
+	}
+
+	_, err = mutate(ctx, client, NewUpdate(keys[1], &T{4}))
+	if got, want := status.Code(err), codes.NotFound; got != want {
+		t.Errorf("Update non-existing key: got %s, want %s", got, want)
 	}
 }

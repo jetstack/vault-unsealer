@@ -1,3 +1,9 @@
+// Copyright 2018 Google Inc. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// AUTO-GENERATED CODE. DO NOT EDIT.
+
 // Package dfareporting provides access to the DCM/DFA Reporting And Trafficking API.
 //
 // See https://developers.google.com/doubleclick-advertisers/
@@ -11,18 +17,18 @@ package dfareporting // import "google.golang.org/api/dfareporting/v2.7"
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	context "golang.org/x/net/context"
-	ctxhttp "golang.org/x/net/context/ctxhttp"
-	gensupport "google.golang.org/api/gensupport"
-	googleapi "google.golang.org/api/googleapi"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	gensupport "google.golang.org/api/gensupport"
+	googleapi "google.golang.org/api/googleapi"
 )
 
 // Always reference these packages, just in case the auto-generated code
@@ -38,7 +44,6 @@ var _ = googleapi.Version
 var _ = errors.New
 var _ = strings.Replace
 var _ = context.Canceled
-var _ = ctxhttp.Do
 
 const apiId = "dfareporting:v2.7"
 const apiName = "dfareporting"
@@ -23106,11 +23111,12 @@ func (c *CreativeAssetsInsertCall) doRequest(alt string) (*http.Response, error)
 		body = new(bytes.Buffer)
 		reqHeaders.Set("Content-Type", "application/json")
 	}
-	body, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
+	body, getBody, cleanup := c.mediaInfo_.UploadRequest(reqHeaders, body)
 	defer cleanup()
 	urls += "?" + c.urlParams_.Encode()
 	req, _ := http.NewRequest("POST", urls, body)
 	req.Header = reqHeaders
+	gensupport.SetGetBody(req, getBody)
 	googleapi.Expand(req.URL, map[string]string{
 		"profileId":    strconv.FormatInt(c.profileId, 10),
 		"advertiserId": strconv.FormatInt(c.advertiserId, 10),

@@ -37,6 +37,9 @@ distinction between the `create` and `update` capabilities inside ACL policies.
 - `ttl` `(string: "")` - Duration after which authentication will be expired.
 - `max_ttl` `(string: "")` - Maximum duration after which authentication will
   be expired.
+- `bypass_okta_mfa` `(bool: false)` - Whether to bypass an Okta MFA request.
+  Useful if using one of Vault's built-in MFA mechanisms, but this will also
+  cause certain other statuses to be ignored, such as `PASSWORD_EXPIRED`.
 
 ### Sample Payload
 
@@ -359,7 +362,7 @@ Login with the username and password.
 ### Parameters
 
 - `username` `(string: <required>)` - Username for this user.
-- `password` `(string: <required>)` - Password for the autheticating user.
+- `password` `(string: <required>)` - Password for the authenticating user.
 
 ### Sample Payload
 
