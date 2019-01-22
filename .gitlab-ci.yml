@@ -11,6 +11,7 @@ stages:
 
 # configure $GOPATH correctly on all build stages
 before_script:
+  - unset GPG_PRIVATE_KEY GITHUB_TOKEN DOCKER_AUTH_CONFIG
   - mkdir -p "${GOPATH}/src/${PKG_PATH}" && rmdir "${GOPATH}/src/${PKG_PATH}"
   - mv "${CI_PROJECT_DIR}" "${GOPATH}/src/${PKG_PATH}"
   - cd "${GOPATH}/src/${PKG_PATH}"
@@ -47,14 +48,17 @@ deploy:release:
   stage: deploy
   tags:
   - docker
-  script:
-  - umask 0077
-  - mkdir -p /root/.gnupg
-  - echo "${GPG_PRIVATE_KEY}" | base64 -d > /root/.gnupg/secring.gpg
+  before_script:
+  - echo "${GPG_PRIVATE_KEY}" | gpg --import -
+  - unset GPG_PRIVATE_KEY DOCKER_AUTH_CONFIG
   - curl -sL https://github.com/simonswine/goreleaser/releases/download/v0.36.0-gpg/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
   - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
+  - mkdir -p "${GOPATH}/src/${PKG_PATH}" && rmdir "${GOPATH}/src/${PKG_PATH}"
+  - mv "${CI_PROJECT_DIR}" "${GOPATH}/src/${PKG_PATH}"
   - cd "${GOPATH}/src/${PKG_PATH}"
+  - mkdir -p "${CI_PROJECT_DIR}"
+  script:
   - goreleaser
   - mv "dist/vault-unsealer_${CI_COMMIT_TAG}_linux_amd64/vault-unsealer_${CI_COMMIT_TAG}_linux_amd64" vault-unsealer_linux_amd64
   only:
