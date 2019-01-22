@@ -2,7 +2,8 @@ variables:
   DOCKER_DRIVER: overlay
   DOCKER_HOST: tcp://localhost:2375
   PKG_PATH: github.com/jetstack/vault-unsealer
-  GORELEASER_HASH: 634f5eedd1000a1eb675c2ca93bbbc889aa0388df76aea3501d7734616910584
+  GORELEASER_HASH: f7dbad6cc4f8424eceb7a2d74dc21472f4ebde6041abf12ff1b44d766c8ad836
+  GORELEASER_VERSION: 0.98.0
 
 stages:
 - build
@@ -51,7 +52,7 @@ deploy:release:
   before_script:
   - echo "${GPG_PRIVATE_KEY}" | gpg --import -
   - unset GPG_PRIVATE_KEY DOCKER_AUTH_CONFIG
-  - curl -sL https://github.com/simonswine/goreleaser/releases/download/v0.36.0-gpg/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
+  - curl --fail -sL https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz > /tmp/goreleaser.tar.gz
   - echo "${GORELEASER_HASH}  /tmp/goreleaser.tar.gz" | sha256sum -c
   - cd /usr/local/bin && tar xvfz /tmp/goreleaser.tar.gz goreleaser
   - mkdir -p "${GOPATH}/src/${PKG_PATH}" && rmdir "${GOPATH}/src/${PKG_PATH}"
@@ -60,7 +61,7 @@ deploy:release:
   - mkdir -p "${CI_PROJECT_DIR}"
   script:
   - goreleaser
-  - mv "dist/vault-unsealer_${CI_COMMIT_TAG}_linux_amd64/vault-unsealer_${CI_COMMIT_TAG}_linux_amd64" vault-unsealer_linux_amd64
+  - mv "dist/linux_amd64/vault-unsealer" vault-unsealer_linux_amd64
   only:
   - tags
   artifacts:

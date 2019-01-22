@@ -15,5 +15,7 @@ release:
     owner: jetstack
     name: vault-unsealer
 
-gpg_signing:
-  key_id: 9A1C42C8F5AA3CE6
+sign:
+  artifacts: checksum
+  signature: "${artifact}.asc"
+  args: ["-u", "tech+releases@jetstack.io", "--armor", "--output", "${signature}", "--detach-sign", "${artifact}"]
