@@ -1,4 +1,4 @@
-// Copyright 2014 Google Inc. All Rights Reserved.
+// Copyright 2014 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package datastore
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,10 +26,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/internal/testutil"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
-	"golang.org/x/net/context"
 	pb "google.golang.org/genproto/googleapis/datastore/v1"
 	"google.golang.org/grpc"
 )
@@ -152,17 +151,19 @@ type NoOmit struct {
 }
 
 type OmitAll struct {
-	A string `datastore:",omitempty"`
-	B int    `datastore:"Bb,omitempty"`
-	C bool   `datastore:",omitempty,noindex"`
-	F []int  `datastore:",omitempty"`
+	A string    `datastore:",omitempty"`
+	B int       `datastore:"Bb,omitempty"`
+	C bool      `datastore:",omitempty,noindex"`
+	D time.Time `datastore:",omitempty"`
+	F []int     `datastore:",omitempty"`
 }
 
 type Omit struct {
-	A string `datastore:",omitempty"`
-	B int    `datastore:"Bb,omitempty"`
-	C bool   `datastore:",omitempty,noindex"`
-	F []int  `datastore:",omitempty"`
+	A string    `datastore:",omitempty"`
+	B int       `datastore:"Bb,omitempty"`
+	C bool      `datastore:",omitempty,noindex"`
+	D time.Time `datastore:",omitempty"`
+	F []int     `datastore:",omitempty"`
 	S `datastore:",omitempty"`
 }
 
@@ -239,7 +240,6 @@ type X1 struct {
 
 type X2 struct {
 	Z string
-	i int
 }
 
 type X3 struct {
@@ -261,6 +261,43 @@ type Y1 struct {
 type Y2 struct {
 	B bool
 	F []int64
+}
+
+type Pointers struct {
+	Pi *int
+	Ps *string
+	Pb *bool
+	Pf *float64
+	Pg *GeoPoint
+	Pt *time.Time
+}
+
+type PointersOmitEmpty struct {
+	Pi *int       `datastore:",omitempty"`
+	Ps *string    `datastore:",omitempty"`
+	Pb *bool      `datastore:",omitempty"`
+	Pf *float64   `datastore:",omitempty"`
+	Pg *GeoPoint  `datastore:",omitempty"`
+	Pt *time.Time `datastore:",omitempty"`
+}
+
+func populatedPointers() *Pointers {
+	var (
+		i int
+		s string
+		b bool
+		f float64
+		g GeoPoint
+		t time.Time
+	)
+	return &Pointers{
+		Pi: &i,
+		Ps: &s,
+		Pb: &b,
+		Pf: &f,
+		Pg: &g,
+		Pt: &t,
+	}
 }
 
 type Tagged struct {
@@ -378,8 +415,6 @@ type EntityWithKey struct {
 	K *Key `datastore:"__key__"`
 }
 
-type EntityWithKey2 EntityWithKey
-
 type WithNestedEntityWithKey struct {
 	N EntityWithKey
 }
@@ -402,12 +437,6 @@ type PtrToStructField struct {
 	C *Basic `datastore:"c,noindex"`
 	*Basic
 	D []*Basic
-}
-
-var two int = 2
-
-type PtrToInt struct {
-	I *int
 }
 
 type EmbeddedTime struct {
@@ -655,7 +684,7 @@ var testCases = []testCase{
 		"omit empty does not propagate",
 		&NoOmits{
 			No: []NoOmit{
-				NoOmit{},
+				{},
 			},
 			S:  S{},
 			Ss: S{},
@@ -664,15 +693,15 @@ var testCases = []testCase{
 			Property{Name: "No", Value: []interface{}{
 				&Entity{
 					Properties: []Property{
-						Property{Name: "A", Value: "", NoIndex: false},
-						Property{Name: "Bb", Value: int64(0), NoIndex: false},
-						Property{Name: "C", Value: false, NoIndex: true},
+						{Name: "A", Value: "", NoIndex: false},
+						{Name: "Bb", Value: int64(0), NoIndex: false},
+						{Name: "C", Value: false, NoIndex: true},
 					},
 				},
 			}, NoIndex: false},
 			Property{Name: "Ss", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "St", Value: "", NoIndex: false},
+					{Name: "St", Value: "", NoIndex: false},
 				},
 			}, NoIndex: false},
 			Property{Name: "St", Value: "", NoIndex: false},
@@ -1146,26 +1175,26 @@ var testCases = []testCase{
 			Property{Name: "I", Value: []interface{}{
 				&Entity{
 					Properties: []Property{
-						Property{Name: "W", Value: int64(10), NoIndex: false},
-						Property{Name: "X", Value: "ten", NoIndex: false},
+						{Name: "W", Value: int64(10), NoIndex: false},
+						{Name: "X", Value: "ten", NoIndex: false},
 					},
 				},
 				&Entity{
 					Properties: []Property{
-						Property{Name: "W", Value: int64(20), NoIndex: false},
-						Property{Name: "X", Value: "twenty", NoIndex: false},
+						{Name: "W", Value: int64(20), NoIndex: false},
+						{Name: "X", Value: "twenty", NoIndex: false},
 					},
 				},
 				&Entity{
 					Properties: []Property{
-						Property{Name: "W", Value: int64(30), NoIndex: false},
-						Property{Name: "X", Value: "thirty", NoIndex: false},
+						{Name: "W", Value: int64(30), NoIndex: false},
+						{Name: "X", Value: "thirty", NoIndex: false},
 					},
 				},
 			}, NoIndex: false},
 			Property{Name: "J", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "Y", Value: float64(3.14), NoIndex: false},
+					{Name: "Y", Value: float64(3.14), NoIndex: false},
 				},
 			}, NoIndex: false},
 			Property{Name: "Z", Value: true, NoIndex: false},
@@ -1198,9 +1227,9 @@ var testCases = []testCase{
 		&PropertyList{
 			Property{Name: "A0.A1.A2", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "B3", Value: &Entity{
+					{Name: "B3", Value: &Entity{
 						Properties: []Property{
-							Property{Name: "C4.C5", Value: int64(88), NoIndex: false},
+							{Name: "C4.C5", Value: int64(88), NoIndex: false},
 						},
 					}, NoIndex: false},
 				},
@@ -1214,9 +1243,9 @@ var testCases = []testCase{
 		&PropertyList{
 			Property{Name: "A0.A1.A2", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "B3", Value: &Entity{
+					{Name: "B3", Value: &Entity{
 						Properties: []Property{
-							Property{Name: "C4.C5", Value: 99, NoIndex: false},
+							{Name: "C4.C5", Value: 99, NoIndex: false},
 						},
 					}, NoIndex: false},
 				},
@@ -1405,83 +1434,83 @@ var testCases = []testCase{
 		&PropertyList{
 			Property{Name: "Blue", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "I", Value: int64(0), NoIndex: false},
-					Property{Name: "Nonymous", Value: []interface{}{
+					{Name: "I", Value: int64(0), NoIndex: false},
+					{Name: "Nonymous", Value: []interface{}{
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "blu0", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "blu0", NoIndex: false},
 							},
 						},
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "blu1", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "blu1", NoIndex: false},
 							},
 						},
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "blu2", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "blu2", NoIndex: false},
 							},
 						},
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "blu3", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "blu3", NoIndex: false},
 							},
 						},
 					}, NoIndex: false},
-					Property{Name: "Other", Value: "", NoIndex: false},
-					Property{Name: "S", Value: "bleu", NoIndex: false},
+					{Name: "Other", Value: "", NoIndex: false},
+					{Name: "S", Value: "bleu", NoIndex: false},
 				},
 			}, NoIndex: false},
 			Property{Name: "green", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "I", Value: int64(0), NoIndex: false},
-					Property{Name: "Nonymous", Value: []interface{}{
+					{Name: "I", Value: int64(0), NoIndex: false},
+					{Name: "Nonymous", Value: []interface{}{
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "verde0", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "verde0", NoIndex: false},
 							},
 						},
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "verde1", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "verde1", NoIndex: false},
 							},
 						},
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "verde2", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "verde2", NoIndex: false},
 							},
 						},
 					}, NoIndex: false},
-					Property{Name: "Other", Value: "", NoIndex: false},
-					Property{Name: "S", Value: "vert", NoIndex: false},
+					{Name: "Other", Value: "", NoIndex: false},
+					{Name: "S", Value: "vert", NoIndex: false},
 				},
 			}, NoIndex: false},
 			Property{Name: "red", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "I", Value: int64(0), NoIndex: false},
-					Property{Name: "Nonymous", Value: []interface{}{
+					{Name: "I", Value: int64(0), NoIndex: false},
+					{Name: "Nonymous", Value: []interface{}{
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "rosso0", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "rosso0", NoIndex: false},
 							},
 						},
 						&Entity{
 							Properties: []Property{
-								Property{Name: "I", Value: int64(0), NoIndex: false},
-								Property{Name: "S", Value: "rosso1", NoIndex: false},
+								{Name: "I", Value: int64(0), NoIndex: false},
+								{Name: "S", Value: "rosso1", NoIndex: false},
 							},
 						},
 					}, NoIndex: false},
-					Property{Name: "Other", Value: "", NoIndex: false},
-					Property{Name: "S", Value: "rouge", NoIndex: false},
+					{Name: "Other", Value: "", NoIndex: false},
+					{Name: "S", Value: "rouge", NoIndex: false},
 				},
 			}, NoIndex: false},
 		},
@@ -1566,10 +1595,10 @@ var testCases = []testCase{
 				A: "anon",
 			},
 			[]*Basic{
-				&Basic{
+				{
 					A: "slice0",
 				},
-				&Basic{
+				{
 					A: "slice1",
 				},
 			},
@@ -1578,24 +1607,24 @@ var testCases = []testCase{
 			Property{Name: "A", Value: "anon", NoIndex: false},
 			Property{Name: "B", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "A", Value: "b", NoIndex: false},
+					{Name: "A", Value: "b", NoIndex: false},
 				},
 			}},
 			Property{Name: "D", Value: []interface{}{
 				&Entity{
 					Properties: []Property{
-						Property{Name: "A", Value: "slice0", NoIndex: false},
+						{Name: "A", Value: "slice0", NoIndex: false},
 					},
 				},
 				&Entity{
 					Properties: []Property{
-						Property{Name: "A", Value: "slice1", NoIndex: false},
+						{Name: "A", Value: "slice1", NoIndex: false},
 					},
 				},
 			}, NoIndex: false},
 			Property{Name: "c", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "A", Value: "c", NoIndex: true},
+					{Name: "A", Value: "c", NoIndex: true},
 				},
 			}, NoIndex: true},
 		},
@@ -1615,10 +1644,10 @@ var testCases = []testCase{
 				A: "anon",
 			},
 			[]*Basic{
-				&Basic{
+				{
 					A: "slice0",
 				},
-				&Basic{
+				{
 					A: "slice1",
 				},
 			},
@@ -1634,24 +1663,15 @@ var testCases = []testCase{
 				A: "anon",
 			},
 			[]*Basic{
-				&Basic{
+				{
 					A: "slice0",
 				},
-				&Basic{
+				{
 					A: "slice1",
 				},
 			},
 		},
 		"",
-		"",
-	},
-	{
-		"save struct with pointer to int field",
-		&PtrToInt{
-			I: &two,
-		},
-		&PtrToInt{},
-		"unsupported struct field",
 		"",
 	},
 	{
@@ -1679,8 +1699,8 @@ var testCases = []testCase{
 			Property{Name: "N", Value: &Entity{
 				Key: testKey0,
 				Properties: []Property{
-					Property{Name: "I", Value: int64(12), NoIndex: false},
-					Property{Name: "S", Value: "abcd", NoIndex: false},
+					{Name: "I", Value: int64(12), NoIndex: false},
+					{Name: "S", Value: "abcd", NoIndex: false},
 				},
 			},
 				NoIndex: false},
@@ -1694,8 +1714,8 @@ var testCases = []testCase{
 			Property{Name: "N", Value: &Entity{
 				Key: testKey0,
 				Properties: []Property{
-					Property{Name: "I", Value: int64(12), NoIndex: false},
-					Property{Name: "S", Value: "abcd", NoIndex: false},
+					{Name: "I", Value: int64(12), NoIndex: false},
+					{Name: "S", Value: "abcd", NoIndex: false},
 				},
 			}, NoIndex: false},
 		},
@@ -1718,7 +1738,7 @@ var testCases = []testCase{
 		&PropertyList{
 			Property{Name: "red", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "C", Value: "s", NoIndex: false},
+					{Name: "C", Value: "s", NoIndex: false},
 				},
 			}, NoIndex: false},
 		},
@@ -1791,14 +1811,14 @@ var testCases = []testCase{
 		&PropertyList{
 			Property{Name: "A", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "X", Value: "", NoIndex: true},
-					Property{Name: "Y", Value: "", NoIndex: true},
+					{Name: "X", Value: "", NoIndex: true},
+					{Name: "Y", Value: "", NoIndex: true},
 				},
 			}, NoIndex: true},
 			Property{Name: "B", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "X", Value: "", NoIndex: true},
-					Property{Name: "Y", Value: "", NoIndex: false},
+					{Name: "X", Value: "", NoIndex: true},
+					{Name: "Y", Value: "", NoIndex: false},
 				},
 			}, NoIndex: false},
 		},
@@ -1813,8 +1833,8 @@ var testCases = []testCase{
 		&PropertyList{
 			Property{Name: "foo", Value: &Entity{
 				Properties: []Property{
-					Property{Name: "W", Value: int64(0), NoIndex: false},
-					Property{Name: "X", Value: "", NoIndex: false},
+					{Name: "W", Value: int64(0), NoIndex: false},
+					{Name: "X", Value: "", NoIndex: false},
 				},
 			}, NoIndex: false},
 		},
@@ -1903,6 +1923,20 @@ var testCases = []testCase{
 		"",
 		"",
 	},
+	{
+		"pointer fields: nil",
+		&Pointers{},
+		&Pointers{},
+		"",
+		"",
+	},
+	{
+		"pointer fields: populated with zeroes",
+		populatedPointers(),
+		populatedPointers(),
+		"",
+		"",
+	},
 }
 
 // checkErr returns the empty string if either both want and err are zero,
@@ -1910,7 +1944,7 @@ var testCases = []testCase{
 func checkErr(want string, err error) string {
 	if err != nil {
 		got := err.Error()
-		if want == "" || strings.Index(got, want) == -1 {
+		if want == "" || !strings.Contains(got, want) {
 			return got
 		}
 	} else if want != "" {
@@ -1957,7 +1991,7 @@ type aPtrPLS struct {
 }
 
 func (pls *aPtrPLS) Load([]Property) error {
-	pls.Count += 1
+	pls.Count++
 	return nil
 }
 
@@ -2093,7 +2127,7 @@ type Grandchild struct {
 func (c *Child) Load(props []Property) error {
 	for _, p := range props {
 		if p.Name == "I" {
-			c.I += 1
+			c.I++
 		} else if p.Name == "Grandchild.S" {
 			c.Grandchild.S = "grandchild loaded"
 		}
@@ -3146,7 +3180,7 @@ func TestPutInvalidEntity(t *testing.T) {
 			t.Errorf("tx.PutMulti returned err %v, want MulitError{ErrInvalidEntityType}", err)
 		}
 
-		return errors.New("bang!") // Return error: we don't actually want to commit.
+		return errors.New("bang") // Return error: we don't actually want to commit.
 	})
 }
 
@@ -3401,6 +3435,80 @@ func TestDeferredMissing(t *testing.T) {
 		if e.A != 0 || e.B != "" {
 			t.Fatalf("unexpected entity %+v", e)
 		}
+	}
+}
+
+func TestGetWithNilKey(t *testing.T) {
+	client := &Client{}
+	err := client.Get(context.Background(), nil, []Property{})
+	if err != ErrInvalidKey {
+		t.Fatalf("want ErrInvalidKey, got %v", err)
+	}
+}
+
+func TestGetMultiWithNilKey(t *testing.T) {
+	client := &Client{}
+	dest := make([]PropertyList, 1)
+	err := client.GetMulti(context.Background(), []*Key{nil}, dest)
+	if me, ok := err.(MultiError); !ok {
+		t.Fatalf("want MultiError, got %v", err)
+	} else if len(me) != 1 || me[0] != ErrInvalidKey {
+		t.Fatalf("want MultiError{ErrInvalidKey}, got %v", me)
+	}
+}
+
+func TestGetWithIncompleteKey(t *testing.T) {
+	client := &Client{}
+	err := client.Get(context.Background(), &Key{Kind: "testKind"}, []Property{})
+	if err == nil {
+		t.Fatalf("want err, got nil")
+	}
+}
+
+func TestGetMultiWithIncompleteKey(t *testing.T) {
+	client := &Client{}
+	dest := make([]PropertyList, 1)
+	err := client.GetMulti(context.Background(), []*Key{{Kind: "testKind"}}, dest)
+	if me, ok := err.(MultiError); !ok {
+		t.Fatalf("want MultiError, got %v", err)
+	} else if len(me) != 1 || me[0] == nil {
+		t.Fatalf("want MultiError{err}, got %v", me)
+	}
+}
+
+func TestDeleteWithNilKey(t *testing.T) {
+	client := &Client{}
+	err := client.Delete(context.Background(), nil)
+	if err != ErrInvalidKey {
+		t.Fatalf("want ErrInvalidKey, got %v", err)
+	}
+}
+
+func TestDeleteMultiWithNilKey(t *testing.T) {
+	client := &Client{}
+	err := client.DeleteMulti(context.Background(), []*Key{nil})
+	if me, ok := err.(MultiError); !ok {
+		t.Fatalf("want MultiError, got %v", err)
+	} else if len(me) != 1 || me[0] != ErrInvalidKey {
+		t.Fatalf("want MultiError{ErrInvalidKey}, got %v", me)
+	}
+}
+
+func TestDeleteWithIncompleteKey(t *testing.T) {
+	client := &Client{}
+	err := client.Delete(context.Background(), &Key{Kind: "testKind"})
+	if err == nil {
+		t.Fatalf("want err, got nil")
+	}
+}
+
+func TestDeleteMultiWithIncompleteKey(t *testing.T) {
+	client := &Client{}
+	err := client.DeleteMulti(context.Background(), []*Key{{Kind: "testKind"}})
+	if me, ok := err.(MultiError); !ok {
+		t.Fatalf("want MultiError, got %v", err)
+	} else if len(me) != 1 || me[0] == nil {
+		t.Fatalf("want MultiError{err}, got %v", me)
 	}
 }
 

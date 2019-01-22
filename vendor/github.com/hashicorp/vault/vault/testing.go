@@ -343,9 +343,8 @@ func testTokenStore(t testing.T, c *Core) *TokenStore {
 // mounted, so that logical token functions can be used
 func TestCoreWithTokenStore(t testing.T) (*Core, *TokenStore, [][]byte, string) {
 	c, keys, root := TestCoreUnsealed(t)
-	ts := testTokenStore(t, c)
 
-	return c, ts, keys, root
+	return c, c.tokenStore, keys, root
 }
 
 // TestCoreWithBackendTokenStore returns a core that has a token store
@@ -604,19 +603,19 @@ type noopAudit struct {
 	saltMutex sync.RWMutex
 }
 
-func (n *noopAudit) GetHash(data string) (string, error) {
-	salt, err := n.Salt()
+func (n *noopAudit) GetHash(ctx context.Context, data string) (string, error) {
+	salt, err := n.Salt(ctx)
 	if err != nil {
 		return "", err
 	}
 	return salt.GetIdentifiedHMAC(data), nil
 }
 
-func (n *noopAudit) LogRequest(_ context.Context, _ *logical.Auth, _ *logical.Request, _ error) error {
+func (n *noopAudit) LogRequest(_ context.Context, _ *audit.LogInput) error {
 	return nil
 }
 
-func (n *noopAudit) LogResponse(_ context.Context, _ *logical.Auth, _ *logical.Request, _ *logical.Response, _ error) error {
+func (n *noopAudit) LogResponse(_ context.Context, _ *audit.LogInput) error {
 	return nil
 }
 
@@ -630,7 +629,7 @@ func (n *noopAudit) Invalidate(_ context.Context) {
 	n.salt = nil
 }
 
-func (n *noopAudit) Salt() (*salt.Salt, error) {
+func (n *noopAudit) Salt(ctx context.Context) (*salt.Salt, error) {
 	n.saltMutex.RLock()
 	if n.salt != nil {
 		defer n.saltMutex.RUnlock()
@@ -642,7 +641,7 @@ func (n *noopAudit) Salt() (*salt.Salt, error) {
 	if n.salt != nil {
 		return n.salt, nil
 	}
-	salt, err := salt.NewSalt(n.Config.SaltView, n.Config.SaltConfig)
+	salt, err := salt.NewSalt(ctx, n.Config.SaltView, n.Config.SaltConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -876,6 +875,8 @@ type TestClusterOptions struct {
 	SealFunc           func() Seal
 	RawLogger          interface{}
 	TempDir            string
+	CACert             []byte
+	CAKey              *ecdsa.PrivateKey
 }
 
 var DefaultNumCores = 3
@@ -897,6 +898,8 @@ type certInfo struct {
 // shared among cores. NewCore's default behavior is to generate a new DefaultSeal if the
 // provided Seal in coreConfig (i.e. base.Seal) is nil.
 func NewTestCluster(t testing.T, base *CoreConfig, opts *TestClusterOptions) *TestCluster {
+	var err error
+
 	var numCores int
 	if opts == nil || opts.NumCores == 0 {
 		numCores = DefaultNumCores
@@ -910,7 +913,6 @@ func NewTestCluster(t testing.T, base *CoreConfig, opts *TestClusterOptions) *Te
 	}
 	var baseAddr *net.TCPAddr
 	if opts != nil && opts.BaseListenAddress != "" {
-		var err error
 		baseAddr, err = net.ResolveTCPAddr("tcp", opts.BaseListenAddress)
 		if err != nil {
 			t.Fatal("could not parse given base IP")
@@ -934,27 +936,37 @@ func NewTestCluster(t testing.T, base *CoreConfig, opts *TestClusterOptions) *Te
 		testCluster.TempDir = tempDir
 	}
 
-	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
+	var caKey *ecdsa.PrivateKey
+	if opts != nil && opts.CAKey != nil {
+		caKey = opts.CAKey
+	} else {
+		caKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	testCluster.CAKey = caKey
-	caCertTemplate := &x509.Certificate{
-		Subject: pkix.Name{
-			CommonName: "localhost",
-		},
-		DNSNames:              []string{"localhost"},
-		IPAddresses:           certIPs,
-		KeyUsage:              x509.KeyUsage(x509.KeyUsageCertSign | x509.KeyUsageCRLSign),
-		SerialNumber:          big.NewInt(mathrand.Int63()),
-		NotBefore:             time.Now().Add(-30 * time.Second),
-		NotAfter:              time.Now().Add(262980 * time.Hour),
-		BasicConstraintsValid: true,
-		IsCA: true,
-	}
-	caBytes, err := x509.CreateCertificate(rand.Reader, caCertTemplate, caCertTemplate, caKey.Public(), caKey)
-	if err != nil {
-		t.Fatal(err)
+	var caBytes []byte
+	if opts != nil && len(opts.CACert) > 0 {
+		caBytes = opts.CACert
+	} else {
+		caCertTemplate := &x509.Certificate{
+			Subject: pkix.Name{
+				CommonName: "localhost",
+			},
+			DNSNames:              []string{"localhost"},
+			IPAddresses:           certIPs,
+			KeyUsage:              x509.KeyUsage(x509.KeyUsageCertSign | x509.KeyUsageCRLSign),
+			SerialNumber:          big.NewInt(mathrand.Int63()),
+			NotBefore:             time.Now().Add(-30 * time.Second),
+			NotAfter:              time.Now().Add(262980 * time.Hour),
+			BasicConstraintsValid: true,
+			IsCA: true,
+		}
+		caBytes, err = x509.CreateCertificate(rand.Reader, caCertTemplate, caCertTemplate, caKey.Public(), caKey)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	caCert, err := x509.ParseCertificate(caBytes)
 	if err != nil {

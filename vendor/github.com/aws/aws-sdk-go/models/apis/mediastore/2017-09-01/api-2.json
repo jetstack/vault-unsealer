@@ -57,6 +57,36 @@
         {"shape":"InternalServerError"}
       ]
     },
+    "DeleteCorsPolicy":{
+      "name":"DeleteCorsPolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteCorsPolicyInput"},
+      "output":{"shape":"DeleteCorsPolicyOutput"},
+      "errors":[
+        {"shape":"ContainerInUseException"},
+        {"shape":"ContainerNotFoundException"},
+        {"shape":"CorsPolicyNotFoundException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "DeleteLifecyclePolicy":{
+      "name":"DeleteLifecyclePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteLifecyclePolicyInput"},
+      "output":{"shape":"DeleteLifecyclePolicyOutput"},
+      "errors":[
+        {"shape":"ContainerInUseException"},
+        {"shape":"ContainerNotFoundException"},
+        {"shape":"PolicyNotFoundException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
     "DescribeContainer":{
       "name":"DescribeContainer",
       "http":{
@@ -78,6 +108,36 @@
       },
       "input":{"shape":"GetContainerPolicyInput"},
       "output":{"shape":"GetContainerPolicyOutput"},
+      "errors":[
+        {"shape":"ContainerInUseException"},
+        {"shape":"ContainerNotFoundException"},
+        {"shape":"PolicyNotFoundException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "GetCorsPolicy":{
+      "name":"GetCorsPolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetCorsPolicyInput"},
+      "output":{"shape":"GetCorsPolicyOutput"},
+      "errors":[
+        {"shape":"ContainerInUseException"},
+        {"shape":"ContainerNotFoundException"},
+        {"shape":"CorsPolicyNotFoundException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "GetLifecyclePolicy":{
+      "name":"GetLifecyclePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetLifecyclePolicyInput"},
+      "output":{"shape":"GetLifecyclePolicyOutput"},
       "errors":[
         {"shape":"ContainerInUseException"},
         {"shape":"ContainerNotFoundException"},
@@ -110,9 +170,55 @@
         {"shape":"ContainerInUseException"},
         {"shape":"InternalServerError"}
       ]
+    },
+    "PutCorsPolicy":{
+      "name":"PutCorsPolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutCorsPolicyInput"},
+      "output":{"shape":"PutCorsPolicyOutput"},
+      "errors":[
+        {"shape":"ContainerNotFoundException"},
+        {"shape":"ContainerInUseException"},
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "PutLifecyclePolicy":{
+      "name":"PutLifecyclePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutLifecyclePolicyInput"},
+      "output":{"shape":"PutLifecyclePolicyOutput"},
+      "errors":[
+        {"shape":"ContainerInUseException"},
+        {"shape":"ContainerNotFoundException"},
+        {"shape":"InternalServerError"}
+      ]
     }
   },
   "shapes":{
+    "AllowedHeaders":{
+      "type":"list",
+      "member":{"shape":"Header"},
+      "max":100,
+      "min":0
+    },
+    "AllowedMethods":{
+      "type":"list",
+      "member":{"shape":"MethodName"},
+      "max":4,
+      "min":1
+    },
+    "AllowedOrigins":{
+      "type":"list",
+      "member":{"shape":"Origin"},
+      "max":100,
+      "min":1
+    },
     "Container":{
       "type":"structure",
       "members":{
@@ -149,7 +255,7 @@
       "type":"string",
       "max":255,
       "min":1,
-      "pattern":"\\w+"
+      "pattern":"[\\w-]+"
     },
     "ContainerNotFoundException":{
       "type":"structure",
@@ -173,6 +279,33 @@
       ],
       "max":16,
       "min":1
+    },
+    "CorsPolicy":{
+      "type":"list",
+      "member":{"shape":"CorsRule"},
+      "max":100,
+      "min":1
+    },
+    "CorsPolicyNotFoundException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
+    "CorsRule":{
+      "type":"structure",
+      "required":[
+        "AllowedOrigins",
+        "AllowedHeaders"
+      ],
+      "members":{
+        "AllowedOrigins":{"shape":"AllowedOrigins"},
+        "AllowedMethods":{"shape":"AllowedMethods"},
+        "AllowedHeaders":{"shape":"AllowedHeaders"},
+        "MaxAgeSeconds":{"shape":"MaxAgeSeconds"},
+        "ExposeHeaders":{"shape":"ExposeHeaders"}
+      }
     },
     "CreateContainerInput":{
       "type":"structure",
@@ -212,6 +345,30 @@
       "members":{
       }
     },
+    "DeleteCorsPolicyInput":{
+      "type":"structure",
+      "required":["ContainerName"],
+      "members":{
+        "ContainerName":{"shape":"ContainerName"}
+      }
+    },
+    "DeleteCorsPolicyOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteLifecyclePolicyInput":{
+      "type":"structure",
+      "required":["ContainerName"],
+      "members":{
+        "ContainerName":{"shape":"ContainerName"}
+      }
+    },
+    "DeleteLifecyclePolicyOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "DescribeContainerInput":{
       "type":"structure",
       "members":{
@@ -235,6 +392,12 @@
       "min":1,
       "pattern":"[ \\w:\\.\\?-]+"
     },
+    "ExposeHeaders":{
+      "type":"list",
+      "member":{"shape":"Header"},
+      "max":100,
+      "min":0
+    },
     "GetContainerPolicyInput":{
       "type":"structure",
       "required":["ContainerName"],
@@ -249,6 +412,40 @@
         "Policy":{"shape":"ContainerPolicy"}
       }
     },
+    "GetCorsPolicyInput":{
+      "type":"structure",
+      "required":["ContainerName"],
+      "members":{
+        "ContainerName":{"shape":"ContainerName"}
+      }
+    },
+    "GetCorsPolicyOutput":{
+      "type":"structure",
+      "required":["CorsPolicy"],
+      "members":{
+        "CorsPolicy":{"shape":"CorsPolicy"}
+      }
+    },
+    "GetLifecyclePolicyInput":{
+      "type":"structure",
+      "required":["ContainerName"],
+      "members":{
+        "ContainerName":{"shape":"ContainerName"}
+      }
+    },
+    "GetLifecyclePolicyOutput":{
+      "type":"structure",
+      "required":["LifecyclePolicy"],
+      "members":{
+        "LifecyclePolicy":{"shape":"LifecyclePolicy"}
+      }
+    },
+    "Header":{
+      "type":"string",
+      "max":8192,
+      "min":1,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u00FF]+"
+    },
     "InternalServerError":{
       "type":"structure",
       "members":{
@@ -256,6 +453,12 @@
       },
       "exception":true,
       "fault":true
+    },
+    "LifecyclePolicy":{
+      "type":"string",
+      "max":8192,
+      "min":0,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u00FF]+"
     },
     "LimitExceededException":{
       "type":"structure",
@@ -278,6 +481,26 @@
         "Containers":{"shape":"ContainerList"},
         "NextToken":{"shape":"PaginationToken"}
       }
+    },
+    "MaxAgeSeconds":{
+      "type":"integer",
+      "max":2147483647,
+      "min":0
+    },
+    "MethodName":{
+      "type":"string",
+      "enum":[
+        "PUT",
+        "GET",
+        "DELETE",
+        "HEAD"
+      ]
+    },
+    "Origin":{
+      "type":"string",
+      "max":2048,
+      "min":1,
+      "pattern":"[\\u0009\\u000A\\u000D\\u0020-\\u00FF]+"
     },
     "PaginationToken":{
       "type":"string",
@@ -304,6 +527,38 @@
       }
     },
     "PutContainerPolicyOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "PutCorsPolicyInput":{
+      "type":"structure",
+      "required":[
+        "ContainerName",
+        "CorsPolicy"
+      ],
+      "members":{
+        "ContainerName":{"shape":"ContainerName"},
+        "CorsPolicy":{"shape":"CorsPolicy"}
+      }
+    },
+    "PutCorsPolicyOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "PutLifecyclePolicyInput":{
+      "type":"structure",
+      "required":[
+        "ContainerName",
+        "LifecyclePolicy"
+      ],
+      "members":{
+        "ContainerName":{"shape":"ContainerName"},
+        "LifecyclePolicy":{"shape":"LifecyclePolicy"}
+      }
+    },
+    "PutLifecyclePolicyOutput":{
       "type":"structure",
       "members":{
       }

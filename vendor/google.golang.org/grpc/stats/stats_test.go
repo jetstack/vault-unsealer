@@ -1,5 +1,3 @@
-// +build go1.7
-
 /*
  *
  * Copyright 2016 gRPC authors.
@@ -21,6 +19,7 @@
 package stats_test
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -30,7 +29,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/stats"
@@ -256,11 +254,10 @@ const (
 )
 
 type rpcConfig struct {
-	count      int  // Number of requests and responses for streaming RPCs.
-	success    bool // Whether the RPC should succeed or return error.
-	failfast   bool
-	callType   rpcType // Type of RPC.
-	noLastRecv bool    // Whether to call recv for io.EOF. When true, last recv won't be called. Only valid for streaming RPCs.
+	count    int  // Number of requests and responses for streaming RPCs.
+	success  bool // Whether the RPC should succeed or return error.
+	failfast bool
+	callType rpcType // Type of RPC.
 }
 
 func (te *test) doUnaryCall(c *rpcConfig) (*testpb.SimpleRequest, *testpb.SimpleResponse, error) {
@@ -277,7 +274,7 @@ func (te *test) doUnaryCall(c *rpcConfig) (*testpb.SimpleRequest, *testpb.Simple
 	}
 	ctx := metadata.NewOutgoingContext(context.Background(), testMetadata)
 
-	resp, err = tc.UnaryCall(ctx, req, grpc.FailFast(c.failfast))
+	resp, err = tc.UnaryCall(ctx, req, grpc.WaitForReady(!c.failfast))
 	return req, resp, err
 }
 
@@ -288,7 +285,7 @@ func (te *test) doFullDuplexCallRoundtrip(c *rpcConfig) ([]*testpb.SimpleRequest
 		err   error
 	)
 	tc := testpb.NewTestServiceClient(te.clientConn())
-	stream, err := tc.FullDuplexCall(metadata.NewOutgoingContext(context.Background(), testMetadata), grpc.FailFast(c.failfast))
+	stream, err := tc.FullDuplexCall(metadata.NewOutgoingContext(context.Background(), testMetadata), grpc.WaitForReady(!c.failfast))
 	if err != nil {
 		return reqs, resps, err
 	}
@@ -313,14 +310,8 @@ func (te *test) doFullDuplexCallRoundtrip(c *rpcConfig) ([]*testpb.SimpleRequest
 	if err = stream.CloseSend(); err != nil && err != io.EOF {
 		return reqs, resps, err
 	}
-	if !c.noLastRecv {
-		if _, err = stream.Recv(); err != io.EOF {
-			return reqs, resps, err
-		}
-	} else {
-		// In the case of not calling the last recv, sleep to avoid
-		// returning too fast to miss the remaining stats (InTrailer and End).
-		time.Sleep(time.Second)
+	if _, err = stream.Recv(); err != io.EOF {
+		return reqs, resps, err
 	}
 
 	return reqs, resps, nil
@@ -333,7 +324,7 @@ func (te *test) doClientStreamCall(c *rpcConfig) ([]*testpb.SimpleRequest, *test
 		err  error
 	)
 	tc := testpb.NewTestServiceClient(te.clientConn())
-	stream, err := tc.ClientStreamCall(metadata.NewOutgoingContext(context.Background(), testMetadata), grpc.FailFast(c.failfast))
+	stream, err := tc.ClientStreamCall(metadata.NewOutgoingContext(context.Background(), testMetadata), grpc.WaitForReady(!c.failfast))
 	if err != nil {
 		return reqs, resp, err
 	}
@@ -368,7 +359,7 @@ func (te *test) doServerStreamCall(c *rpcConfig) (*testpb.SimpleRequest, []*test
 		startID = errorID
 	}
 	req = &testpb.SimpleRequest{Id: startID}
-	stream, err := tc.ServerStreamCall(metadata.NewOutgoingContext(context.Background(), testMetadata), req, grpc.FailFast(c.failfast))
+	stream, err := tc.ServerStreamCall(metadata.NewOutgoingContext(context.Background(), testMetadata), req, grpc.WaitForReady(!c.failfast))
 	if err != nil {
 		return req, resps, err
 	}
@@ -410,7 +401,7 @@ const (
 	inTrailer
 	outPayload
 	outHeader
-	outTrailer
+	// TODO: test outTrailer ?
 	connbegin
 	connend
 )
@@ -645,13 +636,16 @@ func checkEnd(t *testing.T, d *gotData, e *expectedData) {
 	if d.ctx == nil {
 		t.Fatalf("d.ctx = nil, want <non-nil>")
 	}
+	if st.BeginTime.IsZero() {
+		t.Fatalf("st.BeginTime = %v, want <non-zero>", st.BeginTime)
+	}
 	if st.EndTime.IsZero() {
 		t.Fatalf("st.EndTime = %v, want <non-zero>", st.EndTime)
 	}
 
 	actual, ok := status.FromError(st.Error)
 	if !ok {
-		t.Fatalf("expected st.Error to be a statusError, got %T", st.Error)
+		t.Fatalf("expected st.Error to be a statusError, got %v (type %T)", st.Error, st.Error)
 	}
 
 	expectedStatus, _ := status.FromError(e.err)
@@ -1217,20 +1211,6 @@ func TestClientStatsFullDuplexRPCError(t *testing.T) {
 		outHeader:  {checkOutHeader, 1},
 		outPayload: {checkOutPayload, 1},
 		inHeader:   {checkInHeader, 1},
-		inTrailer:  {checkInTrailer, 1},
-		end:        {checkEnd, 1},
-	})
-}
-
-// If the user doesn't call the last recv() on clientStream.
-func TestClientStatsFullDuplexRPCNotCallingLastRecv(t *testing.T) {
-	count := 1
-	testClientStats(t, &testConfig{compress: "gzip"}, &rpcConfig{count: count, success: true, failfast: false, callType: fullDuplexStreamRPC, noLastRecv: true}, map[int]*checkFuncWithCount{
-		begin:      {checkBegin, 1},
-		outHeader:  {checkOutHeader, 1},
-		outPayload: {checkOutPayload, count},
-		inHeader:   {checkInHeader, 1},
-		inPayload:  {checkInPayload, count},
 		inTrailer:  {checkInTrailer, 1},
 		end:        {checkEnd, 1},
 	})

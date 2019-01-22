@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-uuid"
@@ -37,6 +38,16 @@ const (
 	// mountTableType is the value we expect to find for the mount table and
 	// corresponding entries
 	mountTableType = "mounts"
+)
+
+// ListingVisiblityType represents the types for listing visilibity
+type ListingVisiblityType string
+
+const (
+	// ListingVisibilityHidden is the hidden type for listing visibility
+	ListingVisibilityHidden ListingVisiblityType = ""
+	// ListingVisibilityUnauth is the unauth type for listing visibility
+	ListingVisibilityUnauth ListingVisiblityType = "unauth"
 )
 
 var (
@@ -171,22 +182,31 @@ type MountEntry struct {
 	Local       bool              `json:"local"`             // Local mounts are not replicated or affected by replication
 	SealWrap    bool              `json:"seal_wrap"`         // Whether to wrap CSPs
 	Tainted     bool              `json:"tainted,omitempty"` // Set as a Write-Ahead flag for unmount/remount
+
+	// synthesizedConfigCache is used to cache configuration values
+	synthesizedConfigCache sync.Map
 }
 
 // MountConfig is used to hold settable options
 type MountConfig struct {
-	DefaultLeaseTTL time.Duration `json:"default_lease_ttl" structs:"default_lease_ttl" mapstructure:"default_lease_ttl"` // Override for global default
-	MaxLeaseTTL     time.Duration `json:"max_lease_ttl" structs:"max_lease_ttl" mapstructure:"max_lease_ttl"`             // Override for global default
-	ForceNoCache    bool          `json:"force_no_cache" structs:"force_no_cache" mapstructure:"force_no_cache"`          // Override for global default
-	PluginName      string        `json:"plugin_name,omitempty" structs:"plugin_name,omitempty" mapstructure:"plugin_name"`
+	DefaultLeaseTTL          time.Duration        `json:"default_lease_ttl" structs:"default_lease_ttl" mapstructure:"default_lease_ttl"` // Override for global default
+	MaxLeaseTTL              time.Duration        `json:"max_lease_ttl" structs:"max_lease_ttl" mapstructure:"max_lease_ttl"`             // Override for global default
+	ForceNoCache             bool                 `json:"force_no_cache" structs:"force_no_cache" mapstructure:"force_no_cache"`          // Override for global default
+	PluginName               string               `json:"plugin_name,omitempty" structs:"plugin_name,omitempty" mapstructure:"plugin_name"`
+	AuditNonHMACRequestKeys  []string             `json:"audit_non_hmac_request_keys,omitempty" structs:"audit_non_hmac_request_keys" mapstructure:"audit_non_hmac_request_keys"`
+	AuditNonHMACResponseKeys []string             `json:"audit_non_hmac_response_keys,omitempty" structs:"audit_non_hmac_response_keys" mapstructure:"audit_non_hmac_response_keys"`
+	ListingVisibility        ListingVisiblityType `json:"listing_visibility,omitempty" structs:"listing_visibility" mapstructure:"listing_visibility"`
 }
 
 // APIMountConfig is an embedded struct of api.MountConfigInput
 type APIMountConfig struct {
-	DefaultLeaseTTL string `json:"default_lease_ttl" structs:"default_lease_ttl" mapstructure:"default_lease_ttl"`
-	MaxLeaseTTL     string `json:"max_lease_ttl" structs:"max_lease_ttl" mapstructure:"max_lease_ttl"`
-	ForceNoCache    bool   `json:"force_no_cache" structs:"force_no_cache" mapstructure:"force_no_cache"`
-	PluginName      string `json:"plugin_name,omitempty" structs:"plugin_name,omitempty" mapstructure:"plugin_name"`
+	DefaultLeaseTTL          string               `json:"default_lease_ttl" structs:"default_lease_ttl" mapstructure:"default_lease_ttl"`
+	MaxLeaseTTL              string               `json:"max_lease_ttl" structs:"max_lease_ttl" mapstructure:"max_lease_ttl"`
+	ForceNoCache             bool                 `json:"force_no_cache" structs:"force_no_cache" mapstructure:"force_no_cache"`
+	PluginName               string               `json:"plugin_name,omitempty" structs:"plugin_name,omitempty" mapstructure:"plugin_name"`
+	AuditNonHMACRequestKeys  []string             `json:"audit_non_hmac_request_keys,omitempty" structs:"audit_non_hmac_request_keys" mapstructure:"audit_non_hmac_request_keys"`
+	AuditNonHMACResponseKeys []string             `json:"audit_non_hmac_response_keys,omitempty" structs:"audit_non_hmac_response_keys" mapstructure:"audit_non_hmac_response_keys"`
+	ListingVisibility        ListingVisiblityType `json:"listing_visibility,omitempty" structs:"listing_visibility" mapstructure:"listing_visibility"`
 }
 
 // Clone returns a deep copy of the mount entry
@@ -196,6 +216,21 @@ func (e *MountEntry) Clone() (*MountEntry, error) {
 		return nil, err
 	}
 	return cp.(*MountEntry), nil
+}
+
+// SyncCache syncs tunable configuration values to the cache
+func (e *MountEntry) SyncCache() {
+	if len(e.Config.AuditNonHMACRequestKeys) == 0 {
+		e.synthesizedConfigCache.Delete("audit_non_hmac_request_keys")
+	} else {
+		e.synthesizedConfigCache.Store("audit_non_hmac_request_keys", e.Config.AuditNonHMACRequestKeys)
+	}
+
+	if len(e.Config.AuditNonHMACResponseKeys) == 0 {
+		e.synthesizedConfigCache.Delete("audit_non_hmac_response_keys")
+	} else {
+		e.synthesizedConfigCache.Store("audit_non_hmac_response_keys", e.Config.AuditNonHMACResponseKeys)
+	}
 }
 
 // Mount is used to mount a new backend to the mount table.
@@ -245,8 +280,18 @@ func (c *Core) mountInternal(ctx context.Context, entry *MountEntry) error {
 		}
 		entry.Accessor = accessor
 	}
+	// Sync values to the cache
+	entry.SyncCache()
+
 	viewPath := backendBarrierPrefix + entry.UUID + "/"
 	view := NewBarrierView(c.barrier, viewPath)
+
+	// Mark the view as read-only until the mounting is complete and
+	// ensure that it is reset after. This ensures that there will be no
+	// writes during the construction of the backend.
+	view.setReadOnlyErr(logical.ErrSetupReadOnly)
+	defer view.setReadOnlyErr(nil)
+
 	var backend logical.Backend
 	var err error
 	sysView := c.mountEntrySysView(entry)
@@ -629,6 +674,9 @@ func (c *Core) loadMounts(ctx context.Context) error {
 			entry.Accessor = accessor
 			needPersist = true
 		}
+
+		// Sync values to the cache
+		entry.SyncCache()
 	}
 
 	// Done if we have restored the mount table and we don't need
@@ -721,7 +769,6 @@ func (c *Core) setupMounts(ctx context.Context) error {
 	c.mountsLock.Lock()
 	defer c.mountsLock.Unlock()
 
-	var view *BarrierView
 	var backendType logical.BackendType
 
 	for _, entry := range c.mounts.Entries {
@@ -733,7 +780,13 @@ func (c *Core) setupMounts(ctx context.Context) error {
 		}
 
 		// Create a barrier view using the UUID
-		view = NewBarrierView(c.barrier, barrierPath)
+		view := NewBarrierView(c.barrier, barrierPath)
+
+		// Mark the view as read-only until the mounting is complete and
+		// ensure that it is reset after. This ensures that there will be no
+		// writes during the construction of the backend.
+		view.setReadOnlyErr(logical.ErrSetupReadOnly)
+		defer view.setReadOnlyErr(nil)
 
 		var backend logical.Backend
 		var err error

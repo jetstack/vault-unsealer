@@ -86,6 +86,7 @@ type ServerCommand struct {
 	flagDevLeasedKV      bool
 	flagDevSkipInit      bool
 	flagDevThreeNode     bool
+	flagDevFourCluster   bool
 	flagDevTransactional bool
 	flagTestVerifyOnly   bool
 }
@@ -237,6 +238,13 @@ func (c *ServerCommand) Flags() *FlagSets {
 		Hidden:  true,
 	})
 
+	f.BoolVar(&BoolVar{
+		Name:    "dev-four-cluster",
+		Target:  &c.flagDevFourCluster,
+		Default: false,
+		Hidden:  true,
+	})
+
 	// TODO: should this be a public flag?
 	f.BoolVar(&BoolVar{
 		Name:    "test-verify-only",
@@ -295,10 +303,11 @@ func (c *ServerCommand) Run(args []string) int {
 	}
 	switch strings.ToLower(logFormat) {
 	case "vault", "vault_json", "vault-json", "vaultjson", "json", "":
-		if c.flagDevThreeNode {
+		if c.flagDevThreeNode || c.flagDevFourCluster {
 			c.logger = logbridge.NewLogger(hclog.New(&hclog.LoggerOptions{
 				Mutex:  &sync.Mutex{},
 				Output: c.logGate,
+				Level:  hclog.Trace,
 			})).LogxiLogger()
 		} else {
 			c.logger = logformat.NewVaultLoggerWithWriter(c.logGate, level)
@@ -313,7 +322,7 @@ func (c *ServerCommand) Run(args []string) int {
 	})
 
 	// Automatically enable dev mode if other dev flags are provided.
-	if c.flagDevHA || c.flagDevTransactional || c.flagDevLeasedKV || c.flagDevThreeNode {
+	if c.flagDevHA || c.flagDevTransactional || c.flagDevLeasedKV || c.flagDevThreeNode || c.flagDevFourCluster {
 		c.flagDev = true
 	}
 
@@ -369,9 +378,10 @@ func (c *ServerCommand) Run(args []string) int {
 		return 1
 	}
 
-	// If mlockall(2) isn't supported, show a warning.  We disable this
-	// in dev because it is quite scary to see when first using Vault.
-	if !c.flagDev && !mlock.Supported() {
+	// If mlockall(2) isn't supported, show a warning. We disable this in dev
+	// because it is quite scary to see when first using Vault. We also disable
+	// this if the user has explicitly disabled mlock in configuration.
+	if !c.flagDev && !config.DisableMlock && !mlock.Supported() {
 		c.UI.Warn(wrapAtLength(
 			"WARNING! mlock is not supported on this system! An mlockall(2)-like " +
 				"syscall to prevent memory from being swapped to disk is not " +
@@ -402,7 +412,7 @@ func (c *ServerCommand) Run(args []string) int {
 	info["log level"] = c.flagLogLevel
 	infoKeys = append(infoKeys, "log level")
 
-	var seal vault.Seal = &vault.DefaultSeal{}
+	var seal vault.Seal = vault.NewDefaultSeal()
 
 	// Ensure that the seal finalizer is called, even if using verify-only
 	defer func() {
@@ -890,7 +900,7 @@ CLUSTER_SYNTHESIS_COMPLETE:
 		case <-c.ShutdownCh:
 			c.UI.Output("==> Vault shutdown triggered")
 
-			// Stop the listners so that we don't process further client requests.
+			// Stop the listeners so that we don't process further client requests.
 			c.cleanupGuard.Do(listenerCloseFunc)
 
 			// Shutdown will wait until after Vault is sealed, which means the
@@ -1186,7 +1196,7 @@ func (c *ServerCommand) enableThreeNodeDevCluster(base *vault.CoreConfig, info m
 		case <-c.ShutdownCh:
 			c.UI.Output("==> Vault shutdown triggered")
 
-			// Stop the listners so that we don't process further client requests.
+			// Stop the listeners so that we don't process further client requests.
 			c.cleanupGuard.Do(testCluster.Cleanup)
 
 			// Shutdown will wait until after Vault is sealed, which means the

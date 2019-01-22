@@ -1,6 +1,7 @@
 package pester
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -39,6 +40,199 @@ func TestConcurrentRequests(t *testing.T) {
 	}
 }
 
+func TestConcurrentRequestsWith429DefaultClient(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	c.Concurrency = 3
+	c.KeepLog = true
+
+	port, err := serverWith429()
+	if err != nil {
+		t.Fatal("unable to start server", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	response, err := c.Get(url)
+	if err != nil {
+		t.Fatal("unable to GET", err)
+	}
+	c.Wait()
+
+	response.Body.Close()
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), 0; got != want {
+		t.Errorf("got %d attempts, want %d", got, want)
+	}
+}
+
+func TestConcurrentRequestsWith400(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	c.Concurrency = 3
+	c.KeepLog = true
+	c.SetRetryOnHTTP429(true)
+
+	port, err := serverWith400()
+	if err != nil {
+		t.Fatal("unable to start server", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	response, err := c.Get(url)
+	if err != nil {
+		t.Fatal("unable to GET", err)
+	}
+	c.Wait()
+
+	response.Body.Close()
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), 0; got != want {
+		t.Errorf("got %d attempts, want %d", got, want)
+	}
+}
+
+func TestConcurrentRequestsWith429(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	c.Concurrency = 3
+	c.KeepLog = true
+	c.SetRetryOnHTTP429(true)
+
+	port, err := serverWith429()
+	if err != nil {
+		t.Fatal("unable to start server", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	response, err := c.Get(url)
+	if err != nil {
+		t.Fatal("unable to GET", err)
+	}
+	c.Wait()
+
+	response.Body.Close()
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), c.Concurrency*c.MaxRetries; got != want {
+		t.Errorf("got %d attempts, want %d", got, want)
+	}
+}
+
+func TestMaxRetriesConcurrentRequestsWith429DefaultClient(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	c.Concurrency = 3
+	c.KeepLog = true
+	c.MaxRetries = 5
+
+	port, err := serverWith429()
+	if err != nil {
+		t.Fatal("unable to start server", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	response, err := c.Get(url)
+	if err != nil {
+		t.Fatal("unable to GET", err)
+	}
+	c.Wait()
+
+	response.Body.Close()
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), 0; got != want {
+		t.Errorf("got %d attempts, want %d", got, want)
+	}
+}
+
+func TestMaxRetriesConcurrentRequestsWith400(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	c.Concurrency = 3
+	c.KeepLog = true
+	c.MaxRetries = 5
+	c.SetRetryOnHTTP429(true)
+
+	port, err := serverWith400()
+	if err != nil {
+		t.Fatal("unable to start server", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	response, err := c.Get(url)
+	if err != nil {
+		t.Fatal("unable to GET", err)
+	}
+	c.Wait()
+
+	response.Body.Close()
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), 0; got != want {
+		t.Errorf("got %d attempts, want %d", got, want)
+	}
+}
+
+func TestMaxRetriesConcurrentRequestsWith429(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	c.Concurrency = 3
+	c.KeepLog = true
+	c.MaxRetries = 5
+	c.SetRetryOnHTTP429(true)
+
+	port, err := serverWith429()
+	if err != nil {
+		t.Fatal("unable to start server", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	response, err := c.Get(url)
+	if err != nil {
+		t.Fatal("unable to GET", err)
+	}
+	c.Wait()
+
+	response.Body.Close()
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), c.Concurrency*c.MaxRetries; got != want {
+		t.Errorf("got %d attempts, want %d", got, want)
+	}
+}
+
 func TestConcurrent2Retry0(t *testing.T) {
 	t.Parallel()
 
@@ -52,6 +246,67 @@ func TestConcurrent2Retry0(t *testing.T) {
 	_, err := c.Get(nonExistantURL)
 	if err == nil {
 		t.Fatal("expected to get an error")
+	}
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), c.Concurrency; got != want {
+		t.Errorf("got %d attempts, want %d", got, want)
+	}
+}
+
+func TestConcurrent2Retry0for429DefaultClient(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	c.Concurrency = 2
+	c.MaxRetries = 0
+	c.KeepLog = true
+
+	port, err := serverWith429()
+	if err != nil {
+		t.Fatal("unable to start server", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	_, getErr := c.Get(url)
+
+	if getErr != nil {
+		t.Fatal("unable to GET", getErr)
+	}
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), 0; got != want {
+		t.Errorf("got %d attempts, want %d", got, want)
+	}
+}
+
+func TestConcurrent2Retry0for429(t *testing.T) {
+	t.Parallel()
+
+	c := New()
+	c.Concurrency = 2
+	c.MaxRetries = 0
+	c.KeepLog = true
+	c.SetRetryOnHTTP429(true)
+
+	port, err := serverWith429()
+	if err != nil {
+		t.Fatal("unable to start server", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	_, getErr := c.Get(url)
+
+	if getErr != nil {
+		t.Fatal("unable to GET", getErr)
 	}
 	c.Wait()
 
@@ -151,7 +406,7 @@ func TestCustomLogHook(t *testing.T) {
 
 	// in the event of an error, let's see what the logs were
 	if expectedRetries != len(errorLines) {
-		t.Errorf("Expected %d lines to be emitted. Got %d", expectedRetries, errorLines)
+		t.Errorf("Expected %d lines to be emitted. Got %d", expectedRetries, len(errorLines))
 	}
 }
 
@@ -397,6 +652,48 @@ func TestConcurrentRequestsNotRacyAndDontLeak_SuccessfulRequest(t *testing.T) {
 	}
 }
 
+func TestRetriesNotAttemptedIfContextIsCancelled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	port, err := timeoutServer(1 * time.Second)
+	if err != nil {
+		t.Fatal("unable to start timeout server", err)
+	}
+
+	timeoutURL := fmt.Sprintf("http://localhost:%d", port)
+	req, err := http.NewRequest("GET", timeoutURL, nil)
+	if err != nil {
+		t.Fatalf("unable to create request %v", err)
+	}
+	req = req.WithContext(ctx)
+
+	c := New()
+	c.MaxRetries = 10
+	c.KeepLog = true
+	c.Backoff = ExponentialBackoff
+
+	//Cancel the context in another routine (eg: user interrupt)
+	go func() {
+		cancel()
+		t.Logf("\n%d - cancelled", time.Now().Unix())
+	}()
+
+	_, err = c.Do(req)
+	if err == nil {
+		t.Fatal("expected to get an error")
+	}
+	c.Wait()
+
+	// in the event of an error, let's see what the logs were
+	t.Log("\n", c.LogString())
+
+	if got, want := c.LogErrCount(), 1; got != want {
+		t.Fatalf("got %d errors, want %d", got, want)
+	}
+}
+
 func withinEpsilon(got, want int64, epslion float64) bool {
 	if want <= int64(epslion*float64(got)) || want >= int64(epslion*float64(got)) {
 		return false
@@ -440,6 +737,66 @@ func timeoutServer(timeout time.Duration) (int, error) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		<-time.After(timeout)
 		w.Write([]byte("OK"))
+	})
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return -1, fmt.Errorf("unable to secure listener %v", err)
+	}
+	go func() {
+		if err := http.Serve(l, mux); err != nil {
+			log.Fatalf("slow-server error %v", err)
+		}
+	}()
+
+	var port int
+	_, sport, err := net.SplitHostPort(l.Addr().String())
+	if err == nil {
+		port, err = strconv.Atoi(sport)
+	}
+
+	if err != nil {
+		return -1, fmt.Errorf("unable to determine port %v", err)
+	}
+
+	return port, nil
+}
+
+func serverWith429() (int, error) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write([]byte("429 Too many requests"))
+	})
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return -1, fmt.Errorf("unable to secure listener %v", err)
+	}
+	go func() {
+		if err := http.Serve(l, mux); err != nil {
+			log.Fatalf("slow-server error %v", err)
+		}
+	}()
+
+	var port int
+	_, sport, err := net.SplitHostPort(l.Addr().String())
+	if err == nil {
+		port, err = strconv.Atoi(sport)
+	}
+
+	if err != nil {
+		return -1, fmt.Errorf("unable to determine port %v", err)
+	}
+
+	return port, nil
+}
+
+func serverWith400() (int, error) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("400 Bad Request"))
 	})
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {

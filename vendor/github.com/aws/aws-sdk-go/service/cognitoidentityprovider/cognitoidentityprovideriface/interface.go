@@ -296,6 +296,10 @@ type CognitoIdentityProviderAPI interface {
 	GetIdentityProviderByIdentifierWithContext(aws.Context, *cognitoidentityprovider.GetIdentityProviderByIdentifierInput, ...request.Option) (*cognitoidentityprovider.GetIdentityProviderByIdentifierOutput, error)
 	GetIdentityProviderByIdentifierRequest(*cognitoidentityprovider.GetIdentityProviderByIdentifierInput) (*request.Request, *cognitoidentityprovider.GetIdentityProviderByIdentifierOutput)
 
+	GetSigningCertificate(*cognitoidentityprovider.GetSigningCertificateInput) (*cognitoidentityprovider.GetSigningCertificateOutput, error)
+	GetSigningCertificateWithContext(aws.Context, *cognitoidentityprovider.GetSigningCertificateInput, ...request.Option) (*cognitoidentityprovider.GetSigningCertificateOutput, error)
+	GetSigningCertificateRequest(*cognitoidentityprovider.GetSigningCertificateInput) (*request.Request, *cognitoidentityprovider.GetSigningCertificateOutput)
+
 	GetUICustomization(*cognitoidentityprovider.GetUICustomizationInput) (*cognitoidentityprovider.GetUICustomizationOutput, error)
 	GetUICustomizationWithContext(aws.Context, *cognitoidentityprovider.GetUICustomizationInput, ...request.Option) (*cognitoidentityprovider.GetUICustomizationOutput, error)
 	GetUICustomizationRequest(*cognitoidentityprovider.GetUICustomizationInput) (*request.Request, *cognitoidentityprovider.GetUICustomizationOutput)
@@ -427,6 +431,10 @@ type CognitoIdentityProviderAPI interface {
 	UpdateUserPoolClient(*cognitoidentityprovider.UpdateUserPoolClientInput) (*cognitoidentityprovider.UpdateUserPoolClientOutput, error)
 	UpdateUserPoolClientWithContext(aws.Context, *cognitoidentityprovider.UpdateUserPoolClientInput, ...request.Option) (*cognitoidentityprovider.UpdateUserPoolClientOutput, error)
 	UpdateUserPoolClientRequest(*cognitoidentityprovider.UpdateUserPoolClientInput) (*request.Request, *cognitoidentityprovider.UpdateUserPoolClientOutput)
+
+	UpdateUserPoolDomain(*cognitoidentityprovider.UpdateUserPoolDomainInput) (*cognitoidentityprovider.UpdateUserPoolDomainOutput, error)
+	UpdateUserPoolDomainWithContext(aws.Context, *cognitoidentityprovider.UpdateUserPoolDomainInput, ...request.Option) (*cognitoidentityprovider.UpdateUserPoolDomainOutput, error)
+	UpdateUserPoolDomainRequest(*cognitoidentityprovider.UpdateUserPoolDomainInput) (*request.Request, *cognitoidentityprovider.UpdateUserPoolDomainOutput)
 
 	VerifySoftwareToken(*cognitoidentityprovider.VerifySoftwareTokenInput) (*cognitoidentityprovider.VerifySoftwareTokenOutput, error)
 	VerifySoftwareTokenWithContext(aws.Context, *cognitoidentityprovider.VerifySoftwareTokenInput, ...request.Option) (*cognitoidentityprovider.VerifySoftwareTokenOutput, error)
