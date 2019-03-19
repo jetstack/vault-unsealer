@@ -1,8 +1,6 @@
 package main
 
 import (
-	"flag"
-
 	"github.com/jetstack/vault-unsealer/cmd"
 )
 
@@ -13,7 +11,6 @@ var (
 )
 
 func main() {
-	flag.Parse()
 	cmd.Version.Version = version
 	cmd.Version.Commit = commit
 	cmd.Version.BuildDate = date
